@@ -5,69 +5,7 @@
 {% block content %}
     <link rel="stylesheet" href="{% static 'css/appointments.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/bootstrap-icons.min.css">
-    <style>
-        .heading-title{
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 0 0 6px 0;
-        }
-        .subtitle {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            margin: 0;
-        }
 
-        /* Enhanced Stats Cards */
-        .stat-card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.75rem;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-            border: 1px solid rgba(0,0,0,0.05);
-            cursor: pointer;
-        }
-        .stat-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 24px rgba(0,0,0,0.12);
-        }
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 200%;
-            height: 200%;
-            border-radius: 50%;
-            opacity: 0.03;
-            transition: all 0.3s ease;
-        }
-        .stat-card:hover::before { opacity:0.08; }
-        .stat-card.total::before { background:#007bff; }
-        .stat-card.confirmed::before { background:#28a745; }
-        .stat-card.pending::before { background:#ffc107; }
-        .stat-card.completed::before { background:#17a2b8; }
-        .stat-content { position:relative; z-index:1; }
-        .stat-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; }
-        .stat-icon { width:56px; height:56px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.75rem; }
-        .stat-card.total .stat-icon { background: rgba(0,123,255,0.1); color:#007bff; }
-        .stat-card.confirmed .stat-icon { background: rgba(40,167,69,0.1); color:#28a745; }
-        .stat-card.pending .stat-icon { background: rgba(255,193,7,0.1); color:#ffc107; }
-        .stat-card.completed .stat-icon { background: rgba(23,162,184,0.1); color:#17a2b8; }
-        .stat-number { font-size:2.5rem; font-weight:700; color:#1a1a1a; line-height:1; margin-bottom:0.5rem; }
-        .stat-label { font-size:0.875rem; color:#666; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
-        .stat-meta { font-size:0.8rem; color:#999; margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(0,0,0,0.05); }
-        @media (max-width:768px) {
-            .stat-number { font-size:2rem; }
-            .stat-icon { width:48px; height:48px; font-size:1.5rem; }
-        }
-    </style>
 
     {% if user.is_authenticated %}
         {% include "components/sidebar/staff.html" %}

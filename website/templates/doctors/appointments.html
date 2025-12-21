@@ -4,23 +4,6 @@
 
 {% block content %}
     <link rel="stylesheet" href="{% static 'css/appointments.css' %}">
-    <style>
-        .heading-title{
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 0 0 6px 0;
-        }
-
-        .subtitle {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            margin: 0;
-        }
-    </style>
     {% if user.is_authenticated and user.role == "doctor" %}
         {% include "components/sidebar/doctor.html" %}
         <div class="main-content">

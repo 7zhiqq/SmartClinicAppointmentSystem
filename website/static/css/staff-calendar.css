@@ -430,6 +430,18 @@
     font-weight: var(--font-weight-medium);
 }
 
+.calendar-header-section .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.calendar-header-section .header-top > div {
+    flex: 1;
+}
+
+
 /* ==================== NOT AUTHENTICATED ==================== */
 .not-authenticated {
     display: flex;

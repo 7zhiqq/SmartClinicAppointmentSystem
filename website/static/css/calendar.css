@@ -18,6 +18,29 @@
     letter-spacing: 0.5px;
 }
 
+.heading-title {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin: 0 0 var(--space-sm) 0;
+    letter-spacing: -0.5px;
+}
+
+.heading-title i {
+    color: var(--primary);
+    font-size: 1.75rem;
+}
+
+.subtitle {
+    font-size: var(--font-size-md);
+    color: var(--text-muted);
+    margin: 0;
+    font-weight: var(--font-weight-normal);
+}
+
 /* ==================== ENHANCED DOCTOR SELECT ==================== */
 .doctor-select-input {
     width: 100%;
