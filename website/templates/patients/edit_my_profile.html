@@ -1,42 +1,115 @@
 {% extends "components/base.html" %}
+{% load static %}
 {% block content %}
+    <link rel="stylesheet" href="{% static 'css/edit-profile.css' %}">
     {% if user.is_authenticated %}
         {% if user.role == "patient" %}
             {% include "components/sidebar/patient.html" %}
         {% endif %}
 
-        <div class="main-content dashboard">
-                <h2>Edit My Profile</h2>
-                <hr>
+        <div class="main-content">
+            <div class="edit-profile-wrapper">
+                <h2><i class="bi bi-person-circle"></i> Edit My Profile</h2>
 
-                <form method="post">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="post" novalidate>
                     {% csrf_token %}
 
-                    <h4>User Info</h4>
+                    <!-- USER INFORMATION SECTION -->
+                    <h3><i class="bi bi-person-lines-fill"></i> User Information</h3>
+                    
                     {% for field in user_form %}
-                        <div class="mb-2">
-                            {{ field.label_tag }}
-                            {{ field }}
-                            {% if field.errors %}
-                                <div class="text-danger">{{ field.errors }}</div>
+                        {% if field.name == 'first_name' or field.name == 'last_name' %}
+                            {% if forloop.counter == 1 %}
+                                <div class="form-row">
                             {% endif %}
-                        </div>
+                            <div class="form-group">
+                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <span class="error-message">{{ field.errors.0 }}</span>
+                                {% endif %}
+                            </div>
+                            {% if forloop.counter == 2 %}
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="form-group">
+                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <span class="error-message">{{ field.errors.0 }}</span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
                     {% endfor %}
 
-                    <h4>Patient Info</h4>
+                    <!-- PATIENT INFORMATION SECTION -->
+                    <h3><i class="bi bi-hospital"></i> Patient Information</h3>
+                    
                     {% for field in patient_form %}
-                        <div class="mb-2">
-                            {{ field.label_tag }}
-                            {{ field }}
-                            {% if field.errors %}
-                                <div class="text-danger">{{ field.errors }}</div>
+                        {% if field.name == 'gender' %}
+                            <div class="form-group">
+                                <label>{{ field.label }}</label>
+                                <div style="display: flex; gap: var(--space-lg); flex-wrap: wrap;">
+                                    {% for radio in field %}
+                                        {% if radio.choice_label != '---' and radio.choice_label != '---------' %}
+                                            <div class="form-check">
+                                                {{ radio.tag }}
+                                                <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                                    {{ radio.choice_label }}
+                                                </label>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                {% if field.errors %}
+                                    <span class="error-message">{{ field.errors.0 }}</span>
+                                {% endif %}
+                            </div>
+                        {% elif field.name == 'birthdate' or field.name == 'age' %}
+                            {% if forloop.counter == 3 %}
+                                <div class="form-row">
                             {% endif %}
-                        </div>
+                            <div class="form-group">
+                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <span class="error-message">{{ field.errors.0 }}</span>
+                                {% endif %}
+                            </div>
+                            {% if forloop.counter == 4 %}
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="form-group">
+                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <span class="error-message">{{ field.errors.0 }}</span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
                     {% endfor %}
 
-                    <button type="submit" class="btn btn-primary mt-2">Save Changes</button>
-                    <a href="{% url 'medical_records' %}" class="btn btn-secondary mt-2">Cancel</a>
+                    <!-- ACTION BUTTONS -->
+                    <div style="display: flex; gap: var(--space-md); margin-top: var(--space-2xl);">
+                        <button type="submit" style="padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-weight-bold); font-size: var(--font-size-sm); transition: all var(--transition-fast); box-shadow: var(--shadow-primary);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(79, 70, 229, 0.35)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='var(--shadow-primary)';">
+                            Save
+                        </button>
+                        <a href="{% url 'medical_records' %}" style="padding: 10px 20px; background: var(--gray-100); color: var(--text-main); border: 2px solid var(--border-light); border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-weight-bold); font-size: var(--font-size-sm); text-decoration: none; display: inline-flex; align-items: center; justify-content: center; transition: all var(--transition-fast);" onmouseover="this.style.backgroundColor='var(--gray-200)'; this.style.borderColor='var(--text-muted)'; this.style.transform='translateY(-2px)';" onmouseout="this.style.backgroundColor='var(--gray-100)'; this.style.borderColor='var(--border-light)'; this.style.transform='translateY(0)';">
+                            Cancel
+                        </a>
+                    </div>
                 </form>
+            </div>
         </div>
     {% endif %}
 {% endblock %}

@@ -51,7 +51,7 @@ a {
 /* ==================== MENU ITEMS ==================== */
 .menu-item {
     padding: var(--space-md) var(--space-lg);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-sm);
     margin-bottom: var(--space-xs);
     cursor: pointer;
     font-size: var(--font-size-sm);

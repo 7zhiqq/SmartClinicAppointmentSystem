@@ -29,7 +29,21 @@ class UserBasicInfoForm(forms.ModelForm):
         }
 
 class PatientInfoForm(forms.ModelForm):
-    age = forms.IntegerField(required=False, disabled=True, widget=forms.NumberInput(attrs={"class": "form-control"}))
+    phone = forms.CharField(
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "type": "tel",
+            "class": "form-control",
+            "placeholder": "Enter phone number"
+        })
+    )
+    age = forms.IntegerField(
+        required=False,
+        disabled=True,
+        widget=forms.NumberInput(attrs={"class": "form-control"})
+    )
+    
     class Meta:
         model = PatientInfo
         fields = ["gender", "birthdate", "blood_type"]
@@ -38,22 +52,45 @@ class PatientInfoForm(forms.ModelForm):
             "birthdate": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
             "blood_type": forms.Select(attrs={"class": "form-select"}),
         }
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         birthdate = self.initial.get("birthdate") or getattr(self.instance, "birthdate", None)
         if birthdate:
             today = date.today()
             self.fields["age"].initial = today.year - birthdate.year - ((today.month, today.day) < (birthdate.month, birthdate.day))
-
+        
+        # Load phone number if it exists
+        if self.instance and self.instance.user:
+            try:
+                phone = self.instance.user.phone
+                self.fields["phone"].initial = phone.number
+            except:
+                pass
+    
+    def save(self, commit=True):
+        instance = super().save(commit=commit)
+        
+        # Save phone number
+        phone_number = self.cleaned_data.get("phone")
+        if phone_number and instance.user:
+            from accounts.models import Phone
+            phone_obj, created = Phone.objects.get_or_create(user=instance.user)
+            phone_obj.number = phone_number
+            phone_obj.save()
+        
+        return instance
+    
 class DependentPatientForm(forms.ModelForm):
     age = forms.IntegerField(required=False, disabled=True, widget=forms.NumberInput(attrs={"class": "form-control"}))
     class Meta:
         model = DependentPatient
-        fields = ["first_name", "last_name", "gender", "birthdate", "blood_type"]
+        fields = ["first_name", "last_name", "gender", "phone", "birthdate", "blood_type"]
         widgets = {
             "first_name": forms.TextInput(attrs={"class": "form-control"}),
             "last_name": forms.TextInput(attrs={"class": "form-control"}),
             "gender": forms.RadioSelect(),
+            "phone": forms.TextInput(attrs={"type": "tel", "class": "form-control", "placeholder": "Enter phone number"}),
             "birthdate": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
             "blood_type": forms.Select(attrs={"class": "form-select"}),
         }
@@ -63,7 +100,6 @@ class DependentPatientForm(forms.ModelForm):
         if birthdate:
             today = date.today()
             self.fields["age"].initial = today.year - birthdate.year - ((today.month, today.day) < (birthdate.month, birthdate.day))
-
 # Vitals
 class PatientVitalsForm(forms.ModelForm):
     class Meta:

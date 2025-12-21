@@ -1,0 +1,584 @@
+/* ==================== EDIT PROFILE WRAPPER ==================== */
+.edit-profile-wrapper {
+    max-width: 800px;
+    margin: var(--space-3xl) auto;
+    padding: var(--space-2xl);
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-light);
+    animation: slideUp 0.5s var(--ease-out);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==================== PAGE TITLE ==================== */
+.edit-profile-wrapper h1,
+.edit-profile-wrapper h2 {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--primary);
+    margin-bottom: var(--space-xl);
+    border-bottom: 3px solid var(--primary-lighter);
+    padding-bottom: var(--space-lg);
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.edit-profile-wrapper h1 i,
+.edit-profile-wrapper h2 i {
+    font-size: 1.75rem;
+    color: var(--primary);
+}
+
+/* ==================== SECTION DIVIDER ==================== */
+.edit-profile-wrapper hr {
+    border: none;
+    border-top: 2px solid var(--border-light);
+    margin: var(--space-2xl) 0;
+    opacity: 0.6;
+}
+
+.edit-profile-wrapper h3,
+.edit-profile-wrapper h4 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-main);
+    margin: var(--space-2xl) 0 var(--space-lg) 0;
+    padding-bottom: var(--space-md);
+    border-bottom: 2px solid var(--primary-lighter);
+    letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.edit-profile-wrapper h3 i,
+.edit-profile-wrapper h4 i {
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+/* ==================== FORM CONTAINER ==================== */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+    margin-top: var(--space-xl);
+}
+
+/* ==================== FORM GROUPS ==================== */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+}
+
+form .mb-2 {
+    margin-bottom: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+/* ==================== FORM LABELS ==================== */
+form label,
+.form-group label {
+    display: block;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-main);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--space-xs);
+}
+
+form label::after,
+.form-group label::after {
+    content: " *";
+    color: var(--danger);
+}
+
+label[for$="gender"]::after {
+    content: "";
+}
+
+/* ==================== FORM INPUTS ==================== */
+form input[type="text"],
+form input[type="email"],
+form input[type="number"],
+form input[type="date"],
+form input[type="password"],
+form input[type="datetime-local"],
+form select,
+form textarea,
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    background: var(--white);
+    color: var(--text-main);
+    font-size: var(--font-size-md);
+    font-family: var(--font-main);
+    transition: all var(--transition-fast);
+    box-sizing: border-box;
+    line-height: var(--line-height-normal);
+}
+
+form input[type="text"]::placeholder,
+form input[type="email"]::placeholder,
+form input[type="number"]::placeholder,
+form textarea::placeholder,
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: var(--text-light);
+}
+
+form input[type="text"]:hover,
+form input[type="email"]:hover,
+form input[type="number"]:hover,
+form input[type="date"]:hover,
+form input[type="password"]:hover,
+form input[type="datetime-local"]:hover,
+form select:hover,
+form textarea:hover,
+.form-group input:hover,
+.form-group select:hover,
+.form-group textarea:hover {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08);
+}
+
+form input[type="text"]:focus,
+form input[type="email"]:focus,
+form input[type="number"]:focus,
+form input[type="date"]:focus,
+form input[type="password"]:focus,
+form input[type="datetime-local"]:focus,
+form select:focus,
+form textarea:focus,
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+    background: rgba(79, 70, 229, 0.02);
+}
+
+/* ==================== SELECT STYLING ==================== */
+form select,
+.form-group select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23214994' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 24px;
+    padding-right: 45px;
+    cursor: pointer;
+}
+
+form select option,
+.form-group select option {
+    padding: var(--space-md);
+    color: var(--text-main);
+    background: var(--white);
+}
+
+/* ==================== TEXTAREA ==================== */
+form textarea,
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+    line-height: var(--line-height-normal);
+}
+
+/* ==================== RADIO BUTTONS (GENDER) ==================== */
+.form-check {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md) 0;
+    margin-bottom: var(--space-sm);
+}
+
+.form-check input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--primary);
+    margin: 0;
+}
+
+.form-check-inline {
+    margin-right: var(--space-lg);
+}
+
+.form-check-label {
+    cursor: pointer;
+    font-weight: var(--font-weight-medium);
+    color: var(--text-main);
+    font-size: var(--font-size-sm);
+    margin-bottom: 0;
+}
+
+.form-check-label:hover {
+    color: var(--primary);
+}
+
+/* ==================== ERROR HANDLING ==================== */
+form input.is-invalid,
+form select.is-invalid,
+form textarea.is-invalid,
+.form-group.has-error input,
+.form-group.has-error select,
+.form-group.has-error textarea {
+    border-color: var(--danger);
+    background: rgba(239, 68, 68, 0.02);
+}
+
+form input.is-invalid:focus,
+form select.is-invalid:focus,
+form textarea.is-invalid:focus,
+.form-group.has-error input:focus,
+.form-group.has-error select:focus,
+.form-group.has-error textarea:focus {
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
+}
+
+.error-message,
+.invalid-feedback,
+.text-danger {
+    color: var(--danger);
+    font-size: var(--font-size-sm);
+    margin-top: var(--space-xs);
+    font-weight: var(--font-weight-semibold);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.error-message::before,
+.invalid-feedback::before {
+    content: "⚠";
+    font-size: var(--font-size-md);
+}
+
+.errorlist,
+ul.errorlist {
+    list-style: none;
+    margin: var(--space-md) 0 0 0;
+    padding: var(--space-md);
+    background: var(--danger-bg);
+    border-left: 4px solid var(--danger);
+    color: var(--danger);
+    font-size: var(--font-size-sm);
+    border-radius: var(--radius-md);
+}
+
+.errorlist li,
+ul.errorlist li {
+    margin: var(--space-xs) 0;
+}
+
+/* ==================== HELP TEXT ==================== */
+.helptext,
+.form-text {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin-top: var(--space-xs);
+    font-style: italic;
+}
+
+/* ==================== FORM ACTIONS ==================== */
+.form-actions,
+.form-buttons {
+    display: flex;
+    gap: var(--space-md);
+    margin-top: var(--space-2xl);
+    flex-wrap: wrap;
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--border-light);
+}
+
+button[type="submit"],
+.btn-submit,
+input[type="submit"],
+.btn-primary {
+    flex: 1;
+    min-width: 150px;
+    padding: 14px 24px;
+    background: var(--primary);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    box-shadow: var(--shadow-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: var(--font-main);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+button[type="submit"]:hover,
+.btn-submit:hover,
+input[type="submit"]:hover,
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35);
+}
+
+button[type="submit"]:active,
+.btn-submit:active,
+input[type="submit"]:active,
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+button[type="submit"]:disabled,
+.btn-submit:disabled,
+input[type="submit"]:disabled,
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* ==================== CANCEL/SECONDARY BUTTON ==================== */
+button[type="button"],
+.btn-cancel,
+a.btn-cancel,
+.btn-secondary {
+    flex: 1;
+    min-width: 150px;
+    padding: 14px 24px;
+    background: var(--gray-100);
+    color: var(--text-main);
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: var(--font-main);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+button[type="button"]:hover,
+.btn-cancel:hover,
+a.btn-cancel:hover,
+.btn-secondary:hover {
+    background: var(--gray-200);
+    border-color: var(--text-muted);
+    transform: translateY(-2px);
+}
+
+button[type="button"]:active,
+.btn-cancel:active,
+a.btn-cancel:active,
+.btn-secondary:active {
+    transform: translateY(0);
+}
+
+/* ==================== SUCCESS ALERT ==================== */
+.alert-success {
+    padding: var(--space-lg);
+    background: var(--success-bg);
+    border-left: 4px solid var(--success);
+    border-radius: var(--radius-md);
+    color: var(--success);
+    margin-bottom: var(--space-xl);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    animation: slideDown 0.4s var(--ease-out);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==================== INFO BOX ==================== */
+.info-box {
+    padding: var(--space-lg);
+    background: var(--primary-lighter);
+    border-left: 4px solid var(--primary);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-xl);
+    color: var(--text-main);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-relaxed);
+}
+
+.info-box strong {
+    color: var(--primary);
+    font-weight: var(--font-weight-bold);
+}
+
+/* ==================== TWO COLUMN LAYOUT ==================== */
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-xl);
+}
+
+.form-row .form-group,
+.form-row .mb-2 {
+    margin-bottom: 0;
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 1024px) {
+    .edit-profile-wrapper {
+        padding: var(--space-xl);
+    }
+}
+
+@media (max-width: 768px) {
+    .edit-profile-wrapper {
+        padding: var(--space-xl);
+        margin: var(--space-lg);
+    }
+
+    .edit-profile-wrapper h1,
+    .edit-profile-wrapper h2 {
+        font-size: var(--font-size-xl);
+        margin-bottom: var(--space-lg);
+    }
+
+    .edit-profile-wrapper h3,
+    .edit-profile-wrapper h4 {
+        font-size: var(--font-size-md);
+        margin: var(--space-xl) 0 var(--space-lg) 0;
+    }
+
+    form {
+        gap: var(--space-lg);
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: var(--space-lg);
+    }
+
+    .form-actions,
+    .form-buttons {
+        flex-direction: column;
+    }
+
+    button[type="submit"],
+    .btn-submit,
+    input[type="submit"],
+    .btn-primary,
+    button[type="button"],
+    .btn-cancel,
+    a.btn-cancel,
+    .btn-secondary {
+        width: 100%;
+        flex: none;
+    }
+
+    .form-check-inline {
+        margin-right: 0;
+        margin-bottom: var(--space-md);
+    }
+}
+
+@media (max-width: 480px) {
+    .edit-profile-wrapper {
+        padding: var(--space-lg);
+        margin: var(--space-md);
+    }
+
+    .edit-profile-wrapper h1,
+    .edit-profile-wrapper h2 {
+        font-size: var(--font-size-lg);
+        margin-bottom: var(--space-lg);
+        gap: var(--space-sm);
+    }
+
+    .edit-profile-wrapper h1 i,
+    .edit-profile-wrapper h2 i,
+    .edit-profile-wrapper h3 i,
+    .edit-profile-wrapper h4 i {
+        font-size: 1.25rem;
+    }
+
+    .edit-profile-wrapper h3,
+    .edit-profile-wrapper h4 {
+        font-size: var(--font-size-sm);
+    }
+
+    form input[type="text"],
+    form input[type="email"],
+    form input[type="number"],
+    form input[type="date"],
+    form input[type="password"],
+    form input[type="datetime-local"],
+    form select,
+    form textarea {
+        padding: 12px 14px;
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+
+    form label {
+        font-size: var(--font-size-xs);
+        margin-bottom: var(--space-xs);
+    }
+
+    button[type="submit"],
+    .btn-submit,
+    input[type="submit"],
+    .btn-primary,
+    button[type="button"],
+    .btn-cancel,
+    a.btn-cancel,
+    .btn-secondary {
+        padding: 12px 16px;
+        font-size: var(--font-size-sm);
+        min-height: 44px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+    }
+
+    .info-box {
+        padding: var(--space-md);
+        font-size: var(--font-size-xs);
+    }
+}

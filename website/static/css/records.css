@@ -27,6 +27,18 @@
     font-size: var(--font-size-sm);
 }
 
+.contact-item .edit-link {
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.contact-item .edit-link:hover {
+    color: #f0f0f0; 
+    text-decoration: underline;
+}
+
+
 /* Medical Records Card */
 .medical-records {
     display: flex;

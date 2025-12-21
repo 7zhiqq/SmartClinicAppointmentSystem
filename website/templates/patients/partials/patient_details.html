@@ -60,9 +60,9 @@
             <div class="contact-item text-end">
                 {% if user.role == "patient" %}
                     {% if patient_type == "self" %}
-                        <a href="{% url 'edit_my_patient_info' %}">Edit</a>
+                        <a href="{% url 'edit_my_patient_info' %}" class="edit-link">Edit</a>
                     {% else %}
-                        <a href="{% url 'edit_dependent' patient.pk %}">Edit</a>
+                        <a href="{% url 'edit_dependent' patient.pk %}" class="edit-link">Edit</a>
                     {% endif %}
                 {% endif %}
             </div>

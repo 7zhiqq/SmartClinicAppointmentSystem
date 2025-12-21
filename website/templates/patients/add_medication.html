@@ -1,22 +1,39 @@
-{% extends 'components/base.html' %}
+{% extends "components/base.html" %}
+{% load static %}
 {% block content %}
+    <link rel="stylesheet" href="{% static 'css/health-forms.css' %}">
     {% if user.is_authenticated %}
         {% if user.role == "patient" %}
-            {% include 'components/sidebar/patient.html' %}
+            {% include "components/sidebar/patient.html" %}
+        {% elif user.role == "staff" %}
+            {% include "components/sidebar/staff.html" %}
         {% endif %}
-        {% if user.role == "staff" %}
-            {% include 'components/sidebar/staff.html' %}
-        {% endif %}
-
         <div class="main-content">
-            <h2>Add Patient Medication</h2>
+            <div class="health-form-wrapper">
+                <h2><i class="bi bi-capsule"></i> Add Patient Medication</h2>
                 <form method="post">
                     {% csrf_token %}
-                    {{ form.as_p }}
-                    <button type="submit" class="btn btn-primary">
-                        Save Medication
-                    </button>
+                    {% for field in form %}
+                        {% if field.name != 'recorded_at' %}
+                            <div>
+                                {{ field.label_tag }}
+                                {{ field }}
+                                {% if field.errors %}
+                                    <span class="error-message">{{ field.errors.0 }}</span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                    <div class="form-actions">
+                        <button type="submit">Save Medication</button>
+                        {% if user.role == "staff" %}
+                            <a href="{% url 'patient_list' %}" class="btn-cancel">Cancel</a>
+                        {% elif user.role == "patient" %}
+                            <a href="{% url 'medical_records' %}" class="btn-cancel"></a>>Cancel</a>
+                        {% endif %}
+                    </div>
                 </form>
+            </div>
         </div>
     {% endif %}
 {% endblock %}

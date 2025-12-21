@@ -1,0 +1,515 @@
+/* ==================== PATIENT HEALTH FORMS ==================== */
+.health-form-wrapper {
+    max-width: 700px;
+    margin: var(--space-3xl) auto;
+    padding: var(--space-2xl);
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-light);
+    animation: slideUp 0.5s var(--ease-out);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==================== PAGE TITLE ==================== */
+.health-form-wrapper h2 {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--primary);
+    margin-bottom: var(--space-xl);
+    border-bottom: 3px solid var(--primary-lighter);
+    padding-bottom: var(--space-lg);
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.health-form-wrapper h2 i {
+    font-size: 1.75rem;
+    color: var(--primary);
+}
+
+/* ==================== FORM CONTAINER ==================== */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+    margin-top: var(--space-xl);
+}
+
+/* ==================== DJANGO FORM PARAGRAPH STYLING ==================== */
+form p {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    margin-bottom: 0;
+}
+
+form label {
+    display: block;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-main);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--space-xs);
+}
+
+/* ==================== FORM INPUTS ==================== */
+form input[type="text"],
+form input[type="number"],
+form input[type="email"],
+form input[type="password"],
+form input[type="date"],
+form input[type="datetime-local"],
+form select,
+form textarea,
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    background: var(--white);
+    color: var(--text-main);
+    font-size: var(--font-size-md);
+    font-family: var(--font-main);
+    transition: all var(--transition-fast);
+    box-sizing: border-box;
+    line-height: var(--line-height-normal);
+}
+
+form input[type="text"]::placeholder,
+form input[type="number"]::placeholder,
+form input[type="email"]::placeholder,
+form input[type="password"]::placeholder,
+form textarea::placeholder,
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: var(--text-light);
+}
+
+form input[type="text"]:hover,
+form input[type="number"]:hover,
+form input[type="email"]:hover,
+form input[type="password"]:hover,
+form input[type="date"]:hover,
+form input[type="datetime-local"]:hover,
+form select:hover,
+form textarea:hover,
+.form-group input:hover,
+.form-group select:hover,
+.form-group textarea:hover {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08);
+}
+
+form input[type="text"]:focus,
+form input[type="number"]:focus,
+form input[type="email"]:focus,
+form input[type="password"]:focus,
+form input[type="date"]:focus,
+form input[type="datetime-local"]:focus,
+form select:focus,
+form textarea:focus,
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+    background: rgba(79, 70, 229, 0.02);
+}
+
+/* ==================== SELECT STYLING ==================== */
+form select,
+.form-group select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23214994' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 24px;
+    padding-right: 45px;
+    cursor: pointer;
+}
+
+form select option,
+.form-group select option {
+    padding: var(--space-md);
+    color: var(--text-main);
+    background: var(--white);
+}
+
+/* ==================== TEXTAREA ==================== */
+form textarea,
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+    line-height: var(--line-height-normal);
+}
+
+/* ==================== FORM GROUP ==================== */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.form-group label {
+    display: block;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-main);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--space-sm);
+}
+
+/* ==================== ERROR HANDLING ==================== */
+form input.is-invalid,
+form select.is-invalid,
+form textarea.is-invalid,
+.form-group.has-error input,
+.form-group.has-error select,
+.form-group.has-error textarea {
+    border-color: var(--danger);
+    background: rgba(239, 68, 68, 0.02);
+}
+
+form input.is-invalid:focus,
+form select.is-invalid:focus,
+form textarea.is-invalid:focus,
+.form-group.has-error input:focus,
+.form-group.has-error select:focus,
+.form-group.has-error textarea:focus {
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
+}
+
+.error-message,
+.invalid-feedback {
+    color: var(--danger);
+    font-size: var(--font-size-sm);
+    margin-top: var(--space-xs);
+    font-weight: var(--font-weight-semibold);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.error-message::before,
+.invalid-feedback::before {
+    content: "⚠";
+    font-size: var(--font-size-md);
+}
+
+.errorlist,
+ul.errorlist {
+    list-style: none;
+    margin: var(--space-md) 0 0 0;
+    padding: var(--space-md);
+    background: var(--danger-bg);
+    border-left: 4px solid var(--danger);
+    color: var(--danger);
+    font-size: var(--font-size-sm);
+    border-radius: var(--radius-md);
+}
+
+.errorlist li,
+ul.errorlist li {
+    margin: var(--space-xs) 0;
+}
+
+/* ==================== HELP TEXT ==================== */
+.helptext,
+.form-text {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin-top: var(--space-xs);
+    font-style: italic;
+}
+
+/* ==================== FORM ACTIONS ==================== */
+.form-actions {
+    display: flex;
+    gap: var(--space-md);
+    margin-top: var(--space-xl);
+    flex-wrap: wrap;
+}
+
+button[type="submit"],
+.btn-submit,
+input[type="submit"] {
+    flex: 1;
+    min-width: 150px;
+    padding: 14px 24px;
+    background: var(--primary);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    box-shadow: var(--shadow-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: var(--font-main);
+}
+
+button[type="submit"]:hover,
+.btn-submit:hover,
+input[type="submit"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35);
+}
+
+button[type="submit"]:active,
+.btn-submit:active,
+input[type="submit"]:active {
+    transform: translateY(0);
+}
+
+button[type="submit"]:disabled,
+.btn-submit:disabled,
+input[type="submit"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* ==================== CANCEL BUTTON ==================== */
+button[type="button"],
+.btn-cancel,
+a.btn-cancel {
+    flex: 1;
+    min-width: 150px;
+    padding: 14px 24px;
+    background: var(--gray-100);
+    color: var(--text-main);
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: var(--font-main);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+button[type="button"]:hover,
+.btn-cancel:hover,
+a.btn-cancel:hover {
+    background: var(--gray-200);
+    border-color: var(--text-muted);
+    transform: translateY(-2px);
+}
+
+button[type="button"]:active,
+.btn-cancel:active,
+a.btn-cancel:active {
+    transform: translateY(0);
+}
+
+/* ==================== VITALS SPECIFIC ==================== */
+.vitals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-xl);
+}
+
+.vital-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.vital-input-group label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    font-weight: var(--font-weight-semibold);
+}
+
+.vital-icon {
+    font-size: 1.5rem;
+}
+
+.unit-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-top: var(--space-xs);
+}
+
+/* ==================== ALLERGY SPECIFIC ==================== */
+.allergy-input-wrapper {
+    display: flex;
+    gap: var(--space-md);
+    align-items: flex-end;
+}
+
+.allergy-input-wrapper .form-group,
+.allergy-input-wrapper p {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.add-allergy-btn {
+    padding: 12px 20px;
+    background: var(--success);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    font-weight: var(--font-weight-semibold);
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.add-allergy-btn:hover {
+    background: var(--success-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+/* ==================== INFO BOX ==================== */
+.info-box {
+    padding: var(--space-lg);
+    background: var(--primary-lighter);
+    border-left: 4px solid var(--primary);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-xl);
+    color: var(--text-main);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-relaxed);
+}
+
+.info-box strong {
+    color: var(--primary);
+    font-weight: var(--font-weight-bold);
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 1024px) {
+    .health-form-wrapper {
+        padding: var(--space-xl);
+    }
+}
+
+@media (max-width: 768px) {
+    .health-form-wrapper {
+        padding: var(--space-xl);
+        margin: var(--space-lg);
+    }
+
+    .health-form-wrapper h2 {
+        font-size: var(--font-size-xl);
+        margin-bottom: var(--space-lg);
+    }
+
+    form {
+        gap: var(--space-lg);
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    button[type="submit"],
+    .btn-submit,
+    input[type="submit"],
+    button[type="button"],
+    .btn-cancel,
+    a.btn-cancel {
+        width: 100%;
+        flex: none;
+    }
+
+    .vitals-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-lg);
+    }
+
+    .allergy-input-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .add-allergy-btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .health-form-wrapper {
+        padding: var(--space-lg);
+        margin: var(--space-md);
+    }
+
+    .health-form-wrapper h2 {
+        font-size: var(--font-size-lg);
+        margin-bottom: var(--space-lg);
+        gap: var(--space-sm);
+    }
+
+    .health-form-wrapper h2 i {
+        font-size: 1.5rem;
+    }
+
+    form input[type="text"],
+    form input[type="number"],
+    form input[type="email"],
+    form input[type="password"],
+    form input[type="date"],
+    form input[type="datetime-local"],
+    form select,
+    form textarea {
+        padding: 12px 14px;
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+
+    form label {
+        font-size: var(--font-size-xs);
+        margin-bottom: var(--space-xs);
+    }
+
+    button[type="submit"],
+    .btn-submit,
+    input[type="submit"],
+    button[type="button"],
+    .btn-cancel,
+    a.btn-cancel {
+        padding: 12px 16px;
+        font-size: var(--font-size-sm);
+        min-height: 44px;
+    }
+
+    .info-box {
+        padding: var(--space-md);
+        font-size: var(--font-size-xs);
+    }
+
+    .vitals-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+    }
+}
