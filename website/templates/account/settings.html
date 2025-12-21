@@ -1,0 +1,415 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/edit-profile.css' %}">
+    
+    {% if user.is_authenticated %}
+        {% if user.role == "staff" %}
+            {% include "components/sidebar/staff.html" %}
+        {% elif user.role == "doctor" %}
+            {% include "components/sidebar/doctor.html" %}
+        {% elif user.role == "patient" %}
+            {% include "components/sidebar/patient.html" %}
+        {% elif user.role == "manager" %}
+            {% include "components/sidebar/manager.html" %}
+        {% endif %}
+
+        <div class="main-content">
+            <div class="edit-profile-wrapper">
+                <h2><i class="bi bi-gear"></i> Account Settings</h2>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <!-- Tabs Navigation -->
+                <div class="settings-tabs mb-4">
+                    <button class="tab-btn active" data-tab="general">
+                        <i class="bi bi-person-circle"></i> General
+                    </button>
+                    <button class="tab-btn" data-tab="security">
+                        <i class="bi bi-shield-lock"></i> Security
+                    </button>
+                </div>
+
+                <!-- General Settings Tab -->
+                <div class="tab-content active" id="general">
+                    <h3><i class="bi bi-info-circle"></i> General Information</h3>
+                    
+                    <form method="post" action="{% url 'account_settings' %}" novalidate>
+                        {% csrf_token %}
+                        <input type="hidden" name="tab" value="general">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="id_first_name">First Name</label>
+                                <input 
+                                    type="text" 
+                                    name="first_name" 
+                                    id="id_first_name"
+                                    value="{{ user.first_name }}"
+                                    class="form-control"
+                                >
+                                {% if form_general.first_name.errors %}
+                                    <div class="error-message">{{ form_general.first_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Last Name -->
+                            <div class="form-group">
+                                <label for="id_last_name">Last Name</label>
+                                <input 
+                                    type="text" 
+                                    name="last_name" 
+                                    id="id_last_name"
+                                    value="{{ user.last_name }}"
+                                    class="form-control"
+                                >
+                                {% if form_general.last_name.errors %}
+                                    <div class="error-message">{{ form_general.last_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Username -->
+                        <div class="form-group">
+                            <label for="id_username">Username</label>
+                            <input 
+                                type="text" 
+                                name="username" 
+                                id="id_username"
+                                value="{{ user.username }}"
+                                class="form-control"
+                                required
+                            >
+                            <small class="form-text text-muted">
+                                <i class="bi bi-info-circle"></i> 
+                                Your unique username for login
+                            </small>
+                            {% if form_general.username.errors %}
+                                <div class="error-message">{{ form_general.username.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Email -->
+                        <div class="form-group">
+                            <label for="id_email">Email Address</label>
+                            <input 
+                                type="email" 
+                                name="email" 
+                                id="id_email"
+                                value="{{ user.email }}"
+                                class="form-control"
+                                required
+                            >
+                            <small class="form-text text-muted">
+                                <i class="bi bi-info-circle"></i> 
+                                We'll use this for account notifications
+                            </small>
+                            {% if form_general.email.errors %}
+                                <div class="error-message">{{ form_general.email.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- First Name -->
+                        
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg"></i> Save Changes
+                            </button>
+                            <a href="{% url 'home' %}" class="btn btn-secondary">
+                                <i class="bi bi-x"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Security Settings Tab -->
+                <div class="tab-content" id="security">
+                    <h3><i class="bi bi-shield-lock"></i> Change Password</h3>
+                    
+                    <form method="post" action="{% url 'account_settings' %}" novalidate>
+                        {% csrf_token %}
+                        <input type="hidden" name="tab" value="security">
+
+                        <!-- Current Password -->
+                        <div class="form-group">
+                            <label for="id_current_password">Current Password</label>
+                            <div class="password-input-wrapper">
+                                <input 
+                                    type="password" 
+                                    name="current_password" 
+                                    id="id_current_password"
+                                    class="form-control"
+                                    required
+                                    placeholder="Enter your current password"
+                                >
+                                <button type="button" class="toggle-password" data-target="id_current_password">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            {% if form_security.current_password.errors %}
+                                <div class="error-message">{{ form_security.current_password.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- New Password -->
+                        <div class="form-group">
+                            <label for="id_new_password1">New Password</label>
+                            <div class="password-input-wrapper">
+                                <input 
+                                    type="password" 
+                                    name="new_password1" 
+                                    id="id_new_password1"
+                                    class="form-control"
+                                    required
+                                    placeholder="Enter your new password"
+                                >
+                                <button type="button" class="toggle-password" data-target="id_new_password1">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <small class="form-text text-muted">
+                                <ul style="margin-top: 8px; padding-left: 20px;">
+                                    <li>At least 8 characters</li>
+                                    <li>Mix of letters, numbers, and symbols</li>
+                                    <li>Not similar to your personal information</li>
+                                    <li>Not a commonly used password</li>
+                                </ul>
+                            </small>
+                            {% if form_security.new_password1.errors %}
+                                <div class="error-message">{{ form_security.new_password1.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Confirm New Password -->
+                        <div class="form-group">
+                            <label for="id_new_password2">Confirm New Password</label>
+                            <div class="password-input-wrapper">
+                                <input 
+                                    type="password" 
+                                    name="new_password2" 
+                                    id="id_new_password2"
+                                    class="form-control"
+                                    required
+                                    placeholder="Confirm your new password"
+                                >
+                                <button type="button" class="toggle-password" data-target="id_new_password2">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            {% if form_security.new_password2.errors %}
+                                <div class="error-message">{{ form_security.new_password2.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-lock"></i> Update Password
+                            </button>
+                            <a href="{% url 'home' %}" class="btn btn-secondary">
+                                <i class="bi bi-x"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            /* Settings Tabs */
+            .settings-tabs {
+                display: flex;
+                gap: 12px;
+                border-bottom: 2px solid var(--border-light);
+                margin-bottom: 30px;
+            }
+
+            .tab-btn {
+                padding: 12px 16px;
+                background: none;
+                border: none;
+                color: var(--text-muted);
+                font-weight: 600;
+                font-size: 14px;
+                cursor: pointer;
+                border-bottom: 3px solid transparent;
+                transition: all var(--transition-fast);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .tab-btn:hover {
+                color: var(--primary);
+            }
+
+            .tab-btn.active {
+                color: var(--primary);
+                border-bottom-color: var(--primary);
+            }
+
+            .tab-btn i {
+                font-size: 16px;
+            }
+
+            /* Tab Content */
+            .tab-content {
+                display: none;
+                animation: fadeIn 0.3s ease;
+            }
+
+            .tab-content.active {
+                display: block;
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* Password Input Wrapper */
+            .password-input-wrapper {
+                position: relative;
+                display: flex;
+                align-items: center;
+            }
+
+            .toggle-password {
+                position: absolute;
+                right: 12px;
+                color: var(--text-muted);
+                cursor: pointer;
+                padding: 4px 8px;
+                font-size: 18px;
+                transition: color var(--transition-fast);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .toggle-password:hover {
+                color: var(--primary);
+            }
+
+            .password-input-wrapper .form-control {
+                padding-right: 44px;
+            }
+
+            /* Info Box */
+            .info-box {
+                padding: 12px 16px;
+                background: var(--primary-lighter);
+                border-left: 4px solid var(--primary);
+                border-radius: 8px;
+                margin-bottom: 20px;
+                color: var(--text-main);
+                font-size: 13px;
+            }
+
+            .info-box i {
+                color: var(--primary);
+                margin-right: 8px;
+            }
+
+            /* Form Row for side-by-side fields */
+            .form-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+                margin-bottom: 20px;
+            }
+
+            @media (max-width: 768px) {
+                .settings-tabs {
+                    flex-direction: column;
+                    border-bottom: none;
+                }
+
+                .tab-btn {
+                    border-bottom: none;
+                    border-left: 3px solid transparent;
+                    padding-left: 12px;
+                }
+
+                .tab-btn.active {
+                    border-bottom: none;
+                    border-left-color: var(--primary);
+                }
+
+                .form-row {
+                    grid-template-columns: 1fr;
+                    gap: 20px;
+                }
+            }
+        </style>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Tab switching
+                const tabBtns = document.querySelectorAll('.tab-btn');
+                const tabContents = document.querySelectorAll('.tab-content');
+
+                tabBtns.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const tabName = this.getAttribute('data-tab');
+
+                        // Remove active class from all buttons and contents
+                        tabBtns.forEach(b => b.classList.remove('active'));
+                        tabContents.forEach(c => c.classList.remove('active'));
+
+                        // Add active class to clicked button and corresponding content
+                        this.classList.add('active');
+                        document.getElementById(tabName).classList.add('active');
+                    });
+                });
+
+                // Password visibility toggle
+                const toggleBtns = document.querySelectorAll('.toggle-password');
+
+                toggleBtns.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const targetId = this.getAttribute('data-target');
+                        const input = document.getElementById(targetId);
+                        const icon = this.querySelector('i');
+
+                        if (input.type === 'password') {
+                            input.type = 'text';
+                            icon.classList.remove('bi-eye');
+                            icon.classList.add('bi-eye-slash');
+                        } else {
+                            input.type = 'password';
+                            icon.classList.remove('bi-eye-slash');
+                            icon.classList.add('bi-eye');
+                        }
+                    });
+                });
+
+                // Auto-close alerts after 5 seconds
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(alert => {
+                    setTimeout(() => {
+                        const bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    }, 5000);
+                });
+            });
+        </script>
+    {% else %}
+        <div style="text-align: center; padding: 40px;">
+            <p>Please log in to access account settings.</p>
+        </div>
+    {% endif %}
+{% endblock %}

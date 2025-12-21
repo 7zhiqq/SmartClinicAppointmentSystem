@@ -4,7 +4,8 @@ from . import views
 urlpatterns = [
     path("", views.home, name="home"),
     path("logout/", views.logout_user, name="logout"),
-    
+    path('account/settings/', views.account_settings, name='account_settings'),
+
     path('medical-records/', views.medical_records, name='medical_records'),
     path('patients/', views.patient_list, name='patient_list'),
     path('ajax/patient/<str:pk>/', views.patient_details_ajax, name='patient_details_ajax'),

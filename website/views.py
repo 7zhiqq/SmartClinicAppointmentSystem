@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib import messages
 from django.http import HttpResponseForbidden
 from django.template.loader import render_to_string
@@ -16,6 +16,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 import json
 from django.views.decorators.csrf import csrf_exempt
+from django import forms
 
 from .models import (
     PatientInfo,
@@ -43,7 +44,9 @@ from .forms import (
     AppointmentForm,
     DoctorAvailabilityForm,
     CustomDoctorAvailabilityForm,
-    MedicalRecordForm
+    MedicalRecordForm,
+    GeneralSettingsForm,
+    SecuritySettingsForm
 )
 
 # Authentication
@@ -73,6 +76,73 @@ def logout_user(request):
     messages.success(request, "You have been logged out.")
     return redirect("home")
 
+# Add this view to website/views.py
+@login_required
+def account_settings(request):
+    """Handle account settings for username, email, and password changes"""
+    
+    tab = request.POST.get('tab', 'general') if request.method == 'POST' else 'general'
+    
+    form_general = None
+    form_security = None
+    
+    if request.method == 'POST':
+        if tab == 'general':
+            form_general = GeneralSettingsForm(request.POST)
+            form_general.user_id = request.user.id
+            
+            if form_general.is_valid():
+                user = request.user
+                user.username = form_general.cleaned_data['username']
+                user.email = form_general.cleaned_data['email']
+                user.first_name = form_general.cleaned_data['first_name']
+                user.last_name = form_general.cleaned_data['last_name']
+                user.save()
+                
+                messages.success(request, "Your account information has been updated successfully.")
+                return redirect('account_settings')
+        
+        elif tab == 'security':
+            form_security = SecuritySettingsForm(request.POST)
+            
+            if form_security.is_valid():
+                user = request.user
+                current_password = form_security.cleaned_data['current_password']
+                new_password = form_security.cleaned_data['new_password1']
+                
+                # Verify current password
+                if not user.check_password(current_password):
+                    form_security.add_error('current_password', 'Current password is incorrect.')
+                else:
+                    # Set new password
+                    user.set_password(new_password)
+                    user.save()
+                    
+                    # Keep the user logged in after password change
+                    update_session_auth_hash(request, user)
+                    
+                    messages.success(request, "Your password has been changed successfully.")
+                    return redirect('account_settings')
+    
+    # Initialize forms with current data
+    if form_general is None:
+        form_general = GeneralSettingsForm(initial={
+            'username': request.user.username,
+            'email': request.user.email,
+            'first_name': request.user.first_name,
+            'last_name': request.user.last_name,
+        })
+        form_general.user_id = request.user.id
+    
+    if form_security is None:
+        form_security = SecuritySettingsForm()
+    
+    return render(request, 'account/settings.html', {
+        'form_general': form_general,
+        'form_security': form_security,
+        'active_tab': tab,
+    })
+    
 # DASHBOARD
 @login_required
 def medical_records(request):

@@ -28,6 +28,89 @@ class UserBasicInfoForm(forms.ModelForm):
             "email": forms.EmailInput(attrs={"class": "form-control"}),
         }
 
+class GeneralSettingsForm(forms.Form):
+    username = forms.CharField(
+        max_length=150,
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={'class': 'form-control'})
+    )
+    first_name = forms.CharField(
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    last_name = forms.CharField(
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        # Check if username is already taken by another user
+        from accounts.models import User
+        if User.objects.filter(username=username).exclude(id=self.user_id).exists():
+            raise forms.ValidationError("This username is already taken.")
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        # Check if email is already used by another user
+        from accounts.models import User
+        if User.objects.filter(email=email).exclude(id=self.user_id).exists():
+            raise forms.ValidationError("This email is already in use.")
+        return email
+
+
+class SecuritySettingsForm(forms.Form):
+    current_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        label="Current Password",
+        required=True
+    )
+    new_password1 = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        label="New Password",
+        required=True,
+        min_length=8
+    )
+    new_password2 = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        label="Confirm New Password",
+        required=True
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        new_password1 = cleaned_data.get('new_password1')
+        new_password2 = cleaned_data.get('new_password2')
+
+        if new_password1 and new_password2:
+            if new_password1 != new_password2:
+                raise forms.ValidationError("The passwords do not match.")
+        
+        return cleaned_data
+
+    def clean_new_password1(self):
+        new_password1 = self.cleaned_data.get('new_password1')
+        
+        if new_password1:
+            # Check if it's all numeric
+            if new_password1.isdigit():
+                raise forms.ValidationError("Password cannot be entirely numeric.")
+            
+            # Check if password is too similar to common patterns
+            common_passwords = ['password', '12345678', 'qwerty', 'admin', 'letmein']
+            if new_password1.lower() in common_passwords:
+                raise forms.ValidationError("This password is too common. Please choose a stronger password.")
+        
+        return new_password1
+
+
 class PatientInfoForm(forms.ModelForm):
     phone = forms.CharField(
         max_length=20,
