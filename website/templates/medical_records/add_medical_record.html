@@ -1,0 +1,69 @@
+{% extends "components/base.html" %}
+{% load static %}
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/record-form.css' %}">
+    {% if user.is_authenticated %}
+        {% if user.role == "doctor" %}
+            {% include "components/sidebar/doctor.html" %}
+        {% elif user.role == "staff" %}
+            {% include "components/sidebar/staff.html" %}
+        {% endif %}
+        <div class="main-content">
+            <div class="record-form-wrapper">
+                <h2 class="form-title">
+                    Add Medical Record for 
+                    {% if patient_type == "self" %}
+                        {{ patient.user.get_full_name }}
+                    {% else %}
+                        {{ patient.full_name }}
+                    {% endif %}
+                </h2>
+
+                <form method="post" class="record-form">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="id_reason_for_visit" class="form-label">Reason for Visit</label>
+                        {{ form.reason_for_visit}}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_symptoms" class="form-label">Symptoms</label>
+                        {{ form.symptoms}}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_diagnosis" class="form-label">Diagnosis</label>
+                        {{ form.diagnosis}}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_prescription" class="form-label">Prescription</label>
+                        {{ form.prescription}}
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">Save Record</button>
+                        <a href="{% if request.META.HTTP_REFERER %}{{ request.META.HTTP_REFERER }}{% else %}{% url 'patient_details' patient.pk %}{% endif %}" 
+                        class="btn btn-secondary ms-2">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const textareas = document.querySelectorAll('.record-form textarea');
+
+        textareas.forEach(textarea => {
+            textarea.style.height = textarea.scrollHeight + 'px';
+
+            textarea.addEventListener('input', () => {
+                textarea.style.height = 'auto';                   // reset height
+                textarea.style.height = textarea.scrollHeight + 'px'; // expand dynamically
+            });
+        });
+    });
+</script>

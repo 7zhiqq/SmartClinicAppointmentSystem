@@ -1,0 +1,28 @@
+{% extends "components/base.html" %}
+{% load static %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/invite.css' %}">
+    {% if user.is_authenticated %}
+        {% if user.role == "manager" %}
+            {% include 'components/sidebar/manager.html' %}
+            <div class="main-content">
+                <div class="invite-wrapper">
+                    <h2>Add New Specialization</h2>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="id_name">Specialization Name: </label>
+                            <input type="text" name="name" id="id_name" class="form-input" placeholder="Enter specialization" required>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success">Save</button>
+                        <a href="{% url 'manager_users' %}" class="btn btn-secondary">
+                            Cancel
+                        </a>
+                    </form>
+                </div>
+            </div>
+        {% endif %}
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,44 @@
+<div class="sidebar" id="sidebar">
+    <div class="logo">
+        WestPoint
+    </div>
+
+    <div class="sidebar-content">
+        <a href="{% url 'home'%}">
+            <div class="menu-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}" data-section="home">
+                <span class="text">
+                    <i class="bi bi-columns-gap"></i>
+                    Dashboard
+                </span>
+            </div>
+        </a>
+        
+        <a href="{% url 'doctor_calendar'%}">
+            <div class="menu-item {% if request.resolver_match.url_name == 'doctor_calendar' %}active{% endif %}" data-section="calendar">
+                <span class="text">
+                    <i class="bi bi-calendar"></i>
+                    Calendar
+                </span>
+            </div>
+        </a>
+        
+        <a href="{% url 'doctor_appointments'%}">
+            <div class="menu-item {% if request.resolver_match.url_name == 'doctor_appointments' %}active{% endif %}" data-section="appointments">
+                <span class="text">
+                    <i class="bi bi-person-square"></i>
+                    Appointments
+                </span>
+            </div>
+        </a>
+        
+        <a href="{% url 'doctor_patient_list' %}">
+            <div class="menu-item {% if request.resolver_match.url_name == 'doctor_patient_list' %}active{% endif %}" data-section="doctor_patient_list">
+                <span class="text">
+                    <i class="bi bi-clock-history"></i>
+                    Patient History
+                </span>
+            </div>
+        </a>
+        
+    </div>
+</div>

@@ -1,0 +1,42 @@
+{% extends "components/base.html" %}
+{% block content %}
+    {% if user.is_authenticated %}
+        {% if user.role == "patient" %}
+            {% include "components/sidebar/patient.html" %}
+        {% endif %}
+
+        <div class="main-content dashboard">
+                <h2>Edit My Profile</h2>
+                <hr>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <h4>User Info</h4>
+                    {% for field in user_form %}
+                        <div class="mb-2">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.errors %}
+                                <div class="text-danger">{{ field.errors }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    <h4>Patient Info</h4>
+                    {% for field in patient_form %}
+                        <div class="mb-2">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.errors %}
+                                <div class="text-danger">{{ field.errors }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    <button type="submit" class="btn btn-primary mt-2">Save Changes</button>
+                    <a href="{% url 'medical_records' %}" class="btn btn-secondary mt-2">Cancel</a>
+                </form>
+        </div>
+    {% endif %}
+{% endblock %}

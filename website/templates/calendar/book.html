@@ -1,0 +1,41 @@
+{% extends "components/base.html" %}
+{% load custom_filters %}
+{% load static %}
+    
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/book-appointment.css' %}">
+    {% if user.is_authenticated %}
+        {% include "components/sidebar/patient.html" %}
+        <div class="main-content">
+            <div class="appointment-wrapper">
+                <h2>Confirm Appointment</h2>
+                <p><strong>Doctor:</strong> Dr. {{ doctor.user.get_full_name }}</p>
+                <p><strong>Date & Time:</strong> {{ start|slice:":16" }}</p>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <input type="hidden" name="doctor_id" value="{{ doctor.id }}">
+                    <input type="hidden" name="start" value="{{ start }}">
+                    <input type="hidden" name="end" value="{{ end }}">
+
+                    <label>Book appointment for:</label>
+                    <select name="patient_type" required>
+                        <option value="self">Myself</option>
+                        {% for dep in dependents %}
+                            <option value="{{ dep.patient_id }}">
+                                {{ dep.first_name }} {{ dep.last_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+
+                    <br><br>
+
+                    <button type="submit">Confirm Appointment</button>
+                </form>
+            </div>
+            
+        </div>
+    {% endif %}
+{% endblock %}

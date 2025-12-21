@@ -1,0 +1,82 @@
+<h3>Appointment Details</h3>
+
+<p><strong>Doctor:</strong> Dr. {{ appointment.doctor.user.get_full_name }}</p>
+
+<p><strong>Patient:</strong>
+{% if appointment.patient %}
+    {{ appointment.patient.get_full_name }}
+{% elif appointment.dependent_patient %}
+    {{ appointment.dependent_patient.full_name }}
+{% endif %}
+</p>
+
+<p><strong>Date & Time:</strong>
+    {{ appointment.start_time|date:"M d, Y h:i A" }} -
+    {{ appointment.end_time|date:"h:i A" }}
+</p>
+
+<p><strong>Status:</strong> <span id="appointmentStatus">{{ appointment.status }}</span></p>
+
+<div class="d-flex gap-2 mt-3">
+    <a href="#" class="btn btn-success" onclick="updateStatus(event, '{{ appointment.id }}', 'approve')">Approve</a>
+    <a href="#" class="btn btn-danger" onclick="updateStatus(event, '{{ appointment.id }}', 'reject')">Reject</a>
+    <a href="#" class="btn btn-primary" onclick="updateStatus(event, '{{ appointment.id }}', 'complete')">Complete</a>
+</div>
+
+<script>
+// CSRF helper
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Attach click events to buttons
+document.querySelectorAll('.action-btn').forEach(button => {
+    button.addEventListener('click', function(event){
+        event.preventDefault();
+
+        const id = this.dataset.id;
+        const action = this.dataset.action;
+
+        fetch(`/staff/appointments/${id}/${action}/`, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCookie("csrftoken")
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            // Update status in modal dynamically
+            const statusEl = document.getElementById("appointmentStatus");
+            if (statusEl) statusEl.textContent = data.status;
+
+            // Close modal
+            const modalEl = document.getElementById("appointmentModal");
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+
+            // Optional: reload to update table
+            location.reload();
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Something went wrong.");
+        });
+    });
+});
+</script>

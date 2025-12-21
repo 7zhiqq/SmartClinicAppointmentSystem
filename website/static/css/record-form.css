@@ -1,0 +1,61 @@
+.record-form-wrapper {
+    max-width: 700px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+}
+
+.form-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #214994;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0.5rem;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #374151;
+    display: block;
+    margin-bottom: 0.3rem;
+}
+
+/* Inputs & Textareas */
+.record-form textarea {
+    min-height: 40px;    /* start small */
+    max-height: 400px;   /* optional max */
+    overflow: hidden;    /* hide scroll */
+    resize: none;        /* prevent manual resize */
+}
+
+
+/* Focus effect */
+.record-form input:focus,
+.record-form textarea:focus,
+.record-form select:focus {
+    outline: none;
+    border-color: #214994;
+    box-shadow: 0 0 0 2px rgba(33, 73, 148, 0.2);
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.btn {
+    border-radius: 6px;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .record-form-wrapper {
+        padding: 1.5rem;
+    }
+}

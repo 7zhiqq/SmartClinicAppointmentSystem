@@ -1,0 +1,156 @@
+/* ================================
+   Book Appointment Page
+================================ */
+
+.appointment-wrapper {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* Page Title */
+.appointment-wrapper h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #214994;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0.5rem;
+}
+
+/* Appointment Details */
+.appointment-wrapper p {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+    color: #374151;
+    line-height: 1.6;
+}
+
+.appointment-wrapper p strong {
+    min-width: 160px;
+    font-weight: 600;
+    color: #111827;
+}
+
+/* Form Container */
+form {
+    background-color: #f9fafb;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    margin-top: 1.5rem;
+}
+
+/* Form Labels */
+form label {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 0.5rem;
+}
+
+/* Form Select */
+form select {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.95rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background-color: #ffffff;
+    color: #374151;
+    cursor: pointer;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    box-sizing: border-box;
+    margin-bottom: 1.5rem;
+}
+
+form select:focus {
+    outline: none;
+    border-color: #214994;
+    box-shadow: 0 0 0 3px rgba(33, 73, 148, 0.1);
+}
+
+form select:hover {
+    border-color: #214994;
+}
+
+form select option {
+    padding: 0.5rem;
+    color: #374151;
+}
+
+/* Submit Button */
+.appointment-wrapper button[type="submit"] {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #ffffff;
+    background-color: #214994;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.appointment-wrapper button[type="submit"]:hover {
+    background-color: #1a3a75;
+    transform: translateY(-2px);
+}
+
+.appointment-wrapper button[type="submit"]:active {
+    background-color: #142d5a;
+    transform: translateY(0);
+}
+
+.appointment-wrapper button[type="submit"]:disabled {
+    background-color: #d1d5db;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .appointment-wrapper {
+        padding: 1.5rem;
+    }
+
+    .appointment-wrapper h2 {
+        font-size: 1.35rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .appointment-wrapper p {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .appointment-wrapper p strong {
+        min-width: unset;
+    }
+
+    form {
+        padding: 1.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .appointment-wrapper {
+        padding: 1rem;
+        margin: 1rem;
+    }
+
+    .appointment-wrapper h2 {
+        font-size: 1.1rem;
+    }
+
+    form {
+        padding: 1rem;
+    }
+}

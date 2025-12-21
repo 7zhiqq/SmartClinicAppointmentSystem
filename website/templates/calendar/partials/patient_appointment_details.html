@@ -1,0 +1,5 @@
+<p><strong>Doctor:</strong> {{ appointment.doctor.user.get_full_name }}</p>
+<p><strong>Start:</strong> {{ appointment.start_time }}</p>
+<p><strong>End:</strong> {{ appointment.end_time }}</p>
+<p><strong>Reason:</strong> {{ appointment.reason }}</p>
+<p><strong>Status:</strong> {{ appointment.get_status_display }}</p>

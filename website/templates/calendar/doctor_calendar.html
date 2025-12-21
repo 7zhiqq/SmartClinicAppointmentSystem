@@ -1,0 +1,132 @@
+{% extends "components/base.html" %}
+{% load static %}
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/staff-calendar.css' %}">
+    {% if user.is_authenticated and user.role == "doctor" %}
+        {% include "components/sidebar/doctor.html" %}
+
+        <div class="main-content">
+            <div class="calendar-header-section">
+                <div class="header-top">
+                    <div>
+                        <h2 class="heading-title">Calendar View</h2>
+                        <p class="subtitle">View your appointments and add availability</p>
+                    </div>
+                    <a href="{% url 'doctor_schedule'%}" class="add-schedule-btn">
+                        Add Schedule
+                    </a>
+                </div>
+            </div>
+
+            <div class="calendar-wrapper">
+                <div class="calendar-section">
+                    <div id="calendar"></div>
+                </div>
+
+                <div class="appointments-panel">
+                    <div class="appointments-header">
+                        <h2>Appointments</h2>
+                        <p id="selectedDate" class="selected-date-text">Select a Day</p>
+                    </div>
+
+                    <ul class="appointments-list" id="dayAppointments">
+                        <li class="empty-state">
+                            <span>Click a day on the calendar to view appointments</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            .calendar-header-section .header-top {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                gap: 20px;
+            }
+
+            .calendar-header-section .header-top > div {
+                flex: 1;
+            }
+
+            .add-schedule-btn {
+                padding: 10px 20px;
+                background-color: var(--primary);
+                color: white;
+                text-decoration: none;
+                border-radius: var(--radius-md);
+                font-size: var(--font-size-sm);
+                white-space: nowrap;
+                display: inline-block;
+                margin-top: 5px;
+                font-weight: 600;
+            }
+
+            .add-schedule-btn:hover {
+                background-color: var(--primary-hover);
+            }
+        </style>
+
+        <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const calendarEl = document.getElementById("calendar");
+                const appointmentsEl = document.getElementById("dayAppointments");
+                const selectedDateEl = document.getElementById("selectedDate");
+
+                const calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: "dayGridMonth",
+                    events: "{% url 'doctor_calendar_events' %}",
+                    headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth' },
+                    dateClick: function(info) {
+                        const dateStr = info.dateStr;
+                        const date = new Date(dateStr);
+                        const formattedDate = date.toLocaleDateString('en-US', {
+                            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                        });
+                        selectedDateEl.textContent = formattedDate;
+
+                        fetch(`/doctor/calendar/day-appointments/?date=${dateStr}`)
+                            .then(res => res.json())
+                            .then(data => {
+                                let html = "";
+                                if (data.length === 0) {
+                                    html = '<li class="empty-state"><span>No appointments for this day</span></li>';
+                                } else {
+                                    data.forEach(a => {
+                                        html += `
+                                            <li class="appointment-item">
+                                                <div class="appointment-content">
+                                                    <div class="appointment-name">${a.patient_name}</div>
+                                                    <div class="appointment-time">🕐 ${a.start_time} - ${a.end_time}</div>
+                                                </div>
+                                                <div class="appointment-status">
+                                                    <span class="status-badge ${getStatusColor(a.status)}">${a.status}</span>
+                                                </div>
+                                            </li>
+                                        `;
+                                    });
+                                }
+                                appointmentsEl.innerHTML = html;
+                            })
+                            .catch(err => console.error(err));
+                    }
+                });
+
+                calendar.render();
+
+                window.getStatusColor = function(status) {
+                    const statusMap = {
+                        'approved': 'status-confirmed',
+                        'pending': 'status-pending',
+                        'completed': 'status-completed',
+                        'rejected': 'status-cancelled'
+                    };
+                    return statusMap[status] || 'status-pending';
+                }
+            });
+        </script>
+    {% endif %}
+{% endblock %}

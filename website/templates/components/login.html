@@ -1,0 +1,66 @@
+{% extends 'components/base.html' %}
+{% load static %}
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    {% if user.is_authenticated %}
+        
+    {% else %}
+        <div class="layout-container">
+            <div class="left-panel">
+                <img src="{% static 'images/building.jpg' %}" alt="Clinic Building" class="building-image">
+                <div class="left-text">
+                    <img src="{% static 'images/westpoint.png' %}" alt="WestPoint Logo" class="logo">
+                    <p>At WestPoint Clinic, we are dedicated to providing comprehensive healthcare services tailored to meet the needs of every patient and to ensure you receive the highest quality of care in a safe and welcoming environment.</p>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="form-card">
+                    <h3 class="title">Log in to your account</h3>
+                    <p class="subtitle">Welcome back! Please enter your details.</p>
+
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert {{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+
+                    <form method="post" action="{% url 'home' %}">
+                        {% csrf_token %}
+
+                        <div class="field">
+                            <label>Username</label>
+                            <input type="text" name="username" placeholder="Enter your username" required>
+                        </div>
+
+                        <div class="field">
+                            <label>Password</label>
+                            <input type="password" name="password" placeholder="Enter your password" required>
+                        </div>
+
+                        <button type="submit" class="btn-primary">
+                            Log In
+                        </button>
+                    </form>
+
+                    <div class="divider">
+                        <span>or continue with</span>
+                    </div>
+
+                    <div class="socials">
+                        <button>G</button>
+                        <button>f</button>
+                    </div>
+
+                    <p class="signup-text">
+                        Don’t have an account?
+                        <a href="{% url 'register_patient' %}">Sign up</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

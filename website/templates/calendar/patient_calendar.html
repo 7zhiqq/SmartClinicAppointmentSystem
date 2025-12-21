@@ -1,0 +1,252 @@
+{% extends "components/base.html" %}
+{% load static %}
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/calendar.css' %}">
+    {% if user.is_authenticated and user.role == "patient" %}
+        {% include "components/sidebar/patient.html" %}
+
+        <div class="main-content">
+            <div class="calendar-header-section">
+                <h2 class="heading-title">Book Your Appointment</h2>
+                <p class="subtitle">Select a doctor and choose your preferred date and time</p>
+                
+                <div class="doctor-select-wrapper">
+                    <label for="doctorSelect" class="doctor-label">Select Doctor:</label>
+                    <select id="doctorSelect" class="doctor-select-input">
+                        <option value="">Choose a doctor...</option>
+                        {% for doctor in doctors %}
+                            <option value="{{ doctor.id }}">
+                                Dr. {{ doctor.user.get_full_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="calendar-wrapper">
+                <div class="calendar-section">
+                    <div id="calendar"></div>
+                </div>
+
+                <div class="appointments-panel">
+                    <div class="appointments-header">
+                        <h2>Available Times</h2>
+                        <p id="selected-date" class="selected-date-display">Select a date</p>
+                    </div>
+                    <div id="time-slots" class="time-slots-container">
+                        <p class="time-slots-placeholder">Choose a date to see available slots</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+        <script>
+            const BOOK_URL = "{% url 'book_schedule' %}";
+            let selectedDoctor = null;
+            let calendar;
+            let availableDaysCache = {};
+
+            //Calendar Utility 
+            function formatDateToYMD(date) {
+                const d = new Date(date);
+                return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+            }
+
+            function formatDateDisplay(dateStr) {
+                const date = new Date(dateStr + 'T00:00:00');
+                return date.toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+            }
+
+            // Load Available Days
+            function loadAvailableDays(year, month) {
+                if (!selectedDoctor) return Promise.resolve([]);
+
+                const key = `${year}-${String(month).padStart(2,"0")}`;
+
+                if (availableDaysCache[key]) {
+                    applyDisabledDays();
+                    return Promise.resolve(availableDaysCache[key]);
+                }
+
+                return fetch(`/calendar/available-days/?doctor_id=${selectedDoctor}&year=${year}&month=${month}`)
+                    .then(res => res.json())
+                    .then(days => {
+                        availableDaysCache[key] = days.map(d => typeof d === 'string' ? {date: d} : d);
+                        applyDisabledDays();
+                        return availableDaysCache[key];
+                    })
+                    .catch(err => {
+                        console.error('Error loading available days:', err);
+                        return [];
+                    });
+            }
+
+            // Apply Day Colors
+            function applyDisabledDays() {
+                setTimeout(() => {
+                    document.querySelectorAll(".fc-daygrid-day").forEach(dayEl => {
+                        const date = dayEl.getAttribute("data-date");
+                        if (!date) return;
+
+                        const monthKey = date.slice(0, 7);
+                        const monthData = availableDaysCache[monthKey] || [];
+                        const dayInfo = monthData.find(d => d.date === date);
+
+                        // Remove previous status classes
+                        dayEl.classList.remove("fc-day-disabled", "fc-day-available", "fc-day-custom");
+
+                        if (!dayInfo) {
+                            dayEl.classList.add("fc-day-disabled");
+                            dayEl.setAttribute("title", "Doctor not available");
+                        } else if (dayInfo.is_custom) {
+                            dayEl.classList.add("fc-day-custom");
+                            dayEl.removeAttribute("title");
+                        } else {
+                            dayEl.classList.add("fc-day-available");
+                            dayEl.removeAttribute("title");
+                        }
+                    });
+                }, 0);
+            }
+
+            // Load Time Slots
+            function loadAvailability(dateStr, doctorId) {
+                fetch(`/calendar/availability/?date=${dateStr}&doctor_id=${doctorId}`)
+                    .then(res => res.json())
+                    .then(slots => {
+                        const container = document.getElementById("time-slots");
+                        container.innerHTML = "";
+
+                        if (!Array.isArray(slots) || slots.length === 0) {
+                            container.innerHTML = "<p class='time-slots-placeholder'>No available slots on this day.</p>";
+                            return;
+                        }
+
+                        slots.forEach(slot => {
+                            const row = document.createElement("div");
+                            row.className = "time-slot";
+
+                            const timeSpan = document.createElement("span");
+                            timeSpan.className = "time-slot-time";
+                            timeSpan.textContent = slot.time;
+
+                            const btn = document.createElement("button");
+                            btn.className = "time-slot-button";
+                            btn.textContent = slot.available ? "Book" : "Booked";
+                            btn.disabled = !slot.available;
+
+                            if (slot.available) {
+                                btn.onclick = () => {
+                                    window.location.href =
+                                        `${BOOK_URL}?doctor=${doctorId}&start=${slot.start}&end=${slot.end}`;
+                                };
+                            }
+
+                            row.appendChild(timeSpan);
+                            row.appendChild(btn);
+                            container.appendChild(row);
+                        });
+                    })
+                    .catch(err => {
+                        console.error('Error loading availability:', err);
+                        document.getElementById("time-slots").innerHTML = 
+                            "<p class='time-slots-placeholder'>Error loading time slots. Please try again.</p>";
+                    });
+            }
+
+            // Initialize Calendar 
+            document.addEventListener("DOMContentLoaded", function() {
+                calendar = new FullCalendar.Calendar(document.getElementById("calendar"), {
+                    initialView: "dayGridMonth",
+                    height: "auto",
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: ''
+                    },
+
+                    dateClick: function(info) {
+                        if (!selectedDoctor) {
+                            alert("Please select a doctor first.");
+                            return;
+                        }
+
+                        const dateStr = formatDateToYMD(info.date);
+                        const displayDate = formatDateDisplay(dateStr);
+                        document.getElementById("selected-date").innerText = displayDate;
+
+                        const monthKey = dateStr.slice(0, 7);
+                        const monthData = availableDaysCache[monthKey] || [];
+                        const dayAvailable = monthData.some(d => d.date === dateStr);
+
+                        if (!dayAvailable) {
+                            document.getElementById("time-slots").innerHTML =
+                                "<p class='time-slots-placeholder'>No available slots on this day.</p>";
+                            return;
+                        }
+
+                        loadAvailability(dateStr, selectedDoctor);
+                    },
+
+                    datesSet: function(info) {
+                        if (!selectedDoctor) return;
+                        const current = info.view.currentStart;
+                        loadAvailableDays(current.getFullYear(), current.getMonth() + 1);
+                    }
+                });
+
+                calendar.render();
+            });
+
+            // Select Doctor
+            document.getElementById("doctorSelect").addEventListener("change", function() {
+                selectedDoctor = this.value;
+                availableDaysCache = {};
+                document.getElementById("time-slots").innerHTML = 
+                    "<p class='time-slots-placeholder'>Choose a date to see available slots</p>";
+                document.getElementById("selected-date").innerText = "Select a date";
+
+                if (!selectedDoctor) return;
+
+                const current = calendar.view.currentStart;
+                loadAvailableDays(current.getFullYear(), current.getMonth() + 1);
+            });
+        </script>
+
+        <style>
+            .fc-day-disabled {
+                background-color: #ffe4e4 !important; 
+                pointer-events: none;
+                opacity: 0.5 !important;
+            }
+
+            .fc-day-available {
+                background-color: #d1fae5 !important;
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+            }
+
+            .fc-day-custom {
+                background-color: #d1fae5 !important;
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+            }
+
+            .fc-day-available:hover,
+            .fc-day-custom:hover {
+                background-color: var(--primary) !important;
+                color: var(--text-inverse) !important;
+            }
+        </style>
+
+    {% endif %}
+{% endblock %}

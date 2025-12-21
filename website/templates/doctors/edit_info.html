@@ -1,0 +1,119 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+    <div class="doctor-profile-container">
+        <h1>Complete Your Doctor Profile</h1>
+
+        <form method="post" enctype="multipart/form-data" class="doctor-form">
+            {% csrf_token %}
+
+            <div class="profile-preview">
+                {% if form.instance.profile_picture %}
+                    <img id="profilePreview" src="{{ form.instance.profile_picture.url }}" alt="Profile Picture">
+                {% else %}
+                    <img id="profilePreview" src="{% static 'images/default_profile.png' %}" alt="Profile Picture">
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.profile_picture.id_for_label }}">Profile Picture</label>
+                {{ form.profile_picture }}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.specialization.id_for_label }}">Specialization</label>
+                {{ form.specialization }}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.license_number.id_for_label }}">License Number</label>
+                {{ form.license_number }}
+            </div>
+
+            <button type="submit" class="btn-submit">Save Profile</button>
+        </form>
+    </div>
+
+    <style>
+        .doctor-profile-container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #f5f7ff;
+            padding: 30px;
+            border-radius: 14px;
+        }
+
+        .doctor-profile-container h1 {
+            font-size: 28px;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 15px;
+        }
+
+        .profile-preview {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .profile-preview img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #4f46e5;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-submit:hover {
+            background: #4338ca;
+        }
+    </style>
+
+    <!-- Live preview of selected profile picture -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const profileInput = document.getElementById("id_profile_picture");
+            const previewImg = document.getElementById("profilePreview");
+
+            profileInput.addEventListener("change", function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewImg.src = e.target.result;
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+    </script>
+{% endblock %}

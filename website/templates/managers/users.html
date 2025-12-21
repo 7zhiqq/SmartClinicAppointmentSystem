@@ -1,0 +1,105 @@
+{% extends 'components/base.html' %}
+{% load static %}
+
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/users.css' %}">
+    {% if user.is_authenticated and user.role == "manager" %}
+        {% include 'components/sidebar/manager.html' %}
+        <div class="main-content">
+            <div class="users-header">
+                <div>
+                    <h2 class="users-title">
+                        Doctors User Requests
+                        <span class="badge">2 pending</span>
+                    </h2>
+                    <p class="users-subtitle">
+                        Review and manage doctor registration requests
+                    </p>
+                </div>
+
+                <a href="{% url 'create_invite' %}" class="btn btn-primary">
+                    <i class="bi bi-person-add"></i>
+                    Invite Users
+                </a>
+                <a href="{% url 'manager_add_specialization' %}" class="btn btn-primary">
+                    + Doctor Dept
+                </a>
+            </div>
+
+            <div class="users-table-wrapper">
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Specialization</th>
+                            <th>Status</th>
+                            <th style="text-align:right;">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                    {% for doctor in doctors %}
+                        <tr>
+                            <td>
+                                <div class="user-cell">
+                                    <div class="user-avatar">
+                                        {% if doctor.profile_picture %}
+                                            <img src="{{ doctor.profile_picture.url }}" alt="Profile picture">
+                                        {% else %}
+                                            <span class="avatar-fallback">
+                                                {{ doctor.user.first_name|slice:":1" }}{{ doctor.user.last_name|slice:":1" }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+
+                                    <span>
+                                        {{ doctor.user.get_full_name }}
+                                    </span>
+                                </div>
+                            </td>
+
+                            <td>
+                                {{ doctor.specialization }}
+                            </td>
+
+                            <td>
+                                {% if doctor.is_approved %}
+                                    <span class="status approved">Approved</span>
+                                {% elif doctor.is_rejected %}
+                                    <span class="status rejected">Rejected</span>
+                                {% else %}
+                                    <span class="status pending">Pending</span>
+                                {% endif %}
+                            </td>
+
+                            <td style="text-align:right;">
+                                {% if not doctor.is_approved %}
+                                    <a href="{% url 'manager_approve_doctor' doctor.id %}"
+                                    class="action-btn action-approve">
+                                        <i class="bi bi-check-lg"></i>
+                                        Approve
+                                    </a>
+                                    <a href="{% url 'manager_reject_doctor' doctor.id %}"
+                                    class="action-btn action-reject">
+                                        <i class="bi bi-x-lg"></i>
+                                        Reject
+                                    </a>    
+                                {% else %}
+                                    <span class="action-menu">More</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="users-empty">
+                                No doctor requests found.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    {% endif %}
+{% endblock %}

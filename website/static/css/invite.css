@@ -1,0 +1,137 @@
+/* ================================
+   Create Invite Form
+================================ */
+
+.invite-wrapper {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* Page Title */
+.invite-wrapper h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #214994;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0.5rem;
+}
+
+/* Form Container */
+.invite-wrapper form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    background-color: #f9fafb;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+/* Form Inputs */
+.invite-wrapper input[type="email"],
+.invite-wrapper select {
+    padding: 0.75rem;
+    font-size: 0.95rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background-color: #ffffff;
+    color: #374151;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+.invite-wrapper input[type="email"]::placeholder {
+    color: #9ca3af;
+}
+
+.invite-wrapper input[type="email"]:focus,
+.invite-wrapper select:focus {
+    outline: none;
+    border-color: #214994;
+    box-shadow: 0 0 0 3px rgba(33, 73, 148, 0.1);
+}
+
+.invite-wrapper input[type="email"]:hover,
+.invite-wrapper select:hover {
+    border-color: #214994;
+}
+
+.invite-wrapper select option {
+    padding: 0.5rem;
+    color: #374151;
+}
+
+/* Submit Button */
+.invite-wrapper button[type="submit"] {
+    padding: 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #ffffff;
+    background-color: #214994;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.invite-wrapper button[type="submit"]:hover {
+    background-color: #1a3a75;
+    transform: translateY(-2px);
+}
+
+.invite-wrapper button[type="submit"]:active {
+    background-color: #142d5a;
+    transform: translateY(0);
+}
+
+.invite-wrapper button[type="submit"]:disabled {
+    background-color: #d1d5db;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .invite-wrapper {
+        padding: 1.5rem;
+    }
+
+    .invite-wrapper h2 {
+        font-size: 1.35rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .invite-wrapper form {
+        padding: 1.25rem;
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .invite-wrapper {
+        padding: 1rem;
+        margin: 1rem;
+    }
+
+    .invite-wrapper h2 {
+        font-size: 1.1rem;
+    }
+
+    .invite-wrapper form {
+        padding: 1rem;
+        gap: 0.75rem;
+    }
+
+    .invite-wrapper input[type="email"],
+    .invite-wrapper select,
+    .invite-wrapper button[type="submit"] {
+        font-size: 0.9rem;
+        padding: 0.65rem;
+    }
+}

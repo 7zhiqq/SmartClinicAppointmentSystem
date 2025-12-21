@@ -1,0 +1,189 @@
+{% extends "components/base.html" %}
+{% load custom_filters %}
+{% load static %}
+
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/appointments.css' %}">
+    <style>
+        .heading-title{
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 0 0 6px 0;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+    </style>
+    {% if user.is_authenticated and user.role == "doctor" %}
+        {% include "components/sidebar/doctor.html" %}
+        <div class="main-content">
+            <div class="appointments-header">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="heading-title">My Appointments</h2>
+                        <p class="subtitle">Manage your scheduled appointments</p>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mb-4">
+                    <div class="search-box flex-grow-1">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="Search patient name..." class="form-control border-0">
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-filter"></i> All Status
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item status-filter active" data-status="">All Status</a></li>
+                            <li><a class="dropdown-item status-filter" data-status="pending">Pending</a></li>
+                            <li><a class="dropdown-item status-filter" data-status="approved">Confirmed</a></li>
+                            <li><a class="dropdown-item status-filter" data-status="completed">Completed</a></li>
+                            <li><a class="dropdown-item status-filter" data-status="rejected">Rejected</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="appointments-table">
+                    <thead>
+                        <tr>
+                            <th>TIME</th>
+                            <th>PATIENT</th>
+                            <th>STATUS</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in appointments %}
+                        <tr class="appointment-row" data-id="{{ a.id }}" data-status="{{ a.status }}">
+                            <td class="time-cell">
+                                <div class="appointment-time">
+                                    {{ a.start_time|date:"M d, Y" }}<br>
+                                    <small>{{ a.start_time|date:"h:i A" }} - {{ a.end_time|date:"h:i A" }}</small>
+                                </div>
+                            </td>
+                            <td class="patient-cell">
+                                {% if a.patient %}{{ a.patient.get_full_name }}{% else %}{{ a.dependent_patient.full_name }}{% endif %}
+                            </td>
+                            <td class="status-cell">
+                                <span class="status-badge status-{{ a.status }}" id="status-{{ a.id }}">
+                                    {% if a.status == 'pending' %} Pending
+                                    {% elif a.status == 'approved' %} Confirmed
+                                    {% elif a.status == 'completed' %} Completed
+                                    {% else %} Rejected
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td class="actions-cell">
+                                <div class="action-buttons" id="actions-{{ a.id }}">
+                                    {% if a.status == 'pending' %}
+                                        <button class="btn-action approve-btn" data-id="{{ a.id }}" title="Approve">
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+                                        <button class="btn-action reject-btn" data-id="{{ a.id }}" title="Reject">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    {% elif a.status == 'approved' %}
+                                        <button class="btn-action complete-btn" data-id="{{ a.id }}" title="Mark Complete">
+                                            <i class="bi bi-check-circle-fill"></i>
+                                        </button>
+                                        <a href="{% url 'reschedule_appointment' a.id %}" class="btn-action reschedule-btn" title="Reschedule">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                                <p>No appointments found</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <meta name="csrf-token" content="{{ csrf_token }}">
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                const csrftoken = document.querySelector('meta[name="csrf-token"]').content;
+
+                // Event delegation for buttons
+                document.querySelector('.table-container').addEventListener('click', function(e) {
+                    const btn = e.target.closest('.approve-btn, .reject-btn, .complete-btn');
+                    if (!btn) return;
+
+                    const appointmentId = btn.dataset.id;
+                    const action = btn.classList.contains('approve-btn') ? 'approve' :
+                                btn.classList.contains('reject-btn') ? 'reject' : 'complete';
+
+                    fetch(`/doctor/appointments/${appointmentId}/update_status/${action}/`, {
+                        method: "POST",
+                        headers: {
+                            "X-CSRFToken": csrftoken,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({})
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if(data.error) {
+                            alert(data.error);
+                        } else {
+                            location.reload(); // reload table after update
+                        }
+                    });
+                });
+
+                // Search functionality
+                document.getElementById("searchInput").addEventListener("keyup", function() {
+                    filterTable();
+                });
+
+                // Filter by status
+                document.querySelectorAll(".status-filter").forEach(link => {
+                    link.addEventListener("click", function(e) {
+                        e.preventDefault();
+                        document.querySelectorAll(".status-filter").forEach(l => l.classList.remove("active"));
+                        this.classList.add("active");
+                        filterTable();
+                    });
+                });
+
+                function filterTable() {
+                    const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+                    const statusFilter = document.querySelector(".status-filter.active")?.dataset.status || "";
+                    const rows = document.querySelectorAll(".appointment-row");
+
+                    rows.forEach(row => {
+                        const status = row.dataset.status;
+                        const text = row.textContent.toLowerCase();
+                        const matchesSearch = text.includes(searchTerm);
+                        const matchesStatus = !statusFilter || status === statusFilter;
+
+                        row.style.display = (matchesSearch && matchesStatus) ? "" : "none";
+                    });
+                }
+            });
+        </script>
+    {% else %}
+        <div class="not-authenticated">
+            <p>Please log in as a doctor to view your appointments.</p>
+        </div>
+    {% endif %}
+{% endblock %}

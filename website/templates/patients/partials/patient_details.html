@@ -1,0 +1,237 @@
+{% load custom_filters %}
+{% load static %}
+
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/records.css' %}">
+    <div class="card patient-header">
+        <div class="patient-header-top">
+            <div class="avatar">
+                {% if patient.user %}
+                    {{ patient.user.first_name|default:"X"|slice:":1" }}{{ patient.user.last_name|default:"X"|slice:":1" }}
+                {% else %}
+                    {{ patient.first_name|default:"X"|slice:":1" }}{{ patient.last_name|default:"X"|slice:":1" }}
+                {% endif %}
+            </div>
+
+            <div class="patient-info">
+                <h2 class="patient-name">
+                    {% if patient.user %}
+                        {{ patient.user.first_name|default:"N/A" }} {{ patient.user.last_name|default:"" }}
+                    {% else %}
+                        {{ patient.first_name|default:"N/A" }} {{ patient.last_name|default:"" }}
+                    {% endif %}
+                </h2>
+                <p class="patient-meta">
+                    {{ patient.age|default:"N/A" }} yrs •
+                    {{ patient.gender|gender_full|default:"N/A" }} •
+                    Blood Type: {{ patient.blood_type|default:"N/A" }}
+                    {% if patient_type == "dependent" %}
+                        • Dependent
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="patient-contacts">
+            <div class="contact-item">
+                <i class="bi bi-telephone-fill"></i>
+                {% if patient.phone %}
+                    {{ patient.phone }}
+                {% elif patient.user and patient.user.phone %}
+                    {{ patient.user.phone }}
+                {% else %}
+                    None
+                {% endif %}
+            </div>
+
+            {% if patient.user and patient.user.email %}
+            <div class="contact-item">
+                <i class="bi bi-envelope-at-fill"></i>
+                {{ patient.user.email }}
+            </div>
+            {% endif %}
+
+            <div class="contact-item">
+                <i class="bi bi-calendar-event-fill"></i>
+                Last Visited: {{ last_schedule|date:"m/d/Y"|default:"No Visit Yet" }}
+            </div>
+
+
+            <div class="contact-item text-end">
+                {% if user.role == "patient" %}
+                    {% if patient_type == "self" %}
+                        <a href="{% url 'edit_my_patient_info' %}">Edit</a>
+                    {% else %}
+                        <a href="{% url 'edit_dependent' patient.pk %}">Edit</a>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+
+    <div class="card-grid">
+        <!-- Vital Signs -->
+        <div class="card">
+            <h4>
+                <i class="bi bi-heart-pulse"></i>
+                Vital Signs
+            </h4>
+            {% if vitals %}
+                <div class="card-content">
+                    <div class="vitals-timestamp">
+                        As of {{ vitals.recorded_at|date:"m/d/Y H:i" }}
+                    </div>
+
+                    <div class="vital-item">
+                        <div class="vital-icon heart">❤️</div>
+                        <div class="vital-content">
+                            <div class="vital-label">Blood Pressure</div>
+                            <div class="vital-value">
+                                {{ vitals.blood_pressure|default:"N/A" }} mmHg
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="vital-item">
+                        <div class="vital-icon pulse">📈</div>
+                        <div class="vital-content">
+                            <div class="vital-label">Heart Rate</div>
+                            <div class="vital-value">
+                                {{ vitals.heart_rate|default:"N/A" }} bpm
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="vital-item">
+                        <div class="vital-icon temp">📏</div>
+                        <div class="vital-content">
+                            <div class="vital-label">Height</div>
+                            <div class="vital-value">
+                                {{ vitals.height_cm|default:"N/A" }} cm
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="vital-item">
+                        <div class="vital-icon weight">⚖️</div>
+                        <div class="vital-content">
+                            <div class="vital-label">Weight</div>
+                            <div class="vital-value">
+                                {{ vitals.weight_kg|default:"N/A" }} kg
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <p class="muted">No vitals recorded yet...</p>
+            {% endif %}
+            {% if user.role == "staff" %}
+                <div class="card-footer">
+                    <a href="{% url 'add_patient_vitals' patient_type patient.pk %}" class="card-link">
+                        {% if vitals %}
+                            Record New Vitals
+                        {% else %}
+                            Add Vitals
+                        {% endif %}
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Medications -->
+        <div class="card">
+            <h4>
+                <i class="bi bi-capsule"></i>
+                Medications
+            </h4>
+            <div class="card-content">
+                {% if medications %}
+                    {% for med in medications %}
+                        <span class="tag">{{ med.medication_name }} - {{ med.dosage }}</span>
+                    {% endfor %}
+                {% else %}
+                    <p class="muted">No Medications</p>
+                {% endif %}
+            </div>
+            {% if user.role == "staff" %}
+                <div class="card-footer">
+                    <a href="{% url 'add_patient_medication' patient_type|default:'self' patient.pk %}" class="card-link">Add Medication</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Allergies -->
+        <div class="card">
+            <h4>
+                <i class="bi bi-exclamation-circle"></i>
+                Allergies
+            </h4>
+            <div class="card-content">
+                {% if allergies %}
+                    {% for allergy in allergies %}
+                        <span class="tag danger">{{ allergy.allergy_name }}</span>
+                    {% endfor %}
+                {% else %}
+                    <p class="muted">No Allergies</p>
+                {% endif %}
+            </div>
+
+            {% if user.role != "doctor" %}
+                <div class="card-footer">
+                    <a href="{% url 'add_patient_allergy' patient_type|default:'self' patient.pk %}" class="card-link">Add Allergy</a>
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <!-- Medical History -->
+    <div class="card">
+        <div class="medical-records-header">
+            <h4>
+                <i class="bi bi-journal-medical"></i>
+                Medical Records
+            </h4>
+
+            {% if user.role != "patient" %}
+                <a href="{% url 'add_medical_record' patient_type|default:'self' patient.pk %}" class="card-link">
+                    <i class="bi bi-plus-lg"></i> Add Medical Record
+                </a>
+            {% endif %}
+        </div>
+
+        {% if medical_history %}
+            <div class="medical-records">
+                {% for record in medical_history %}
+                    <div class="medical-record-card">
+                        <div class="record-info">
+                            <div class="record-title">
+                                {{ record.reason_for_visit|default:"Medical Consultation" }}
+                            </div>
+                            <div class="record-diagnosis">
+                                Diagnosis: {{ record.diagnosis|default:"No diagnosis provided" }}
+                            </div>
+                            <div class="record-meta">
+                                <i class="bi bi-person-check"></i>
+                                Doctor: {{ record.doctor.user.get_full_name |default:"N/A" }}
+                            </div>
+                        </div>
+
+                        <div class="record-actions">
+                            <span class="record-date">
+                                {{ record.created_at|date:"m/d/Y" }}
+                            </span>
+                            <a href="{% url 'view_medical_record' record.pk %}" class="record-btn">
+                                <i class="bi bi-eye"></i> View Record
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="muted">No medical records available.</p>
+        {% endif %}
+    </div>
+
+{% endblock %}

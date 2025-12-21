@@ -1,0 +1,130 @@
+{% extends "components/base.html" %}
+{% load static %}
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/staff-calendar.css' %}">
+    {% if user.is_authenticated and user.role == "staff" %}
+        {% include "components/sidebar/staff.html" %}
+        <div class="main-content">
+            <div class="calendar-header-section">
+                <h2 class="heading-title">Calendar</h2>
+                <p class="subtitle">Manage and view all scheduled appointments</p>
+            </div>
+
+            <div class="calendar-wrapper">
+
+                <div class="calendar-section">
+                    <div id="calendar"></div>
+                </div>
+
+                <div class="appointments-panel">
+                    <div class="appointments-header">
+                        <h2>Appointments</h2>
+                        <p id="selectedDate" class="selected-date-text">Select a Day</p>
+                    </div>
+
+                    <ul class="appointments-list" id="dayAppointments">
+                        <li class="empty-state">
+                            <span>Click a day on the calendar to view appointments</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const calendarEl = document.getElementById("calendar");
+                const appointmentsEl = document.getElementById("dayAppointments");
+                const selectedDateEl = document.getElementById("selectedDate");
+
+                const calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: "dayGridMonth",
+                    events: "{% url 'calendar_events' %}",
+                    headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth' },
+                    dateClick: function(info) {
+                        const dateStr = info.dateStr;
+                        const date = new Date(dateStr);
+                        const formattedDate = date.toLocaleDateString('en-US', {
+                            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                        });
+                        selectedDateEl.textContent = formattedDate;
+
+                        fetch(`/calendar/day-appointments/?date=${dateStr}`)
+                            .then(res => res.json())
+                            .then(data => {
+                                let html = "";
+                                if (data.length === 0) {
+                                    html = '<li class="empty-state"><span>No appointments for this day</span></li>';
+                                } else {
+                                    data.forEach((a) => {
+                                        html += `
+                                        <li class="appointment-item">
+                                            <div class="appointment-content">
+                                                <div class="appointment-name">${a.patient_name}</div>
+                                                <div class="appointment-doctor">👨‍⚕️ Dr. ${a.doctor_name}</div>
+                                                <div class="appointment-time">🕐 ${a.start_time} - ${a.end_time}</div>
+                                            </div>
+                                            <div class="appointment-status">
+                                                <span class="status-badge ${getStatusColor(a.status)}">${a.status}</span>
+                                            </div>
+                                        </li>`;
+                                    });
+                                }
+                                appointmentsEl.innerHTML = html;
+                            })
+                            .catch(err => console.error(err));
+                    }
+                });
+
+                calendar.render();
+
+                // Helper function for status colors
+                window.getStatusColor = function(status) {
+                    const statusMap = {
+                        'approved': 'status-confirmed',
+                        'pending': 'status-pending',
+                        'completed': 'status-completed',
+                        'rejected': 'status-cancelled'
+                    };
+                    return statusMap[status] || 'status-pending';
+                }
+
+                // CSRF helper
+                function getCookie(name) {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        document.cookie.split(';').forEach(cookie => {
+                            cookie = cookie.trim();
+                            if (cookie.startsWith(name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            }
+                        });
+                    }
+                    return cookieValue;
+                }
+
+                // Update status
+                window.updateStatus = function(event, id, action) {
+                    event.preventDefault();
+                    fetch(`/staff/appointments/${id}/${action}/`, {
+                        method: "POST",
+                        headers: { "X-CSRFToken": getCookie('csrftoken') }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.error) { alert(data.error); return; }
+                        location.reload();
+                    });
+                }
+            });
+        </script>
+    {% else %}
+        <div class="not-authenticated">
+            <p>Please log in as staff to view appointments.</p>
+        </div>
+    {% endif %}
+{% endblock %}

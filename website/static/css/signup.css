@@ -1,0 +1,341 @@
+.layout-container {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Left Panel with Image and Overlay */
+.left-panel {
+    width: 50%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.building-image {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+}
+
+/* Overlay on image */
+.left-panel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(5, 25, 68, 0.7);
+    z-index: 2;
+}
+
+.left-text {
+    position: relative;
+    z-index: 3;
+    color: var(--white);
+    text-align: center;
+    max-width: 450px;
+    padding: var(--space-lg);
+    font-weight: 600;
+}
+
+.logo {
+    max-width: 400px;
+    height: auto;
+    margin-bottom: var(--space-lg);
+    filter: drop-shadow(0 2px 8px rgb(255, 255, 255));
+}
+
+.left-text h2 {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-xs);
+    font-weight: 600;
+}
+
+.left-text p {
+    font-size: var(--font-size-md);
+    margin-bottom: var(--space-sm);
+    opacity: 1;
+    text-shadow: 0 2px 8px rgb(0, 0, 0);
+}
+
+.left-text h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.3;
+    
+}
+
+.right-panel {
+    flex: 1;
+    padding: var(--space-lg);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; 
+    background: var(--bg-card);
+    overflow-y: auto;
+}
+
+
+.form-card {
+    width: 100%;
+    max-width: 480px;
+    animation: fadeUp 0.5s ease;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: var(--space-sm);
+}
+
+.subtitle {
+    font-size: var(--font-size-md);
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: var(--space-lg);
+}
+
+.signup-form {
+    width: 100%;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm);
+}
+
+.form-group {
+    margin-bottom: var(--space-md);
+}
+
+.form-group label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    display: block;
+    margin-bottom: var(--space-sm);
+    color: var(--text-main);
+}
+
+/* =========================
+   Inputs
+========================= */
+.form-group input {
+    width: 100%;
+    padding: 12px 14px;
+    min-height: 48px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    background: var(--bg-card);
+    color: var(--text-main);
+    font-size: 16px;
+    transition: var(--transition-fast);
+    box-sizing: border-box;
+}
+
+.form-group input::placeholder {
+    color: var(--text-light);
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(50, 110, 221, 0.15);
+}
+
+/* =========================
+   Errors
+========================= */
+.has-error input {
+    border-color: #dc2626;
+}
+
+.errorlist {
+    list-style: none;
+    margin: 6px 0 0 0;
+    padding: 0;
+    color: #dc2626;
+    font-size: 0.85rem;
+}
+
+/* =========================
+   Alert
+========================= */
+.alert {
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-lg);
+    font-size: 0.9rem;
+    border: 1px solid #fcd34d;
+    background-color: #fffbeb;
+    color: #92400e;
+}
+
+/* =========================
+   Submit Button
+========================= */
+.btn-submit {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    border: none;
+    background: var(--gradient-primary);
+    color: var(--white);
+    font-weight: 700;
+    font-size: var(--font-size-md);
+    cursor: pointer;
+    transition: var(--transition-normal);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-submit:hover {
+    transform: translateY(-2px);
+}
+
+.btn-submit:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* =========================
+   Divider
+========================= */
+.divider {
+    text-align: center;
+    margin: var(--space-lg) 0;
+    position: relative;
+}
+
+.divider span {
+    background: var(--bg-card);
+    padding: 0 var(--space-sm);
+    position: relative;
+    z-index: 1;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.divider::before {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 1px;
+    background: var(--border-light);
+    top: 50%;
+    left: 0;
+    z-index: 0;
+}
+
+
+/* =========================
+   Social Buttons
+========================= */
+.socials {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+}
+
+.socials button {
+    flex: 1;
+    padding: 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    background: var(--bg-card);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.socials button:hover {
+    background: var(--bg-muted);
+    border-color: var(--primary);
+}
+
+/* =========================
+   Footer Text
+========================= */
+.signup-text {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.signup-text a {
+    color: var(--primary);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.signup-text a:hover {
+    text-decoration: underline;
+}
+
+/* =========================
+   Responsive
+========================= */
+
+@media (max-width: 768px) {
+    .layout-container {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+    }
+
+    /* LEFT PANEL → TOP */
+    .left-panel {
+        width: 100%;
+        height: 40vh; /* adjust if you want taller */
+        min-height: 280px;
+    }
+
+    .logo {
+        max-width: 220px;
+    }
+
+    .left-text h1 {
+        font-size: 1.6rem;
+    }
+
+    .left-text h2 {
+        font-size: 1.2rem;
+    }
+
+    .left-text p {
+        font-size: 1rem;
+    }
+
+    /* RIGHT PANEL → BELOW */
+    .right-panel {
+        width: 100%;
+        padding: var(--space-md);
+        align-items: center;
+    }
+
+    .form-card {
+        max-width: 100%;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,105 @@
+{% extends "components/base.html" %}
+{% load custom_filters %}
+{% load static %}
+    
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/medrecords.css' %}">
+    {% if user.is_authenticated %}
+        {% include "components/sidebar/patient.html" %}
+        <div class="main-content">
+
+            <h2 class="heading-title">Patients</h2>
+            <p class="subtitle">
+                View and manage patient medical records
+            </p>
+
+            <div class="dashboard">
+                <aside class="patient-list-panel">
+                    <input type="text" class="search-input" placeholder="Search patients...">
+
+                    <ul class="patient-list">
+                        {% if not patients %}
+                            <li>
+                                <a href="{% url 'edit_my_patient_info' %}" class="btn btn-primary add-patient-btn">
+                                    Add My Info
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        <li>
+                            <a href="{% url 'add_dependent' %}" class="btn btn-primary add-patient-btn">
+                                Add Dependent
+                            </a>
+                        </li>
+
+                        {% for patient in patients %}
+                            <li class="patient-item" data-patient-id="{{ patient.pk }}" onclick="loadPatient('{{ patient.pk }}')">
+                                <div class="avatar">
+                                    {% if patient.user %}
+                                        {{ patient.user.first_name|default:"X"|slice:":1" }}{{ patient.user.last_name|default:"X"|slice:":1" }}
+                                    {% else %}
+                                        {{ patient.first_name|default:"X"|slice:":1" }}{{ patient.last_name|default:"X"|slice:":1" }}
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <strong>
+                                        {% if patient.user %}
+                                            {{ patient.user.first_name|default:"N/A" }} {{ patient.user.last_name|default:"" }}
+                                        {% else %}
+                                            {{ patient.first_name|default:"N/A" }} {{ patient.last_name|default:"" }}
+                                        {% endif %}
+                                    </strong>
+                                    <small>{{ patient.age|default:"N/A" }} yrs • {{ patient.gender|gender_full|default:"N/A" }}
+                                        {% if patient.pk != user.patient_profile.pk %}• Dependent{% endif %}
+                                    </small>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </aside>
+
+                <section class="patient-details" id="patientDetails">
+                    <p class="muted">Select a patient to view details...</p>
+                </section>
+            </div>
+            
+
+        </div>
+
+        <script>
+            function loadPatient(patientId) {
+                const details = document.getElementById('patientDetails');
+                details.innerHTML = '<p class="muted">Loading patient...</p>';
+
+                const url = `/ajax/patient/${patientId}/`;
+                console.log('Fetching patient details:', url);
+
+                fetch(url)
+                    .then(response => {
+                        console.log('AJAX status:', response.status);
+                        if (!response.ok) throw new Error('Network response not ok');
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('AJAX response data:', data);
+                        details.innerHTML = data.html;
+
+                        // Highlight active patient
+                        document.querySelectorAll('.patient-item').forEach(el => el.classList.remove('active'));
+                        const activeItem = document.querySelector(`[data-patient-id="${patientId}"]`);
+                        if (activeItem) activeItem.classList.add('active');
+                    })
+                    .catch(err => {
+                        console.error('Failed to load patient details:', err);
+                        details.innerHTML = `<p class="muted">Failed to load patient details. ${err.message}</p>`;
+                    });
+            }
+
+            // Load first patient on page load
+            document.addEventListener('DOMContentLoaded', () => {
+                const firstPatient = document.querySelector('.patient-item');
+                if (firstPatient) loadPatient(firstPatient.dataset.patientId);
+            });
+        </script>
+    {% endif %}
+{% endblock %}

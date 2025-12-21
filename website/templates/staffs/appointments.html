@@ -1,0 +1,295 @@
+{% extends "components/base.html" %}
+{% load custom_filters %}
+{% load static %}
+
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/appointments.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/bootstrap-icons.min.css">
+    <style>
+        .heading-title{
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 0 0 6px 0;
+        }
+        .subtitle {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        /* Enhanced Stats Cards */
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.75rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+            border: 1px solid rgba(0,0,0,0.05);
+            cursor: pointer;
+        }
+        .stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            border-radius: 50%;
+            opacity: 0.03;
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover::before { opacity:0.08; }
+        .stat-card.total::before { background:#007bff; }
+        .stat-card.confirmed::before { background:#28a745; }
+        .stat-card.pending::before { background:#ffc107; }
+        .stat-card.completed::before { background:#17a2b8; }
+        .stat-content { position:relative; z-index:1; }
+        .stat-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; }
+        .stat-icon { width:56px; height:56px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.75rem; }
+        .stat-card.total .stat-icon { background: rgba(0,123,255,0.1); color:#007bff; }
+        .stat-card.confirmed .stat-icon { background: rgba(40,167,69,0.1); color:#28a745; }
+        .stat-card.pending .stat-icon { background: rgba(255,193,7,0.1); color:#ffc107; }
+        .stat-card.completed .stat-icon { background: rgba(23,162,184,0.1); color:#17a2b8; }
+        .stat-number { font-size:2.5rem; font-weight:700; color:#1a1a1a; line-height:1; margin-bottom:0.5rem; }
+        .stat-label { font-size:0.875rem; color:#666; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+        .stat-meta { font-size:0.8rem; color:#999; margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(0,0,0,0.05); }
+        @media (max-width:768px) {
+            .stat-number { font-size:2rem; }
+            .stat-icon { width:48px; height:48px; font-size:1.5rem; }
+        }
+    </style>
+
+    {% if user.is_authenticated %}
+        {% include "components/sidebar/staff.html" %}
+
+        <div class="main-content">
+            <!-- Header -->
+            <div class="mb-3">
+                <h2 class="heading-title">Appointments</h2>
+                <p class="subtitle">Manage all patient appointments</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="stat-card total">
+                        <div class="stat-content">
+                            <div class="stat-header">
+                                <div>
+                                    <div class="stat-number">{{ total_today }}</div>
+                                    <div class="stat-label">Total Today</div>
+                                </div>
+                                <div class="stat-icon"><i class="bi bi-calendar-event"></i></div>
+                            </div>
+                            <div class="stat-meta">Today's appointments</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card confirmed">
+                        <div class="stat-content">
+                            <div class="stat-header">
+                                <div>
+                                    <div class="stat-number confirmed-count">{{ confirmed_count }}</div>
+                                    <div class="stat-label">Confirmed</div>
+                                </div>
+                                <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+                            </div>
+                            <div class="stat-meta">Ready to proceed</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card pending">
+                        <div class="stat-content">
+                            <div class="stat-header">
+                                <div>
+                                    <div class="stat-number pending-count">{{ pending_count }}</div>
+                                    <div class="stat-label">Pending</div>
+                                </div>
+                                <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+                            </div>
+                            <div class="stat-meta">Awaiting confirmation</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card completed">
+                        <div class="stat-content">
+                            <div class="stat-header">
+                                <div>
+                                    <div class="stat-number completed-count">{{ completed_count }}</div>
+                                    <div class="stat-label">Completed</div>
+                                </div>
+                                <div class="stat-icon"><i class="bi bi-check2-all"></i></div>
+                            </div>
+                            <div class="stat-meta">Successfully finished</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search & Filter -->
+            <div class="d-flex gap-2 mb-4">
+                <div class="search-box flex-grow-1">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search patient or doctor name..." class="form-control border-0">
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-filter"></i> All Status
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item status-filter active" data-status="">All Status</a></li>
+                        <li><a class="dropdown-item status-filter" data-status="pending">Pending</a></li>
+                        <li><a class="dropdown-item status-filter" data-status="approved">Confirmed</a></li>
+                        <li><a class="dropdown-item status-filter" data-status="completed">Completed</a></li>
+                        <li><a class="dropdown-item status-filter" data-status="rejected">Rejected</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Appointments Table -->
+            <div class="table-container">
+                <table class="appointments-table">
+                    <thead>
+                        <tr>
+                            <th>TIME</th>
+                            <th>PATIENT</th>
+                            <th>DOCTOR</th>
+                            <th>STATUS</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in appointments %}
+                        <tr class="appointment-row" data-id="{{ a.id }}" data-status="{{ a.status }}">
+                            <td class="time-cell">
+                                <div class="appointment-time">
+                                    {{ a.start_time|date:"M d, Y" }}<br>
+                                    <small>{{ a.start_time|date:"h:i A" }} - {{ a.end_time|date:"h:i A" }}</small>
+                                </div>
+                            </td>
+                            <td class="patient-cell">
+                                {% if a.patient %}{{ a.patient.get_full_name }}{% else %}{{ a.dependent_patient.full_name }}{% endif %}
+                            </td>
+                            <td class="doctor-cell">{{ a.doctor.user.get_full_name }}</td>
+                            <td class="status-cell">
+                                <span class="status-badge status-{{ a.status }}" id="status-{{ a.id }}">
+                                    {% if a.status == 'pending' %} Pending
+                                    {% elif a.status == 'approved' %} Confirmed
+                                    {% elif a.status == 'completed' %} Completed
+                                    {% else %} Rejected
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td class="actions-cell">
+                                <div class="action-buttons" id="actions-{{ a.id }}">
+                                    {% if a.status == 'pending' %}
+                                        <button class="btn-action approve-btn" data-id="{{ a.id }}" title="Approve">
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+                                        <button class="btn-action reject-btn" data-id="{{ a.id }}" title="Reject">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    {% elif a.status == 'approved' %}
+                                        <button class="btn-action complete-btn" data-id="{{ a.id }}" title="Mark Complete">
+                                            <i class="bi bi-check-circle-fill"></i>
+                                        </button>
+                                        <a href="{% url 'reschedule_appointment' a.id %}" class="btn-action reschedule-btn" title="Reschedule">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                                <p>No appointments found</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <meta name="csrf-token" content="{{ csrf_token }}">
+
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                const csrftoken = document.querySelector('meta[name="csrf-token"]').content;
+                const searchInput = document.getElementById("searchInput");
+                const statusLinks = document.querySelectorAll(".status-filter");
+                const rows = document.querySelectorAll(".appointment-row");
+                const dropdownButton = document.querySelector(".dropdown-toggle");
+
+                // Action buttons
+                document.querySelector('.table-container').addEventListener('click', function(e) {
+                    const btn = e.target.closest('.approve-btn, .reject-btn, .complete-btn');
+                    if (!btn) return;
+                    const appointmentId = btn.dataset.id;
+                    const action = btn.classList.contains('approve-btn') ? 'approve' :
+                                btn.classList.contains('reject-btn') ? 'reject' : 'complete';
+
+                    fetch(`/appointments/${appointmentId}/update_status/${action}/`, {
+                        method: "POST",
+                        headers: {
+                            "X-CSRFToken": csrftoken,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({})
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if(data.error) alert(data.error);
+                        else location.reload();
+                    });
+                });
+
+                // Filter function
+                function filterTable() {
+                    const searchTerm = searchInput.value.toLowerCase().trim();
+                    const statusFilter = document.querySelector(".status-filter.active")?.dataset.status || "";
+
+                    rows.forEach(row => {
+                        const status = row.dataset.status.toLowerCase();
+                        const text = row.textContent.toLowerCase().trim();
+                        const matchesSearch = text.includes(searchTerm);
+                        const matchesStatus = !statusFilter || status === statusFilter;
+                        row.style.display = (matchesSearch && matchesStatus) ? "" : "none";
+                    });
+                }
+
+                // Search input
+                searchInput.addEventListener("input", filterTable);
+
+                // Status filter click events
+                statusLinks.forEach(link => {
+                    link.addEventListener("click", function(e) {
+                        e.preventDefault();
+                        statusLinks.forEach(l => l.classList.remove("active"));
+                        this.classList.add("active");
+                        dropdownButton.innerHTML = `<i class="fas fa-filter"></i> ${this.textContent.trim()}`;
+                        filterTable();
+                    });
+                });
+            });
+        </script>
+    {% endif %}
+{% endblock %}

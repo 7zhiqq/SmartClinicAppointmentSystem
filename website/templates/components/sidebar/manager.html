@@ -1,0 +1,30 @@
+<div class="sidebar" id="sidebar">
+    <div class="logo">
+        WestPoint
+    </div>
+
+    <div class="sidebar-content">
+        <a href="{% url 'home' %}">
+            <div class="menu-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}" data-section="home">
+            <span class="text">
+                <i class="bi bi-columns-gap"></i>
+                Dashboard
+            </span>
+        </div>
+        </a>
+        <div class="menu-item" data-section="report">
+            <span class="text">
+                <i class="bi bi-pie-chart"></i>
+                Report
+            </span>
+        </div>
+        <a href="{% url 'manager_users' %}">
+            <div class="menu-item {% if request.resolver_match.url_name == 'manager_users' %}active{% endif %}" data-section="manager_users">
+                <span class="text">
+                    <i class="bi bi-person-add"></i>
+                    Users
+                </span>
+            </div>
+        </a>
+    </div>
+</div>

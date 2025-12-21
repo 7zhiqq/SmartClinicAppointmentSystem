@@ -1,0 +1,39 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+{% include "components/sidebar/staff.html" %}
+
+<div class="main-content">
+    <h2>Reschedule Appointment</h2>
+    <p>Patient: 
+        {% if appointment.patient %}
+            {{ appointment.patient.get_full_name }}
+        {% elif appointment.dependent_patient %}
+            {{ appointment.dependent_patient.get_full_name }}
+        {% else %}
+            Unknown
+        {% endif %}
+    </p>
+
+    <p>Doctor: {{ appointment.doctor.user.get_full_name }}</p>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="start" class="form-label">Start Time</label>
+            <input type="datetime-local" name="start" id="start" class="form-control"
+                   value="{{ appointment.start_time|date:'Y-m-d\\TH:i' }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="end" class="form-label">End Time</label>
+            <input type="datetime-local" name="end" id="end" class="form-control"
+                   value="{{ appointment.end_time|date:'Y-m-d\\TH:i' }}" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Reschedule</button>
+        <a href="{% if user.role == 'doctor' %}{% url 'doctor_appointments' %}{% else %}{% url 'appointments' %}{% endif %}" 
+         class="btn btn-secondary">Cancel</a>
+
+    </form>
+</div>
+{% endblock %}

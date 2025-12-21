@@ -1,0 +1,26 @@
+{% extends 'components/base.html' %}
+{% load static %}
+
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/invite.css' %}">
+    {% if user.is_authenticated %}
+        {% if user.role == "manager" %}
+            {% include 'components/sidebar/manager.html' %}
+            <div class="main-content" id="mainContent">
+                <div class="invite-wrapper">
+                    <h2>Create Invitation</h2>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="email" name="email" placeholder="Email" required>
+                        <select name="role" required>
+                        <option value="doctor">Doctor</option>
+                        <option value="staff">Staff</option>
+                        <option value="manager">Manager</option>
+                        </select>
+                        <button type="submit">Create Invite</button>
+                    </form>
+                </div>
+            </div>
+        {% endif %}
+    {% endif %}
+{% endblock %}

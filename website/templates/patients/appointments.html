@@ -1,0 +1,102 @@
+{% extends "components/base.html" %}
+{% load custom_filters %}
+{% load static %}
+    
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/appointments.css' %}">
+    <style>
+        .appointments-header .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+        }
+
+        .appointments-header .header-top > div {
+            flex: 1;
+        }
+
+        .new-appointment-btn {
+            padding: 10px 20px;
+            background-color: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
+            white-space: nowrap;
+            display: inline-block;
+            margin-top: 5px;
+            font-weight: 600;
+        }
+
+        .new-appointment-btn:hover {
+            background-color: var(--primary-hover);
+        }
+    </style>
+    {% if user.is_authenticated %}
+        {% include "components/sidebar/patient.html" %}
+        <div class="main-content">
+            <div class="appointments-header">
+                <div class="header-top">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="fw-bold mb-1">Appointments</h2>
+                            <p class="text-muted">Manage all patient appointments</p>
+                            <a href="{% url 'patient_calendar' %}" class="new-appointment-btn">
+                                New Appointment</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="appointments-table">
+                    <thead>
+                        <tr>
+                            <th>TIME</th>
+                            <th>PATIENT</th>
+                            <th>DOCTOR</th>
+                            <th>STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in appointments %}
+                            <tr class="appointment-row" data-id="{{ a.id }}" data-status="{{ a.status }}">
+                                <td class="time-cell">
+                                    <div class="appointment-time">
+                                        {{ a.start_time|date:"M d, Y" }}<br>
+                                        <small>{{ a.start_time|date:"h:i A" }} - {{ a.end_time|date:"h:i A" }}</small>
+                                    </div>
+                                </td>
+                                <td class="patient-cell">
+                                    {% if a.patient %}
+                                        {{ a.patient.get_full_name }}
+                                    {% else %}
+                                        {{ a.dependent_patient.full_name }}
+                                    {% endif %}
+                                </td>
+                                <td class="doctor-cell">{{ a.doctor.user.get_full_name }}</td>
+                                <td class="status-cell">
+                                    <span class="status-badge status-{{ a.status }}" id="status-{{ a.id }}">
+                                        {% if a.status == 'pending' %} Pending
+                                        {% elif a.status == 'approved' %} Confirmed
+                                        {% elif a.status == 'completed' %} Completed
+                                        {% else %} Rejected
+                                        {% endif %}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                                    <p>No appointments found</p>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

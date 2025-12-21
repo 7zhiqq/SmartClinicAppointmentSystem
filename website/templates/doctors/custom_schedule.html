@@ -1,0 +1,62 @@
+{% extends "components/base.html" %}
+{% load static %}
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/schedule.css' %}">
+    {% if user.is_authenticated and user.role == "doctor" %}
+        {% include "components/sidebar/doctor.html" %}
+        <div class="main-content">
+            <div class="schedule-header">
+                <div>
+                    <h2 class="heading-title">Your Weekly Availability</h2>
+                    <p class="subtitle">Manage your recurring and one-day availability</p>
+                </div>
+                <a href="{% url 'doctor_schedule'%}" class="add-schedule-btn">
+                    + Add Schedule
+                </a>
+            </div>
+
+            <div class="schedule-container">
+                <div class="form-section">
+                    <h3>Add One-Day Availability</h3>
+                    <form method="post" class="availability-form">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" class="btn-primary">Add Custom Availability</button>
+                    </form>
+                </div>
+
+                <div class="schedule-section">
+                    <h3>Custom Availabilities</h3>
+                    {% if custom_schedules %}
+                    <div class="schedule-table-wrapper">
+                        <table class="schedule-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th class="actions-col">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sched in custom_schedules %}
+                                <tr>
+                                    <td class="day-cell"><span class="day-badge">{{ sched.date }}</span></td>
+                                    <td class="time-cell">{{ sched.start_time }} – {{ sched.end_time }}</td>
+                                    <td class="actions-cell">
+                                        <a href="{% url 'delete_custom_availability' sched.id %}" class="btn-delete" onclick="return confirm('Delete this availability?')">Delete</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <p>No custom availabilities yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

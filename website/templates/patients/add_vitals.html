@@ -1,0 +1,24 @@
+{% extends "components/base.html" %}
+{% block content %}
+    {% if user.is_authenticated %}
+        {% if user.role == "staff" %}
+            {% include "components/sidebar/staff.html" %}
+        {% elif user.role == "patient" %}
+            {% include "components/sidebar/patient.html" %}
+        {% endif %}
+            <div class="main-content">
+                <h2>Add Patient Vitals</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+
+                    <button type="submit">Save Vitals</button>
+                    {% if user.role == "staff" %}
+                        <a href="{% url 'patient_list' %}">Cancel</a>
+                    {% elif user.role == "patient" %}
+                        <a href="{% url 'medical_records' %}">Cancel</a>
+                    {% endif %}
+                </form>
+            </div>
+    {% endif %}
+{% endblock %}

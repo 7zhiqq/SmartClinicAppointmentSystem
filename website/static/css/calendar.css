@@ -1,0 +1,480 @@
+
+.calendar-header-section {
+    margin-bottom: var(--space-sm);
+}
+
+.heading-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 6px 0;
+}
+
+.subtitle {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.calendar-wrapper {
+    display: flex;
+    gap: var(--space-md);
+    flex: 1;
+    margin-top: -10px;
+}
+
+/* ==================== CALENDAR SECTION ==================== */
+.calendar-section {
+    flex: 1.85;
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+}
+
+#calendar {
+    width: 100%;
+}
+
+/* ==================== DOCTOR SELECT ==================== */
+select[id="doctorSelect"] {
+    padding: var(--space-sm) var(--space-md);
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-md);
+    color: var(--text-main);
+    background: var(--bg-card);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    font-family: var(--font-main);
+    font-weight: 500;
+    margin-top: var(--space-sm);
+}
+
+select[id="doctorSelect"]:hover {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+select[id="doctorSelect"]:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+/* ==================== FULLCALENDAR CUSTOMIZATION ==================== */
+.fc {
+    font-family: var(--font-main);
+}
+
+.fc .fc-button-primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: var(--text-inverse);
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    padding: var(--space-sm) var(--space-md);
+    text-transform: capitalize;
+    transition: var(--transition-fast);
+    font-size: var(--font-size-sm);
+}
+
+.fc .fc-button-primary:hover,
+.fc .fc-button-primary:active,
+.fc .fc-button-primary.fc-button-active {
+    background-color: var(--primary-hover) !important;
+    border-color: var(--primary-hover) !important;
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.fc .fc-button-group {
+    gap: var(--space-sm);
+}
+
+.fc .fc-col-header-cell {
+    background-color: var(--bg-muted);
+    color: var(--text-main);
+    font-weight: 600;
+    padding: var(--space-md) var(--space-sm);
+    border-color: var(--border-light);
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.fc .fc-daygrid-day {
+    border-color: var(--border-light);
+    transition: var(--transition-fast);
+    padding: var(--space-sm);
+}
+
+.fc .fc-daygrid-day:hover:not(.fc-day-disabled) {
+    background-color: var(--primary-light);
+    cursor: pointer;
+}
+
+.fc .fc-daygrid-day.fc-day-other {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.fc .fc-daygrid-day-number {
+    color: var(--text-main);
+    font-weight: 600;
+    padding: var(--space-sm);
+    font-size: var(--font-size-md);
+}
+
+.fc .fc-daygrid-day.fc-day-today {
+    background-color: rgba(79, 70, 229, 0.05);
+}
+
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+    color: var(--primary);
+    background: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--primary);
+    color: white;
+}
+
+.fc .fc-daygrid-day-frame {
+    padding: 0;
+}
+
+.fc .fc-daygrid-day-events {
+    margin: var(--space-sm) 0 0 0;
+}
+
+.fc .fc-event {
+    background-color: var(--primary);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 2px 4px;
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    margin: 2px 0;
+    color: var(--text-inverse);
+    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+}
+
+.fc .fc-event:hover {
+    background-color: var(--primary-hover);
+    box-shadow: 0 4px 8px rgba(79, 70, 229, 0.3);
+    transform: translateY(-1px);
+}
+
+.fc .fc-event-title {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 2px 4px;
+    color: var(--text-inverse);
+}
+
+.fc .fc-toolbar {
+    margin-bottom: var(--space-lg);
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    padding: 0;
+}
+
+.fc .fc-toolbar-title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0;
+}
+
+/* ==================== APPOINTMENTS PANEL ==================== */
+.appointments-panel {
+    flex: 1;
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(200vh - 300px);
+    overflow: hidden;
+    min-width: 0;
+    position: sticky;
+    top: var(--space-lg);
+}
+
+.appointments-header {
+    margin-bottom: var(--space-lg);
+    border-bottom: 2px solid var(--primary-light);
+    padding-bottom: var(--space-md);
+}
+
+.appointments-header h2 {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0 0 var(--space-xs) 0;
+}
+
+/* ==================== SELECTED DATE ==================== */
+#selected-date {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 0;
+    letter-spacing: -0.3px;
+}
+
+/* ==================== TIME SLOTS ==================== */
+#time-slots {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    flex: 1;
+    overflow-y: auto;
+}
+
+#time-slots p {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: var(--font-size-md);
+    padding: var(--space-lg) 0;
+    margin: 0;
+    font-style: italic;
+}
+
+/* ==================== TIME SLOT ==================== */
+.time-slot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    background: var(--bg-muted);
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    transition: var(--transition-fast);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.time-slot::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 3px;
+    background: var(--primary);
+    opacity: 0;
+    transition: var(--transition-fast);
+}
+
+.time-slot:hover:not(:has(button:disabled)) {
+    background: var(--bg-card);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
+}
+
+.time-slot:hover:not(:has(button:disabled))::before {
+    opacity: 1;
+}
+
+.time-slot span {
+    font-size: var(--font-size-md);
+    font-weight: 600;
+    color: var(--text-main);
+    min-width: 60px;
+}
+
+/* ==================== TIME SLOT BUTTON ==================== */
+.time-slot button {
+    padding: 8px 20px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    font-family: var(--font-main);
+    margin-left: auto;
+}
+
+.time-slot button:not(:disabled) {
+    background-color: var(--success);
+    color: var(--text-inverse);
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.15);
+}
+
+.time-slot button:not(:disabled):hover {
+    background-color: var(--success-hover);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    transform: translateY(-2px);
+}
+
+.time-slot button:disabled {
+    background-color: var(--bg-muted);
+    color: var(--text-light);
+    cursor: not-allowed;
+    border: 1px solid var(--border-light);
+}
+
+/* ==================== SCROLLBAR STYLING ==================== */
+#time-slots::-webkit-scrollbar {
+    width: 6px;
+}
+
+#time-slots::-webkit-scrollbar-track {
+    background: var(--bg-muted);
+    border-radius: var(--radius-pill);
+}
+
+#time-slots::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: var(--radius-pill);
+}
+
+#time-slots::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* ==================== DISABLED DAYS ==================== */
+.fc-day-disabled {
+    background-color: var(--bg-muted) !important;
+    pointer-events: none;
+    opacity: 0.5 !important;
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 1200px) {
+    .calendar-wrapper {
+        gap: var(--space-md);
+    }
+}
+
+@media (max-width: 1024px) {
+    .calendar-wrapper {
+        flex-direction: column;
+        gap: var(--space-lg);
+    }
+
+    .calendar-section,
+    .appointments-panel {
+        width: 100%;
+    }
+
+    .appointments-panel {
+        position: relative;
+        top: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        padding: var(--space-md);
+        gap: var(--space-md);
+    }
+
+    .heading-title {
+        font-size: 1.5rem;
+    }
+
+    .subtitle {
+        display: none;
+    }
+
+    .calendar-wrapper {
+        flex-direction: column;
+    }
+
+    .calendar-section,
+    .appointments-panel {
+        width: 100%;
+        padding: var(--space-md);
+    }
+
+    .fc .fc-toolbar {
+        flex-direction: column;
+        gap: var(--space-md);
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 1.25rem;
+    }
+
+    .fc .fc-daygrid-day {
+        min-height: 100px;
+    }
+
+    .time-slot {
+        padding: var(--space-sm) var(--space-md);
+    }
+
+    select[id="doctorSelect"] {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-content {
+        padding: var(--space-sm);
+    }
+
+    .heading-title {
+        font-size: 1.25rem;
+    }
+
+    .calendar-wrapper {
+        gap: var(--space-sm);
+    }
+
+    .calendar-section,
+    .appointments-panel {
+        padding: var(--space-sm);
+    }
+
+    .fc .fc-daygrid-day {
+        min-height: 80px;
+    }
+
+    .fc .fc-daygrid-day-number {
+        font-size: var(--font-size-sm);
+    }
+
+    #selected-date {
+        font-size: 1rem;
+    }
+
+    .time-slot {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-sm);
+        padding: var(--space-sm);
+    }
+
+    .time-slot button {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .time-slot span {
+        min-width: unset;
+    }
+
+    #time-slots {
+        gap: var(--space-sm);
+    }
+}

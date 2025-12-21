@@ -1,0 +1,45 @@
+{% extends "components/base.html" %}
+{% load static %}
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/record-details.css' %}">
+    {% if user.is_authenticated %}
+        {% if user.role == "doctor" %}
+            {% include "components/sidebar/doctor.html" %}
+        {% elif user.role == "patient" %}
+            {% include "components/sidebar/patient.html" %}
+        {% elif user.role == "staff" %}
+            {% include "components/sidebar/staff.html" %}
+        {% endif %}
+        <div class="main-content">
+            <div class="record-details-wrapper">
+                <h2>Medical Record Details</h2>
+
+                <p><strong>Patient:</strong>
+                    {% if patient_type == "self" %}
+                        {{ patient.user.get_full_name }}
+                    {% else %}
+                        {{ patient.full_name }}
+                    {% endif %}
+                </p>
+                <p><strong>Reason for Visit:</strong> {{ record.reason_for_visit }}</p>
+                <p><strong>Symptoms:</strong> {{ record.symptoms }}</p>
+                <p><strong>Diagnosis:</strong> {{ record.diagnosis }}</p>
+                <p><strong>Prescription:</strong> {{ record.prescription }}</p>
+                <p><strong>Date Created:</strong> {{ record.created_at }}</p>
+
+                <div class="history-actions mb-2">
+                {% if user.role in "staff doctor" %}
+                    <a href="{% url 'edit_medical_record' record.pk %}" class="btn btn-sm btn-outline-primary">
+                        Edit
+                    </a>
+                {% endif %}
+
+                    <a href="{% if request.META.HTTP_REFERER %}{{ request.META.HTTP_REFERER }}{% else %}{% url 'patient_details' record.patient.pk %}{% endif %}"
+                    class="btn  btn-sm btn-secondary">
+                        ← Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

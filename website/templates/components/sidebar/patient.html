@@ -1,0 +1,51 @@
+<div class="sidebar" id="sidebar">
+    <div class="logo">
+        WestPoint
+    </div>
+
+    <div class="sidebar-content">
+        <a href="{% url 'home' %}" class="link">
+            <div class="menu-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}" data-section="dashboard">
+                <span class="text">
+                    <i class="bi bi-columns-gap"></i>
+                    Dashboard
+                </span>
+            </div>
+        </a>
+        <a href="{% url 'patient_calendar' %}">
+            <div class="menu-item {% if request.resolver_match.url_name == 'patient_calendar' %}active{% endif %}" data-section="calendar">
+                <span class="text">
+                    <i class="bi bi-calendar"></i>
+                    Calendar
+                </span>
+            </div>
+        </a>
+
+        <a href="{% url 'patient_appointments' %}">
+            <div class="menu-item {% if request.resolver_match.url_name == 'patient_appointments' %}active{% endif %}" data-section="appointments">
+                <span class="text">
+                    <i class="bi bi-person-square"></i>
+                    Appointments
+                </span>
+            </div>
+        </a>
+        
+        <a href="{% url 'medical_records' %}">
+            <div class="menu-item {% if request.resolver_match.url_name == 'medical_records' %}active{% endif %}" data-section="records">
+            <span class="text">
+                <i class="bi bi-folder"></i>
+                Medical Records
+            </span>
+        </div>
+        </a>
+
+        <a href="{% url 'view_doctors' %}">
+            <div class="menu-item {% if request.resolver_match.url_name == 'view_doctors' %}active{% endif %}" data-section="patients">
+                <span class="text">
+                    <i class="bi bi-person-lines-fill"></i>
+                    Doctors
+                </span>
+            </div>
+        </a>
+    </div>
+</div>

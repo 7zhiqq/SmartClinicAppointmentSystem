@@ -1,0 +1,65 @@
+{% extends "components/base.html" %}
+{% load static %}
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/schedule.css' %}">
+    {% include "components/sidebar/doctor.html" %}
+    
+    <div class="main-content">
+        <div class="schedule-header">
+            <div>
+                <div>
+                    <h2 class="heading-title">Your Weekly Availability</h2>
+                    <p class="subtitle">Manage your availability</p>
+                </div>
+            </div>
+            <a href="{% url 'doctor_custom_schedule'%}" class="add-schedule-btn">
+                + Add One Day
+            </a>
+        </div>
+
+        <div class="schedule-container">
+            <div class="form-section">
+                <h3>Add Recurring Availability</h3>
+                <form method="post" class="availability-form">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn-primary">Add Availability</button>
+                </form>
+            </div>
+
+            <div class="schedule-section">
+                <h3>Your Schedule</h3>
+                {% if schedules %}
+                <div class="schedule-table-wrapper">
+                    <table class="schedule-table">
+                        <thead>
+                            <tr>
+                                <th>Day</th>
+                                <th>Time</th>
+                                <th class="actions-col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in schedules %}
+                            <tr>
+                                <td class="day-cell"><span class="day-badge">{{ s.get_weekday_display }}</span></td>
+                                <td class="time-cell">{{ s.start_time }} – {{ s.end_time }}</td>
+                                <td class="actions-cell">
+                                    <a href="{% url 'delete_availability' s.id %}" class="btn-delete" onclick="return confirm('Delete this availability?')">Delete</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <p>No schedule set yet. Start by adding your availability.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+{% endblock %}
