@@ -4,33 +4,41 @@
     
 {% block content %}
     <link rel="stylesheet" href="{% static 'css/medrecords.css' %}">
+    <link rel="stylesheet" href="{% static 'css/schedule.css' %}">
     {% if user.is_authenticated %}
         {% include "components/sidebar/patient.html" %}
         <div class="main-content">
+            <div class="schedule-header mb-2">
+                <div>
+                    <h2 class="heading-title">Patients</h2>
+                    <p class="subtitle">
+                        View and manage patient medical records
+                    </p>
+                </div>
+                <div class="d-flex gap-2">
+                    {% if not patients %}
+                        <a href="{% url 'edit_my_patient_info' %}" class="add-schedule-btn">
+                            <i class="bi bi-pencil-square"></i> Add My Info
+                        </a>
+                    {% endif %}
 
-            <h2 class="heading-title">Patients</h2>
-            <p class="subtitle">
-                View and manage patient medical records
-            </p>
+                    <a href="{% url 'add_dependent' %}" class="add-schedule-btn">
+                        <i class="bi bi-person-fill-add"></i> Add Dependent
+                    </a>
+                </div>
+            </div>
+            
 
             <div class="dashboard">
                 <aside class="patient-list-panel">
-                    <input type="text" class="search-input" placeholder="Search patients...">
+                    <input
+                        type="text"
+                        id="patientSearch"
+                        class="search-input"
+                        placeholder="Search patients..."
+                    >   
 
                     <ul class="patient-list">
-                        {% if not patients %}
-                            <li>
-                                <a href="{% url 'edit_my_patient_info' %}" class="btn btn-primary add-patient-btn">
-                                    Add My Info
-                                </a>
-                            </li>
-                        {% endif %}
-
-                        <li>
-                            <a href="{% url 'add_dependent' %}" class="btn btn-primary add-patient-btn">
-                                Add Dependent
-                            </a>
-                        </li>
 
                         {% for patient in patients %}
                             <li class="patient-item" data-patient-id="{{ patient.pk }}" onclick="loadPatient('{{ patient.pk }}')">
@@ -99,6 +107,23 @@
             document.addEventListener('DOMContentLoaded', () => {
                 const firstPatient = document.querySelector('.patient-item');
                 if (firstPatient) loadPatient(firstPatient.dataset.patientId);
+            });
+
+            const searchInput = document.getElementById('patientSearch');
+
+            searchInput.addEventListener('input', function () {
+                const query = this.value.toLowerCase().trim();
+                const patients = document.querySelectorAll('.patient-item');
+                patients.forEach(item => {
+                    const name = item.querySelector('strong')?.innerText.toLowerCase() || '';
+                    const meta = item.querySelector('small')?.innerText.toLowerCase() || '';
+                    // Match name, age, or gender
+                    if (name.includes(query) || meta.includes(query)) {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
             });
         </script>
     {% endif %}

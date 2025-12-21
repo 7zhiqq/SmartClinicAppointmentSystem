@@ -13,7 +13,13 @@
                 </p>
                 <div class="dashboard">
                     <aside class="patient-list-panel">
-                        <input type="text" class="search-input" placeholder="Search patients...">
+                        <input
+                            type="text"
+                            id="patientSearch"
+                            class="search-input"
+                            placeholder="Search patients..."
+                        >   
+
 
                         <ul class="patient-list">
                             {% for patient in patients %}
@@ -83,6 +89,24 @@
                     const firstPatient = document.querySelector('.patient-item');
                     if (firstPatient) loadPatient(firstPatient.dataset.patientId);
                 });
+
+                const searchInput = document.getElementById('patientSearch');
+
+                searchInput.addEventListener('input', function () {
+                    const query = this.value.toLowerCase().trim();
+                    const patients = document.querySelectorAll('.patient-item');
+                    patients.forEach(item => {
+                        const name = item.querySelector('strong')?.innerText.toLowerCase() || '';
+                        const meta = item.querySelector('small')?.innerText.toLowerCase() || '';
+                        // Match name, age, or gender
+                        if (name.includes(query) || meta.includes(query)) {
+                            item.style.display = 'flex';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                });
+
             </script>
     {% endif %}
 {% endblock %}
