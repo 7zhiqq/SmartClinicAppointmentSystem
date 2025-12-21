@@ -557,7 +557,7 @@ button[type="submit"] {
     font-size: var(--font-size-md);
     font-weight: var(--font-weight-bold);
     color: var(--white);
-    background: var(--gradient-primary);
+    background: var(--primary);
     border: none;
     border-radius: var(--radius-lg);
     cursor: pointer;

@@ -137,7 +137,7 @@
 /* Primary Button */
 .form-actions .btn-primary,
 .form-actions .btn.btn-primary {
-    background: var(--gradient-primary);
+    background: var(--primary);
     color: var(--white);
     box-shadow: var(--shadow-primary);
 }

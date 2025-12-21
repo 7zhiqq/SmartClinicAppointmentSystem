@@ -159,7 +159,7 @@
 
 /* Primary button */
 .btn.btn-primary {
-    background: var(--gradient-primary);
+    background: var(--primary);
     color: var(--white);
     box-shadow: var(--shadow-primary);
 }

@@ -78,7 +78,7 @@ a {
 
 /* Active menu item */
 .menu-item.active {
-    background: var(--gradient-primary);
+    background: var(--primary);
     color: var(--white);
     font-weight: var(--font-weight-semibold);
     box-shadow: var(--shadow-primary);

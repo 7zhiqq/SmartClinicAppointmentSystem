@@ -5,7 +5,7 @@
     <link rel="stylesheet" href="{% static 'css/records.css' %}">
     <div class="card patient-header">
         <div class="patient-header-top">
-            <div class="avatar">
+            <div class="patient-avatar">
                 {% if patient.user %}
                     {{ patient.user.first_name|default:"X"|slice:":1" }}{{ patient.user.last_name|default:"X"|slice:":1" }}
                 {% else %}
@@ -21,14 +21,14 @@
                         {{ patient.first_name|default:"N/A" }} {{ patient.last_name|default:"" }}
                     {% endif %}
                 </h2>
-                <p class="patient-meta">
+                <h2 class="patient-meta">
                     {{ patient.age|default:"N/A" }} yrs •
                     {{ patient.gender|gender_full|default:"N/A" }} •
                     Blood Type: {{ patient.blood_type|default:"N/A" }}
                     {% if patient_type == "dependent" %}
                         • Dependent
                     {% endif %}
-                </p>
+                </h2>
             </div>
         </div>
 

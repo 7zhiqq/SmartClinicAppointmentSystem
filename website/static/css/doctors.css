@@ -2,8 +2,8 @@
 .doctors-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: var(--space-xl);
-    padding: var(--space-lg) 0;
+    gap: var(--space-md);
+    padding: var(--space-md) 0;
     animation: fadeIn 0.5s var(--ease-out);
 }
 
@@ -292,7 +292,7 @@
 }
 
 .btn-primary {
-    background: var(--gradient-primary);
+    background: var(--primary);
     color: var(--white);
     box-shadow: var(--shadow-primary);
 }
