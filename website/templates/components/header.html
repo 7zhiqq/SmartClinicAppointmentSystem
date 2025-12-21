@@ -301,7 +301,6 @@
 {% if user.is_authenticated %}
 <header class="user-header">
     <div class="user-info" id="userDropdown">
-        <!-- Avatar -->
         <div class="user-profile">
             {% if user.role == "doctor" and user.doctor_info.profile_picture %}
                 <img src="{{ user.doctor_info.profile_picture.url }}" alt="Profile">
@@ -314,7 +313,6 @@
             {% endif %}
         </div>
 
-        <!-- User Details (Hidden on Mobile) -->
         <div class="user-details">
             <p class="user-name">
                 {% if user.get_full_name %}
@@ -328,14 +326,11 @@
             </p>
         </div>
 
-        <!-- Dropdown Icon -->
         <div class="dropdown-toggle-icon">
             <i class="bi bi-chevron-down"></i>
         </div>
 
-        <!-- Dropdown Menu -->
         <div class="dropdown-menu-custom">
-            <!-- Header with full user info -->
             <div class="dropdown-header-section">
                 <div class="dropdown-user-info">
                     <div class="dropdown-user-profile">
