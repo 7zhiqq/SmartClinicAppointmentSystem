@@ -2,53 +2,60 @@
 .main-content {
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
-    padding: var(--space-lg) var(--space-lg);
+    gap: var(--space-xl);
+    padding: var(--space-xl);
     background: var(--bg-body);
 }
 
 .calendar-header-section {
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--space-lg);
 }
 
-.heading-title{
-    font-size: 1.5rem;
-    font-weight: 700;
+.heading-title {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
     color: var(--text-main);
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin: 0 0 6px 0;
+    gap: var(--space-md);
+    margin: 0 0 var(--space-sm) 0;
+    letter-spacing: -0.5px;
+}
+
+.heading-title i {
+    color: var(--primary);
+    font-size: 1.75rem;
 }
 
 .subtitle {
-    font-size: 0.9rem;
+    font-size: var(--font-size-md);
     color: var(--text-muted);
     margin: 0;
+    font-weight: var(--font-weight-normal);
 }
 
 .calendar-wrapper {
     display: flex;
-    gap: var(--space-md);
+    gap: var(--space-2xl);
     flex: 1;
-    margin-top: -10px;
 }
 
 /* ==================== CALENDAR SECTION ==================== */
 .calendar-section {
-    flex: 1.85;
+    flex: 2;
     background: var(--bg-card);
-    border-radius: var(--radius-md);
-    padding: var(--space-md);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-light);
+    overflow: hidden;
 }
 
 #calendar {
     width: 100%;
 }
 
-/* FullCalendar Customization */
+/* ==================== FULLCALENDAR CUSTOMIZATION ==================== */
 .fc {
     font-family: var(--font-main);
 }
@@ -56,13 +63,15 @@
 .fc .fc-button-primary {
     background-color: var(--primary);
     border-color: var(--primary);
-    color: var(--text-inverse);
-    font-weight: 600;
+    color: var(--white);
+    font-weight: var(--font-weight-bold);
     border-radius: var(--radius-sm);
-    padding: var(--space-sm) var(--space-md);
+    padding: 10px 18px;
     text-transform: capitalize;
-    transition: var(--transition-fast);
+    transition: all var(--transition-fast);
     font-size: var(--font-size-sm);
+    box-shadow: var(--shadow-sm);
+    letter-spacing: 0.3px;
 }
 
 .fc .fc-button-primary:hover,
@@ -70,18 +79,20 @@
 .fc .fc-button-primary.fc-button-active {
     background-color: var(--primary-hover) !important;
     border-color: var(--primary-hover) !important;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    transform: translateY(-1px);
 }
 
 .fc .fc-button-group {
-    gap: var(--space-sm);
+    gap: var(--space-md);
 }
 
 .fc .fc-col-header-cell {
-    background-color: var(--bg-muted);
-    color: var(--text-main);
-    font-weight: 600;
+    background-color: var(--primary);
+    color: var(--white);
+    font-weight: var(--font-weight-bold);
     padding: var(--space-md) var(--space-sm);
-    border-color: var(--border-light);
+    border-color: var(--primary-hover);
     font-size: var(--font-size-sm);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -89,32 +100,42 @@
 
 .fc .fc-daygrid-day {
     border-color: var(--border-light);
-    transition: var(--transition-fast);
+    transition: all var(--transition-fast);
     padding: var(--space-sm);
 }
 
 .fc .fc-daygrid-day:hover {
-    background-color: var(--bg-muted);
+    background-color: var(--primary-lighter);
+    cursor: pointer;
+    box-shadow: inset 0 0 0 2px var(--primary);
 }
 
 .fc .fc-daygrid-day.fc-day-other {
     background-color: rgba(0, 0, 0, 0.02);
+    opacity: 0.6;
 }
 
 .fc .fc-daygrid-day-number {
     color: var(--text-main);
-    font-weight: 600;
-    padding: var(--space-sm);
+    font-weight: var(--font-weight-bold);
+    padding: var(--space-md);
     font-size: var(--font-size-md);
 }
 
 .fc .fc-daygrid-day.fc-day-today {
-    background-color: rgba(79, 70, 229, 0.05);
+    background-color: rgba(79, 70, 229, 0.1);
 }
 
 .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
-    color: var(--primary);
-    background-color: transparent;
+    color: var(--white);
+    background: var(--primary);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-primary);
 }
 
 .fc .fc-daygrid-day-frame {
@@ -129,74 +150,79 @@
     background-color: var(--primary);
     border: none;
     border-radius: var(--radius-sm);
-    padding: 2px 4px;
+    padding: 3px 6px;
     font-size: var(--font-size-xs);
     cursor: pointer;
-    transition: var(--transition-fast);
+    transition: all var(--transition-fast);
     margin: 2px 0;
-    color: var(--text-inverse);
+    color: var(--white);
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.2);
 }
 
 .fc .fc-event:hover {
     background-color: var(--primary-hover);
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    transform: translateY(-2px);
 }
 
 .fc .fc-event-title {
-    font-weight: 600;
+    font-weight: var(--font-weight-bold);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     padding: 2px 4px;
-    color: var(--text-inverse);
+    color: var(--white);
 }
 
 .fc .fc-toolbar {
     margin-bottom: var(--space-lg);
-    gap: var(--space-sm);
+    gap: var(--space-md);
     flex-wrap: wrap;
-    padding: 0;
+    padding: 0 0 var(--space-lg) 0;
+    border-bottom: 2px solid var(--border-light);
 }
 
 .fc .fc-toolbar-title {
     font-size: var(--font-size-lg);
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--text-main);
     margin: 0;
+    letter-spacing: -0.3px;
 }
 
 /* ==================== APPOINTMENTS PANEL ==================== */
 .appointments-panel {
     flex: 1;
     background: var(--bg-card);
-    border-radius: var(--radius-md);
-    padding: var(--space-md);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-light);
     display: flex;
     flex-direction: column;
-    max-height: calc(200vh - 300px);
+    max-height: calc(100vh - 300px);
     overflow: hidden;
     min-width: 0;
 }
 
 .appointments-header {
     margin-bottom: var(--space-lg);
-    border-bottom: 1px solid var(--border-light);
-    padding-bottom: var(--space-md);
+    border-bottom: 3px solid var(--primary);
+    padding-bottom: var(--space-lg);
 }
 
 .appointments-header h2 {
     font-size: var(--font-size-lg);
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--text-main);
-    margin: 0 0 var(--space-xs) 0;
+    margin: 0 0 var(--space-md) 0;
+    letter-spacing: -0.3px;
 }
 
 .selected-date-text {
-    font-size: var(--font-size-sm);
+    font-size: 1.25rem;
+    font-weight: var(--font-weight-bold);
     color: var(--primary);
-    font-weight: 600;
     margin: 0;
 }
 
@@ -211,76 +237,109 @@
     overflow-x: hidden;
     padding: 0;
     margin: 0;
+    padding-right: var(--space-sm);
 }
 
 .appointments-list::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
 }
 
 .appointments-list::-webkit-scrollbar-track {
-    background: var(--gray-100);
+    background: var(--bg-muted);
     border-radius: var(--radius-pill);
 }
 
 .appointments-list::-webkit-scrollbar-thumb {
-    background: var(--gray-300);
+    background: var(--primary);
     border-radius: var(--radius-pill);
 }
 
 .appointments-list::-webkit-scrollbar-thumb:hover {
-    background: var(--gray-400);
+    background: var(--primary-hover);
 }
 
+/* ==================== APPOINTMENT ITEM - ENHANCED ==================== */
 .appointment-item {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
-    padding: var(--space-md);
-    background: var(--bg-muted);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
+    gap: var(--space-lg);
+    padding: var(--space-lg);
+    background: linear-gradient(135deg, var(--bg-muted) 0%, rgba(79, 70, 229, 0.02) 100%);
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-lg);
     cursor: pointer;
-    transition: var(--transition-fast);
-    border-left: 4px solid var(--primary);
+    transition: all var(--transition-fast);
+    border-left: 5px solid var(--primary);
+    position: relative;
 }
 
 .appointment-item:hover {
     border-color: var(--primary);
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    transform: translateX(4px);
+    background: linear-gradient(135deg, var(--white) 0%, rgba(79, 70, 229, 0.05) 100%);
+}
+
+.appointment-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--gradient-primary);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--transition-normal);
+}
+
+.appointment-item:hover::before {
+    transform: scaleX(1);
 }
 
 .appointment-number {
-    min-width: 40px;
-    width: 40px;
-    height: 40px;
+    min-width: 48px;
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--primary);
-    color: var(--text-inverse);
-    border-radius: var(--radius-md);
-    font-weight: 700;
-    font-size: var(--font-size-sm);
-    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+    background: var(--gradient-primary);
+    color: var(--white);
+    border-radius: var(--radius-lg);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-md);
+    box-shadow: var(--shadow-md);
     flex-shrink: 0;
 }
 
 .appointment-content {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
 }
 
 .appointment-name {
-    font-weight: 600;
+    font-weight: var(--font-weight-bold);
     color: var(--text-main);
     font-size: var(--font-size-md);
-    margin-bottom: var(--space-xs);
+    margin: 0;
+    letter-spacing: -0.2px;
 }
 
 .appointment-doctor {
-    font-size: 0.85rem;
-    color: #6c757d;
-    margin-top: 2px;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.appointment-doctor i {
+    color: var(--primary);
+    font-size: var(--font-size-sm);
 }
 
 .appointment-time {
@@ -289,10 +348,12 @@
     gap: var(--space-sm);
     font-size: var(--font-size-sm);
     color: var(--text-muted);
+    margin: 0;
 }
 
 .time-icon {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-md);
+    color: var(--primary);
 }
 
 .appointment-status {
@@ -302,31 +363,44 @@
 }
 
 .status-badge {
-    padding: var(--space-xs) var(--space-sm);
+    padding: 6px 12px;
     border-radius: var(--radius-pill);
     font-size: var(--font-size-xs);
-    font-weight: 600;
-    text-transform: capitalize;
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border: 1px solid;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
 }
 
 .status-confirmed {
-    background-color: rgba(34, 197, 94, 0.12);
-    color: #22c55e;
+    background: var(--success-bg);
+    color: var(--success);
+    border-color: var(--success-light);
 }
 
 .status-pending {
-    background-color: rgba(245, 158, 11, 0.12);
-    color: #f59e0b;
+    background: var(--warning-bg);
+    color: var(--warning);
+    border-color: var(--warning-light);
 }
 
 .status-completed {
-    background-color: rgba(40, 60, 238, 0.12);
-    color: #226ec5;
+    background: var(--info-bg);
+    color: var(--info);
+    border-color: var(--info-light);
 }
 
 .status-cancelled {
-    background-color: rgba(239, 68, 68, 0.12);
-    color: #ef4444;
+    background: var(--danger-bg);
+    color: var(--danger);
+    border-color: var(--danger-light);
+}
+
+.status-badge:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-sm);
 }
 
 /* ==================== EMPTY STATE ==================== */
@@ -334,48 +408,27 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-direction: column;
     min-height: 200px;
-    color: var(--text-light);
+    color: var(--text-muted);
     font-size: var(--font-size-md);
     background: var(--bg-muted);
     border: 2px dashed var(--border-light);
-    border-radius: var(--radius-md);
-    text-align: center;
-}
-
-/* ==================== MODAL CUSTOMIZATION ==================== */
-.modal-custom {
-    border: 1px solid var(--border-light);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
+    text-align: center;
+    padding: var(--space-2xl);
 }
 
-.modal-header-custom {
-    border-bottom: 1px solid var(--border-light);
-    background: var(--bg-muted);
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    padding: var(--space-md);
+.empty-state i {
+    font-size: 3rem;
+    opacity: 0.4;
+    margin-bottom: var(--space-lg);
 }
 
-.modal-header-custom .modal-title {
-    font-weight: 700;
-    color: var(--text-main);
-    font-size: var(--font-size-lg);
+.empty-state span {
+    font-style: italic;
+    font-weight: var(--font-weight-medium);
 }
-
-.modal-footer-custom {
-    border-top: 1px solid var(--border-light);
-    padding: var(--space-md);
-    background: var(--bg-muted);
-    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-}
-
-#modalBody {
-    padding: var(--space-md);
-    color: var(--text-main);
-}
-
-
 
 /* ==================== NOT AUTHENTICATED ==================== */
 .not-authenticated {
@@ -383,36 +436,82 @@
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    font-size: var(--font-size-md);
+    font-size: var(--font-size-lg);
     color: var(--text-muted);
+    background: var(--bg-body);
 }
 
 /* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 1400px) {
+    .calendar-wrapper {
+        gap: var(--space-xl);
+    }
+}
+
+@media (max-width: 1200px) {
+    .calendar-wrapper {
+        gap: var(--space-lg);
+    }
+
+    .calendar-section {
+        flex: 1.5;
+    }
+}
+
 @media (max-width: 1024px) {
     .calendar-wrapper {
         flex-direction: column;
-        gap: var(--space-lg);
+        gap: var(--space-xl);
     }
 
     .calendar-section,
     .appointments-panel {
-        flex: 1 !important;
+        flex: 1;
         max-height: none;
     }
 
     .appointments-panel {
         max-height: 500px;
     }
+
+    .appointment-item {
+        gap: var(--space-md);
+        padding: var(--space-md);
+    }
+
+    .appointment-number {
+        min-width: 44px;
+        width: 44px;
+        height: 44px;
+        font-size: var(--font-size-sm);
+    }
+
+    .appointment-name {
+        font-size: var(--font-size-sm);
+    }
+
+    .appointment-doctor {
+        font-size: var(--font-size-xs);
+    }
+
+    .appointment-time {
+        font-size: var(--font-size-xs);
+    }
+
+    .status-badge {
+        padding: 4px 10px;
+        font-size: 10px;
+    }
 }
 
 @media (max-width: 768px) {
     .main-content {
-        padding: var(--space-md);
+        padding: var(--space-lg);
         gap: var(--space-lg);
     }
 
     .heading-title {
-        font-size: var(--font-size-md);
+        font-size: var(--font-size-xl);
     }
 
     .subtitle {
@@ -429,23 +528,8 @@
         padding: var(--space-md);
     }
 
-    .appointment-item {
-        gap: var(--space-sm);
-        padding: var(--space-md);
-    }
-
-    .appointment-number {
-        width: 36px;
-        height: 36px;
-        font-size: var(--font-size-xs);
-    }
-
-    .appointment-name {
-        font-size: var(--font-size-sm);
-    }
-
-    .appointment-time {
-        font-size: var(--font-size-xs);
+    .appointments-panel {
+        max-height: 400px;
     }
 
     .fc .fc-toolbar {
@@ -457,19 +541,34 @@
         font-size: var(--font-size-md);
     }
 
-    .appointments-panel {
-        max-height: 400px;
+    .fc .fc-daygrid-day {
+        min-height: 80px;
+    }
+
+    .appointment-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-sm);
+    }
+
+    .appointment-number {
+        align-self: flex-start;
+    }
+
+    .appointment-status {
+        align-self: flex-end;
+        margin-top: var(--space-sm);
     }
 }
 
 @media (max-width: 480px) {
     .main-content {
-        padding: var(--space-sm);
+        padding: var(--space-md);
         gap: var(--space-md);
     }
 
     .heading-title {
-        font-size: var(--font-size-md);
+        font-size: var(--font-size-lg);
     }
 
     .calendar-wrapper {
@@ -479,21 +578,35 @@
     .calendar-section,
     .appointments-panel {
         padding: var(--space-sm);
-        border-radius: var(--radius-md);
     }
 
-    .appointments-header h2 {
-        font-size: var(--font-size-md);
+    .fc .fc-daygrid-day {
+        min-height: 60px;
+        padding: 4px;
+    }
+
+    .fc .fc-daygrid-day-number {
+        font-size: var(--font-size-sm);
+        padding: var(--space-xs);
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: var(--font-size-sm);
+    }
+
+    .selected-date-text {
+        font-size: 1rem;
     }
 
     .appointment-item {
-        padding: var(--space-sm);
-        gap: var(--space-sm);
+        padding: var(--space-md);
+        gap: var(--space-md);
     }
 
     .appointment-number {
-        width: 36px;
-        height: 36px;
+        min-width: 40px;
+        width: 40px;
+        height: 40px;
         font-size: var(--font-size-xs);
     }
 
@@ -501,14 +614,17 @@
         font-size: var(--font-size-sm);
     }
 
+    .appointment-doctor,
     .appointment-time {
-        font-size: var(--font-size-xs);
-        flex-direction: column;
-        gap: var(--space-xs);
+        font-size: 12px;
     }
 
     .status-badge {
-        font-size: var(--font-size-xs);
-        padding: var(--space-xs) var(--space-sm);
+        padding: 4px 8px;
+        font-size: 9px;
+    }
+
+    .appointments-list {
+        gap: var(--space-sm);
     }
 }

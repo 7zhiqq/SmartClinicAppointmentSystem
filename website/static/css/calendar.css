@@ -1,69 +1,89 @@
-
+/* ==================== CALENDAR HEADER SECTION ==================== */
 .calendar-header-section {
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--space-2xl);
 }
 
-.heading-title {
-    font-size: 1.5rem;
-    font-weight: 700;
+.doctor-select-wrapper {
+    margin-top: var(--space-lg);
+    margin-bottom: var(--space-2xl);
+}
+
+.doctor-label {
+    display: block;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--space-md);
     color: var(--text-main);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 0 0 6px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.subtitle {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    margin: 0;
+/* ==================== ENHANCED DOCTOR SELECT ==================== */
+.doctor-select-input {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-md);
+    color: var(--text-main);
+    background: var(--white);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: var(--font-main);
+    font-weight: var(--font-weight-semibold);
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23214994' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 24px;
+    padding-right: 50px;
+    box-shadow: var(--shadow-sm);
 }
 
+.doctor-select-input:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+    background-color: rgba(79, 70, 229, 0.02);
+}
+
+.doctor-select-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2);
+    background-color: rgba(79, 70, 229, 0.03);
+}
+
+.doctor-select-input option {
+    padding: var(--space-md);
+    color: var(--text-main);
+    background: var(--white);
+    line-height: 1.6;
+}
+
+.doctor-select-input option:hover {
+    background: var(--primary-lighter);
+}
+
+/* ==================== CALENDAR WRAPPER ==================== */
 .calendar-wrapper {
     display: flex;
-    gap: var(--space-md);
+    gap: var(--space-2xl);
     flex: 1;
-    margin-top: -10px;
 }
 
 /* ==================== CALENDAR SECTION ==================== */
 .calendar-section {
     flex: 1.85;
     background: var(--bg-card);
-    border-radius: var(--radius-md);
-    padding: var(--space-md);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-light);
+    overflow: hidden;
 }
 
 #calendar {
     width: 100%;
-}
-
-/* ==================== DOCTOR SELECT ==================== */
-select[id="doctorSelect"] {
-    padding: var(--space-sm) var(--space-md);
-    border: 2px solid var(--border-light);
-    border-radius: var(--radius-sm);
-    font-size: var(--font-size-md);
-    color: var(--text-main);
-    background: var(--bg-card);
-    cursor: pointer;
-    transition: var(--transition-fast);
-    font-family: var(--font-main);
-    font-weight: 500;
-    margin-top: var(--space-sm);
-}
-
-select[id="doctorSelect"]:hover {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px var(--primary-light);
-}
-
-select[id="doctorSelect"]:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px var(--primary-light);
 }
 
 /* ==================== FULLCALENDAR CUSTOMIZATION ==================== */
@@ -74,13 +94,15 @@ select[id="doctorSelect"]:focus {
 .fc .fc-button-primary {
     background-color: var(--primary);
     border-color: var(--primary);
-    color: var(--text-inverse);
-    font-weight: 600;
+    color: var(--white);
+    font-weight: var(--font-weight-bold);
     border-radius: var(--radius-sm);
-    padding: var(--space-sm) var(--space-md);
+    padding: 10px 18px;
     text-transform: capitalize;
-    transition: var(--transition-fast);
+    transition: all var(--transition-fast);
     font-size: var(--font-size-sm);
+    box-shadow: var(--shadow-sm);
+    letter-spacing: 0.3px;
 }
 
 .fc .fc-button-primary:hover,
@@ -88,19 +110,20 @@ select[id="doctorSelect"]:focus {
 .fc .fc-button-primary.fc-button-active {
     background-color: var(--primary-hover) !important;
     border-color: var(--primary-hover) !important;
-    box-shadow: 0 0 0 3px var(--primary-light);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    transform: translateY(-1px);
 }
 
 .fc .fc-button-group {
-    gap: var(--space-sm);
+    gap: var(--space-md);
 }
 
 .fc .fc-col-header-cell {
-    background-color: var(--bg-muted);
-    color: var(--text-main);
-    font-weight: 600;
+    background-color: var(--primary);
+    color: var(--white);
+    font-weight: var(--font-weight-bold);
     padding: var(--space-md) var(--space-sm);
-    border-color: var(--border-light);
+    border-color: var(--primary-hover);
     font-size: var(--font-size-sm);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -108,41 +131,42 @@ select[id="doctorSelect"]:focus {
 
 .fc .fc-daygrid-day {
     border-color: var(--border-light);
-    transition: var(--transition-fast);
+    transition: all var(--transition-fast);
     padding: var(--space-sm);
 }
 
 .fc .fc-daygrid-day:hover:not(.fc-day-disabled) {
-    background-color: var(--primary-light);
+    background-color: var(--primary-lighter);
     cursor: pointer;
+    box-shadow: inset 0 0 0 2px var(--primary);
 }
 
 .fc .fc-daygrid-day.fc-day-other {
     background-color: rgba(0, 0, 0, 0.02);
+    opacity: 0.6;
 }
 
 .fc .fc-daygrid-day-number {
     color: var(--text-main);
-    font-weight: 600;
-    padding: var(--space-sm);
-    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
+    padding: var(--space-md);
+    font-size: var(--font-size-lg);
 }
 
 .fc .fc-daygrid-day.fc-day-today {
-    background-color: rgba(79, 70, 229, 0.05);
+    background-color: rgba(79, 70, 229, 0.1);
 }
 
 .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
-    color: var(--primary);
-    background: none;
+    color: var(--white);
+    background: var(--primary);
     border-radius: 50%;
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--primary);
-    color: white;
+    box-shadow: var(--shadow-primary);
 }
 
 .fc .fc-daygrid-day-frame {
@@ -157,115 +181,150 @@ select[id="doctorSelect"]:focus {
     background-color: var(--primary);
     border: none;
     border-radius: var(--radius-sm);
-    padding: 2px 4px;
+    padding: 3px 6px;
     font-size: var(--font-size-xs);
     cursor: pointer;
-    transition: var(--transition-fast);
+    transition: all var(--transition-fast);
     margin: 2px 0;
-    color: var(--text-inverse);
-    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+    color: var(--white);
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.2);
 }
 
 .fc .fc-event:hover {
     background-color: var(--primary-hover);
-    box-shadow: 0 4px 8px rgba(79, 70, 229, 0.3);
-    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    transform: translateY(-2px);
 }
 
 .fc .fc-event-title {
-    font-weight: 600;
+    font-weight: var(--font-weight-bold);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     padding: 2px 4px;
-    color: var(--text-inverse);
+    color: var(--white);
 }
 
 .fc .fc-toolbar {
-    margin-bottom: var(--space-lg);
-    gap: var(--space-sm);
+    margin-bottom: var(--space-xl);
+    gap: var(--space-md);
     flex-wrap: wrap;
-    padding: 0;
+    padding: 0 0 var(--space-lg) 0;
+    border-bottom: 2px solid var(--border-light);
 }
 
 .fc .fc-toolbar-title {
-    font-size: var(--font-size-lg);
-    font-weight: 700;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
     color: var(--text-main);
     margin: 0;
+    letter-spacing: -0.3px;
+}
+
+/* ==================== DISABLED DAYS ==================== */
+.fc-day-disabled {
+    background-color: #ffe4e4 !important;
+    pointer-events: none;
+    opacity: 0.5 !important;
+}
+
+.fc-day-available {
+    background-color: #d1fae5 !important;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.fc-day-available:hover {
+    background-color: var(--primary) !important;
+    color: var(--white) !important;
+}
+
+.fc-day-custom {
+    background-color: #d1fae5 !important;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.fc-day-custom:hover {
+    background-color: var(--primary) !important;
+    color: var(--white) !important;
 }
 
 /* ==================== APPOINTMENTS PANEL ==================== */
 .appointments-panel {
     flex: 1;
     background: var(--bg-card);
-    border-radius: var(--radius-md);
-    padding: var(--space-md);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-light);
     display: flex;
     flex-direction: column;
-    max-height: calc(200vh - 300px);
+    max-height: calc(100vh - 300px);
     overflow: hidden;
     min-width: 0;
-    position: sticky;
-    top: var(--space-lg);
 }
 
 .appointments-header {
-    margin-bottom: var(--space-lg);
-    border-bottom: 2px solid var(--primary-light);
-    padding-bottom: var(--space-md);
+    margin-bottom: var(--space-xl);
+    border-bottom: 3px solid var(--primary);
+    padding-bottom: var(--space-lg);
 }
 
 .appointments-header h2 {
     font-size: var(--font-size-lg);
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--text-main);
-    margin: 0 0 var(--space-xs) 0;
+    margin: 0 0 var(--space-md) 0;
+    letter-spacing: -0.3px;
 }
 
-/* ==================== SELECTED DATE ==================== */
+.selected-date-display,
 #selected-date {
     font-size: 1.5rem;
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--primary);
     margin: 0;
     letter-spacing: -0.3px;
 }
 
-/* ==================== TIME SLOTS ==================== */
-#time-slots {
+/* ==================== TIME SLOTS - ENLARGED ==================== */
+#time-slots,
+.time-slots-container {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
+    gap: var(--space-lg);
     flex: 1;
     overflow-y: auto;
+    padding-right: var(--space-md);
 }
 
-#time-slots p {
+#time-slots p,
+.time-slots-placeholder {
     text-align: center;
     color: var(--text-muted);
-    font-size: var(--font-size-md);
-    padding: var(--space-lg) 0;
+    font-size: var(--font-size-lg);
+    padding: var(--space-3xl) 0;
     margin: 0;
     font-style: italic;
+    font-weight: var(--font-weight-medium);
 }
 
-/* ==================== TIME SLOT ==================== */
+/* ==================== TIME SLOT ITEM - BIGGER ==================== */
 .time-slot {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-md);
-    padding: var(--space-md);
-    background: var(--bg-muted);
+    gap: var(--space-lg);
+    padding: var(--space-lg) var(--space-xl);
+    background: linear-gradient(135deg, var(--bg-muted) 0%, rgba(79, 70, 229, 0.02) 100%);
     border: 2px solid var(--border-light);
-    border-radius: var(--radius-sm);
-    transition: var(--transition-fast);
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-fast);
     cursor: pointer;
     position: relative;
     overflow: hidden;
+    min-height: 60px;
 }
 
 .time-slot::before {
@@ -274,16 +333,17 @@ select[id="doctorSelect"]:focus {
     left: 0;
     top: 0;
     height: 100%;
-    width: 3px;
+    width: 4px;
     background: var(--primary);
     opacity: 0;
-    transition: var(--transition-fast);
+    transition: opacity var(--transition-fast);
 }
 
 .time-slot:hover:not(:has(button:disabled)) {
-    background: var(--bg-card);
+    background: linear-gradient(135deg, var(--white) 0%, rgba(79, 70, 229, 0.05) 100%);
     border-color: var(--primary);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg);
+    transform: translateX(4px);
 }
 
 .time-slot:hover:not(:has(button:disabled))::before {
@@ -291,50 +351,53 @@ select[id="doctorSelect"]:focus {
 }
 
 .time-slot span {
-    font-size: var(--font-size-md);
-    font-weight: 600;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
     color: var(--text-main);
-    min-width: 60px;
+    min-width: 100px;
 }
 
-/* ==================== TIME SLOT BUTTON ==================== */
+/* ==================== TIME SLOT BUTTON - BIGGER ==================== */
 .time-slot button {
-    padding: 8px 20px;
+    padding: 12px 28px;
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     font-size: var(--font-size-sm);
-    font-weight: 600;
+    font-weight: var(--font-weight-bold);
     cursor: pointer;
-    transition: var(--transition-fast);
+    transition: all var(--transition-fast);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     white-space: nowrap;
     font-family: var(--font-main);
     margin-left: auto;
+    min-width: 120px;
+    text-align: center;
 }
 
 .time-slot button:not(:disabled) {
-    background-color: var(--success);
-    color: var(--text-inverse);
-    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.15);
+    background: var(--gradient-success);
+    color: var(--white);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
 }
 
 .time-slot button:not(:disabled):hover {
-    background-color: var(--success-hover);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
-    transform: translateY(-2px);
+    background: linear-gradient(135deg, var(--success-hover), #047857);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+    transform: translateY(-3px);
 }
 
 .time-slot button:disabled {
-    background-color: var(--bg-muted);
-    color: var(--text-light);
+    background: var(--gray-200);
+    color: var(--text-muted);
     cursor: not-allowed;
-    border: 1px solid var(--border-light);
+    border: 2px solid var(--border-light);
+    opacity: 0.7;
 }
 
 /* ==================== SCROLLBAR STYLING ==================== */
 #time-slots::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
 }
 
 #time-slots::-webkit-scrollbar-track {
@@ -343,138 +406,311 @@ select[id="doctorSelect"]:focus {
 }
 
 #time-slots::-webkit-scrollbar-thumb {
-    background: var(--border-light);
+    background: var(--primary);
     border-radius: var(--radius-pill);
 }
 
 #time-slots::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted);
+    background: var(--primary-hover);
 }
 
-/* ==================== DISABLED DAYS ==================== */
-.fc-day-disabled {
-    background-color: var(--bg-muted) !important;
-    pointer-events: none;
-    opacity: 0.5 !important;
+/* ==================== BOOK APPOINTMENT PAGE ==================== */
+.appointment-wrapper {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 2.5rem;
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-light);
+    animation: slideUp 0.5s var(--ease-out);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.appointment-wrapper h2 {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--primary);
+    margin-bottom: var(--space-xl);
+    border-bottom: 3px solid var(--primary-lighter);
+    padding-bottom: var(--space-lg);
+    letter-spacing: -0.5px;
+}
+
+.appointment-wrapper p {
+    display: flex;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    font-size: var(--font-size-md);
+    color: var(--text-secondary);
+    line-height: var(--line-height-relaxed);
+    padding: var(--space-lg);
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, transparent 100%);
+    border-left: 4px solid var(--primary);
+    border-radius: var(--radius-md);
+}
+
+.appointment-wrapper p strong {
+    min-width: 140px;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-main);
+    flex-shrink: 0;
+}
+
+/* ==================== APPOINTMENT FORM ==================== */
+form {
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.04) 0%, transparent 100%);
+    padding: var(--space-2xl);
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--border-light);
+    margin-top: var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+}
+
+form label {
+    display: block;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-main);
+    margin-bottom: var(--space-md);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+form select {
+    width: 100%;
+    padding: 14px 18px;
+    font-size: var(--font-size-md);
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    background: var(--white);
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: var(--font-main);
+    font-weight: var(--font-weight-semibold);
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23214994' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 24px;
+    padding-right: 50px;
+}
+
+form select:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+    background-color: rgba(79, 70, 229, 0.02);
+}
+
+form select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2);
+    background-color: rgba(79, 70, 229, 0.03);
+}
+
+form select option {
+    padding: var(--space-md);
+    color: var(--text-main);
+}
+
+/* ==================== SUBMIT BUTTON ==================== */
+button[type="submit"] {
+    width: 100%;
+    padding: 16px 24px;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
+    color: var(--white);
+    background: var(--gradient-primary);
+    border: none;
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    box-shadow: var(--shadow-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: var(--space-lg);
+    min-height: 50px;
+}
+
+button[type="submit"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35);
+}
+
+button[type="submit"]:active {
+    transform: translateY(0);
+}
+
+button[type="submit"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 /* ==================== RESPONSIVE DESIGN ==================== */
 @media (max-width: 1200px) {
     .calendar-wrapper {
-        gap: var(--space-md);
+        gap: var(--space-lg);
     }
 }
 
 @media (max-width: 1024px) {
     .calendar-wrapper {
         flex-direction: column;
-        gap: var(--space-lg);
+        gap: var(--space-xl);
     }
 
     .calendar-section,
     .appointments-panel {
-        width: 100%;
+        flex: 1;
+        max-height: none;
     }
 
     .appointments-panel {
-        position: relative;
-        top: 0;
+        max-height: 500px;
     }
 }
 
 @media (max-width: 768px) {
-    .main-content {
-        padding: var(--space-md);
-        gap: var(--space-md);
-    }
-
-    .heading-title {
-        font-size: 1.5rem;
-    }
-
-    .subtitle {
-        display: none;
-    }
-
-    .calendar-wrapper {
-        flex-direction: column;
-    }
-
     .calendar-section,
     .appointments-panel {
-        width: 100%;
-        padding: var(--space-md);
+        padding: var(--space-lg);
+    }
+
+    .appointments-panel {
+        max-height: 400px;
     }
 
     .fc .fc-toolbar {
         flex-direction: column;
-        gap: var(--space-md);
-    }
-
-    .fc .fc-toolbar-title {
-        font-size: 1.25rem;
-    }
-
-    .fc .fc-daygrid-day {
-        min-height: 100px;
-    }
-
-    .time-slot {
-        padding: var(--space-sm) var(--space-md);
-    }
-
-    select[id="doctorSelect"] {
-        width: 100%;
-    }
-}
-
-@media (max-width: 480px) {
-    .main-content {
-        padding: var(--space-sm);
-    }
-
-    .heading-title {
-        font-size: 1.25rem;
-    }
-
-    .calendar-wrapper {
         gap: var(--space-sm);
     }
 
-    .calendar-section,
-    .appointments-panel {
-        padding: var(--space-sm);
+    .fc .fc-toolbar-title {
+        font-size: var(--font-size-lg);
     }
 
     .fc .fc-daygrid-day {
         min-height: 80px;
     }
 
-    .fc .fc-daygrid-day-number {
-        font-size: var(--font-size-sm);
-    }
-
-    #selected-date {
-        font-size: 1rem;
-    }
-
     .time-slot {
         flex-direction: column;
         align-items: flex-start;
-        gap: var(--space-sm);
-        padding: var(--space-sm);
+        gap: var(--space-md);
+        min-height: auto;
+        padding: var(--space-lg);
     }
 
     .time-slot button {
         width: 100%;
         margin-left: 0;
+        min-width: auto;
     }
 
     .time-slot span {
         min-width: unset;
     }
 
-    #time-slots {
+    .appointment-wrapper {
+        padding: var(--space-xl);
+        margin: var(--space-lg);
+    }
+
+    .appointment-wrapper h2 {
+        font-size: var(--font-size-xl);
+    }
+
+    .appointment-wrapper p {
+        flex-direction: column;
         gap: var(--space-sm);
+    }
+
+    .appointment-wrapper p strong {
+        min-width: unset;
+    }
+
+    form {
+        padding: var(--space-lg);
+    }
+}
+
+@media (max-width: 480px) {
+    .calendar-section,
+    .appointments-panel {
+        padding: var(--space-md);
+    }
+
+    .fc .fc-daygrid-day {
+        min-height: 60px;
+        padding: 4px;
+    }
+
+    .fc .fc-daygrid-day-number {
+        font-size: var(--font-size-md);
+        padding: var(--space-sm);
+    }
+
+    .selected-date-display,
+    #selected-date {
+        font-size: 1.25rem;
+    }
+
+    .time-slot {
+        padding: var(--space-md) var(--space-lg);
+        gap: var(--space-md);
+    }
+
+    .time-slot span {
+        font-size: var(--font-size-md);
+    }
+
+    .time-slot button {
+        padding: 10px 16px;
+        font-size: var(--font-size-xs);
+    }
+
+    .appointment-wrapper {
+        padding: var(--space-lg);
+        margin: var(--space-md);
+    }
+
+    .appointment-wrapper h2 {
+        font-size: var(--font-size-lg);
+        margin-bottom: var(--space-lg);
+    }
+
+    .appointment-wrapper p {
+        font-size: var(--font-size-sm);
+        padding: var(--space-md);
+    }
+
+    form {
+        gap: var(--space-lg);
+        padding: var(--space-lg);
+    }
+
+    form label {
+        font-size: var(--font-size-xs);
+        margin-bottom: var(--space-sm);
+    }
+
+    button[type="submit"] {
+        padding: 14px 16px;
+        font-size: var(--font-size-sm);
+        min-height: 44px;
     }
 }
