@@ -27,15 +27,12 @@ a {
 
 /* ==================== LOGO SECTION ==================== */
 .sidebar .logo {
-    font-size: 1.5rem;
-    font-weight: var(--font-weight-bold);
-    color: var(--primary);
     text-align: center;
+    margin-top: var(--space-md);
     margin-bottom: var(--space-lg);
-    letter-spacing: -0.5px;
     transition: var(--transition-normal);
     text-transform: uppercase;
-    font-weight: 800;
+    width: 200px;
 }
 
 .sidebar .logo:hover {

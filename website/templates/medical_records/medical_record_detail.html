@@ -29,9 +29,12 @@
 
                 <div class="history-actions mb-2">
                 {% if user.role in "staff doctor" %}
-                    <a href="{% url 'edit_medical_record' record.pk %}" class="btn btn-sm btn-outline-primary">
-                        Edit
-                    </a>
+                    <button class="btn btn-primary">
+                        <a href="{% url 'edit_medical_record' record.pk %}">
+                            Edit
+                        </a>
+                    </button>
+                    
                 {% endif %}
 
                     <a href="{% if request.META.HTTP_REFERER %}{{ request.META.HTTP_REFERER }}{% else %}{% url 'patient_details' record.patient.pk %}{% endif %}"
