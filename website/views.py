@@ -232,27 +232,48 @@ def patient_details_ajax(request, pk):
         else:
             medical_history = []
 
-        # --- Last appointment ---
-        last_schedule = None
+        # --- Last appointment/visit ---
+        last_visit = None
         try:
             if patient_type == 'self' and getattr(patient, 'user', None):
+                # Get the most recent COMPLETED appointment
                 last_appointment = Appointment.objects.filter(
                     patient=patient.user,
                     status='completed'
                 ).order_by('-start_time').first()
+                
+                if last_appointment:
+                    last_visit = last_appointment.start_time
+                else:
+                    # If no completed appointments, get the most recent approved appointment
+                    last_appointment = Appointment.objects.filter(
+                        patient=patient.user,
+                        status='approved'
+                    ).order_by('-start_time').first()
+                    if last_appointment:
+                        last_visit = last_appointment.start_time
+                        
             elif patient_type == 'dependent':
-                last_appointment = Appointment.objects.filter(
+                # Get the most recent COMPLETED appointment for dependent
+                last_appointment = DependentAppointment.objects.filter(
                     dependent_patient=patient,
                     status='completed'
                 ).order_by('-start_time').first()
-            else:
-                last_appointment = None
-
-            if last_appointment:
-                last_schedule = last_appointment.start_time
+                
+                if last_appointment:
+                    last_visit = last_appointment.start_time
+                else:
+                    # If no completed appointments, get the most recent approved appointment
+                    last_appointment = DependentAppointment.objects.filter(
+                        dependent_patient=patient,
+                        status='approved'
+                    ).order_by('-start_time').first()
+                    if last_appointment:
+                        last_visit = last_appointment.start_time
+                        
         except Exception as e:
-            print(f"Error fetching last appointment for patient {pk}: {e}")
-            last_schedule = None
+            print(f"Error fetching last visit for patient {pk}: {e}")
+            last_visit = None
 
         # --- Render partial template ---
         html = render_to_string(
@@ -264,7 +285,7 @@ def patient_details_ajax(request, pk):
                 "medications": medications,
                 "allergies": allergies,
                 "medical_history": medical_history,
-                "last_schedule": last_schedule,
+                "last_visit": last_visit,
                 "user": request.user,
             },
             request=request
@@ -275,7 +296,7 @@ def patient_details_ajax(request, pk):
     except Exception as e:
         print(f"AJAX error for patient {pk}: {e}")
         return JsonResponse({'html': f'<p class="muted">Failed to load patient details: {e}</p>'})
-
+    
 @login_required
 def doctor_patient_list(request):
     if getattr(request.user, "role", None) != "doctor":
@@ -777,7 +798,11 @@ def doctor_daily_availability(request):
     if not doctor_id or not date_str:
         return JsonResponse({"error": "Invalid request"}, status=400)
 
-    date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+    try:
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return JsonResponse({"error": "Invalid date format"}, status=400)
+
     weekday = date_obj.weekday()
     doctor = get_object_or_404(DoctorInfo, id=doctor_id)
 
@@ -788,14 +813,35 @@ def doctor_daily_availability(request):
     else:
         availabilities = doctor.availabilities.filter(weekday=weekday)
 
-    # Get approved appointments on this date
-    appointments = Appointment.objects.filter(
+    if not availabilities.exists():
+        return JsonResponse([], safe=False)
+
+    # 2️⃣ Get BOTH self AND dependent approved appointments on this date
+    self_appointments = Appointment.objects.filter(
+        doctor=doctor,
+        start_time__date=date_obj,
+        status="approved"
+    )
+    
+    dependent_appointments = DependentAppointment.objects.filter(
         doctor=doctor,
         start_time__date=date_obj,
         status="approved"
     )
 
-    booked_times = {a.start_time.time(): a.end_time.time() for a in appointments}
+    # 3️⃣ Build booked times list from BOTH types
+    booked_times = []
+    
+    for a in self_appointments:
+        booked_times.append((a.start_time.time(), a.end_time.time()))
+    
+    for da in dependent_appointments:
+        booked_times.append((da.start_time.time(), da.end_time.time()))
+
+    print(f"DEBUG: Date {date_obj}, Doctor {doctor_id}")
+    print(f"DEBUG: Self appointments: {[f'{a.start_time.time()}-{a.end_time.time()}' for a in self_appointments]}")
+    print(f"DEBUG: Dependent appointments: {[f'{da.start_time.time()}-{da.end_time.time()}' for da in dependent_appointments]}")
+    print(f"DEBUG: Booked times: {booked_times}")
 
     slots = []
     SLOT_MINUTES = 30
@@ -812,12 +858,17 @@ def doctor_daily_availability(request):
 
         while current + timedelta(minutes=SLOT_MINUTES) <= end:
             slot_end = current + timedelta(minutes=SLOT_MINUTES)
+            slot_time = current.time()
 
-            # Check if slot overlaps any booked appointment
-            is_booked = any(
-                current.time() >= b_start and current.time() < b_end
-                for b_start, b_end in booked_times.items()
-            )
+            # Check if slot overlaps with ANY booked appointment (self or dependent)
+            is_booked = False
+            for booked_start, booked_end in booked_times:
+                # Slot overlaps if: slot_time >= booked_start AND slot_time < booked_end
+                if slot_time >= booked_start and slot_time < booked_end:
+                    is_booked = True
+                    break
+
+            print(f"DEBUG: Slot {slot_time} - Available: {not is_booked}")
 
             slots.append({
                 "time": current.strftime("%I:%M %p"),
@@ -859,13 +910,25 @@ def doctor_available_days(request):
         if not availabilities.exists():
             continue  # No availability this day
 
-        # Approved appointments on this day
+        # Approved appointments on this day (BOTH self and dependent)
         appointments = Appointment.objects.filter(
             doctor=doctor,
             start_time__date=d,
             status="approved"
         )
-        booked_times = [(a.start_time.time(), a.end_time.time()) for a in appointments]
+        
+        dependent_appointments = DependentAppointment.objects.filter(
+            doctor=doctor,
+            start_time__date=d,
+            status="approved"
+        )
+        
+        # Combine booked times from both
+        booked_times = []
+        for a in appointments:
+            booked_times.append((a.start_time.time(), a.end_time.time()))
+        for da in dependent_appointments:
+            booked_times.append((da.start_time.time(), da.end_time.time()))
 
         SLOT_MINUTES = 30
         day_has_free_slot = False
@@ -877,7 +940,7 @@ def doctor_available_days(request):
             while current + timedelta(minutes=SLOT_MINUTES) <= end:
                 slot_end = current + timedelta(minutes=SLOT_MINUTES)
 
-                # Check if slot overlaps with any booked appointment
+                # Check if slot overlaps with any booked appointment (self or dependent)
                 is_booked = any(
                     current.time() >= b_start and current.time() < b_end
                     for b_start, b_end in booked_times

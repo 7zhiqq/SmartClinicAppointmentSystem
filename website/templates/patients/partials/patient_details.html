@@ -53,7 +53,11 @@
 
             <div class="contact-item">
                 <i class="bi bi-calendar-event-fill"></i>
-                Last Visited: {{ last_schedule|date:"m/d/Y"|default:"No Visit Yet" }}
+                {% if last_visit %}
+                    Last Visited: {{ last_visit|date:"M d, Y" }}
+                {% else %}
+                    Last Visited: No Visit Yet
+                {% endif %}
             </div>
 
 
