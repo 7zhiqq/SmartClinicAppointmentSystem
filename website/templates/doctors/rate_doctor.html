@@ -1,0 +1,48 @@
+{% extends 'components/base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/rate-doctor.css' %}">
+
+{% if user.is_authenticated and user.role == "patient" %}
+    {% include 'components/sidebar/patient.html' %}
+
+    <div class="main-content">
+        <h2 class="heading-title">Rate Dr. {{ doctor.user.get_full_name }}</h2>
+        <p class="subtitle">Your feedback helps improve our service.</p>
+
+        <form method="post" action="{% url 'submit_doctor_rating' doctor.id %}">
+            {% csrf_token %}
+
+            <div class="rating-stars">
+                <label>Rate:</label>
+                <div class="stars">
+                    {% for i in "12345"|make_list %}
+                        <input type="radio" name="rating" id="star{{ i }}" value="{{ i }}">
+                        <label for="star{{ i }}">★</label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="rating-comment">
+                <label for="comment">Comment (optional):</label>
+                <textarea name="comment" id="comment" rows="4" placeholder="Write your feedback here..."></textarea>
+            </div>
+
+            <button type="submit" class="submit-btn">Submit Rating</button>
+        </form>
+
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <p class="{{ message.tags }}">{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <a href="{% url 'view_doctors' %}" class="back-link">← Back to Doctors</a>
+    </div>
+{% else %}
+    <p>Access denied.</p>
+{% endif %}
+{% endblock %}

@@ -17,7 +17,8 @@ from .models import (
     Appointment,
     CustomDoctorAvailability,
     MedicalRecord,
-    Prescription
+    Prescription,
+    DoctorRating
 )
 
 class UserBasicInfoForm(forms.ModelForm):
@@ -341,3 +342,14 @@ PrescriptionFormSet = inlineformset_factory(
     extra=1,        # start with 1 blank form
     can_delete=True # allow deleting extra forms
 )
+
+class DoctorRatingForm(forms.ModelForm):
+    class Meta:
+        model = DoctorRating
+        fields = ['rating', 'review']
+        widgets = {
+            'rating': forms.NumberInput(attrs={
+                'type': 'number', 'min': 1, 'max': 5, 'class': 'form-control'
+            }),
+            'review': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Optional review...'})
+        }

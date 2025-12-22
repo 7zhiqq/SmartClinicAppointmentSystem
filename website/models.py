@@ -1,7 +1,9 @@
 from django.db import models
+from django.db.models import Avg
 from django.conf import settings
 from django.utils import timezone
 from datetime import date, datetime
+from django.core.validators import MinValueValidator, MaxValueValidator
 import uuid
 
 # Patient ID Generator
@@ -438,3 +440,36 @@ class Prescription(models.Model):
                     frequency=self.frequency,
                     prescribed_at=self.prescribed_at
                 )
+
+class DoctorRating(models.Model):
+    patient = models.ForeignKey(
+        'PatientInfo', 
+        on_delete=models.CASCADE, 
+        related_name='ratings'
+    )
+    doctor = models.ForeignKey(
+        'DoctorInfo', 
+        on_delete=models.CASCADE, 
+        related_name='ratings'
+    )
+    rating = models.PositiveIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text="Rating from 1 to 5 stars"
+    )
+    review = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('patient', 'doctor')  # Prevent multiple ratings per patient
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.patient.user.get_full_name()} → {self.doctor.user.get_full_name()}: {self.rating}⭐"
+    
+    @property
+    def average_rating(self):
+        return self.ratings.aggregate(avg=Avg('rating'))['avg'] or 0
+
+    @property
+    def rating_count(self):
+        return self.ratings.count()

@@ -126,20 +126,44 @@
     font-weight: var(--font-weight-semibold);
 }
 
+/* ==================== DOCTOR RATING ==================== */
 .doctor-rating {
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
-    font-size: var(--font-size-sm);
-    color: var(--text-muted);
-    margin: 0;
+    gap: 4px;
+    font-size: 16px;
+    color: #ffc107; /* color of the star */
 }
 
-.star {
-    color: #fbbf24;
-    font-size: var(--font-size-md);
-    text-shadow: 0 2px 4px rgba(251, 191, 36, 0.2);
+.rating-number {
+    font-weight: bold;
+    color: var(--text-main);
 }
+
+.rating-count {
+    font-size: 14px;
+    color: #555;
+    margin-left: 6px;
+}
+
+
+/* ==================== RESPONSIVE STAR SIZE ==================== */
+@media (max-width: 768px) {
+    .doctor-rating {
+        font-size: 14px;
+        gap: 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .doctor-rating {
+        font-size: 12px;
+        gap: 3px;
+    }
+}
+
+
+
 
 /* ==================== DOCTOR DETAILS ==================== */
 .doctor-details {

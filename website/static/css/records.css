@@ -33,7 +33,12 @@
     font-weight: 600;
 }
 
-.contact-item .edit-link:hover {
+.contact-item:hover {
+    color: #f0f0f0; 
+    text-decoration: underline;
+}
+
+.edit-link:hover {
     color: #f0f0f0; 
     text-decoration: underline;
 }

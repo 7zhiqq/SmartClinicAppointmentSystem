@@ -19,13 +19,11 @@ urlpatterns = [
 
     path("allergy/<str:patient_type>/<str:pk>/add/", views.add_patient_allergy, name="add_patient_allergy"),
     path("medication/<str:patient_type>/<str:pk>/add/", views.add_patient_medication, name="add_patient_medication"),
-    path(
-        "patients/<str:patient_type>/<str:pk>/medications/",
-        views.medication_history,
-        name="medication_history"
-    ),
+    path("patients/<str:patient_type>/<str:pk>/medications/", views.medication_history, name="medication_history"),
 
     path("doctor/edit-info/", views.doctor_edit_info, name="doctor_edit_info"),
+    path('doctors/rate/<int:doctor_id>/', views.rate_doctor_page, name='rate_doctor_page'),
+    path('doctors/rate/<int:doctor_id>/submit/', views.submit_doctor_rating, name='submit_doctor_rating'),
     
     path("manager/specialization/add/", views.manager_add_specialization, name="manager_add_specialization"),
     path("manager/", views.manager_doctor_list, name="manager_users"),

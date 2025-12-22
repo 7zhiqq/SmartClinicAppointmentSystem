@@ -2,71 +2,85 @@
 {% load static %}
 
 {% block content %}
-    <link rel="stylesheet" href="{% static 'css/doctors.css' %}">
-    {% if user.is_authenticated %}
-        {% if user.role == "staff" %}
-            {% include 'components/sidebar/staff.html' %}
-        {% elif user.role == "patient" %}
-            {% include 'components/sidebar/patient.html' %}
-        {% endif %}
-            <div class="main-content">
-                <h2 class="heading-title">Doctors</h2>
-                <p class="subtitle">
-                    View doctors and healthcare professionals
-                </p>
-                {% if doctors %}
-                    <div class="doctors-container">
-                    {% for doctor in doctors %}
-                        <div class="doctor-card">
-                            <div class="doctor-header">
-                                <div class="doctor-avatar">
-                                    {% if doctor.profile_picture %}
-                                        <img src="{{ doctor.profile_picture.url }}" alt="Profile picture">
-                                    {% else %}
-                                        <span class="avatar-fallback">
-                                            {{ doctor.user.first_name|slice:":1" }}{{ doctor.user.last_name|slice:":1" }}
-                                        </span>
-                                    {% endif %}
-                                </div>
-                                <div class="doctor-info">
-                                    <h3 class="doctor-name">
-                                        Dr. {{ doctor.user.get_full_name }}
-                                    </h3>
-                                    <p class="doctor-specialization">
-                                        {{ doctor.specialization.name }}
-                                    </p>
-                                    <div class="doctor-rating">
-                                        <span class="star">★</span>
-                                        <span>{{ doctor.rating|default:"No Ratings Yet" }}</span>
-                                    </div>
-                                </div>
-                            </div>
+<link rel="stylesheet" href="{% static 'css/doctors.css' %}">
 
-                            <div class="doctor-details">
-                                <p>This is a detail</p>
-                            </div>
+{% if user.is_authenticated %}
+    {% if user.role == "staff" %}
+        {% include 'components/sidebar/staff.html' %}
+    {% elif user.role == "patient" %}
+        {% include 'components/sidebar/patient.html' %}
+    {% endif %}
 
-                            <div class="available-slots">
-                                {% if doctor.availabilities.all %}
-                                    {% for s in doctor.availabilities.all %}
-                                        <span class="slot">
-                                            {{ s.get_weekday_display|slice:":3" }}
-                                        </span>
-                                        </li>
-                                    {% endfor %}
+    <div class="main-content">
+        <h2 class="heading-title">Doctors</h2>
+        <p class="subtitle">
+            View doctors and healthcare professionals
+        </p>
+
+        {% if doctors %}
+            <div class="doctors-container">
+                {% for doctor in doctors %}
+                    <div class="doctor-card">
+                        <div class="doctor-header">
+                            <div class="doctor-avatar">
+                                {% if doctor.profile_picture %}
+                                    <img src="{{ doctor.profile_picture.url }}" alt="Profile picture">
                                 {% else %}
-                                    <span class="no-schedule">No schedule available</span>
+                                    <span class="avatar-fallback">
+                                        {{ doctor.user.first_name|slice:":1" }}{{ doctor.user.last_name|slice:":1" }}
+                                    </span>
                                 {% endif %}
                             </div>
+                            <div class="doctor-info">
+                                <h3 class="doctor-name">Dr. {{ doctor.user.get_full_name }}</h3>
+                                <p class="doctor-specialization">{{ doctor.specialization.name }}</p>
 
+                                <!-- Ratings -->
+                                <!-- Ratings -->
+                                <div class="doctor-rating">
+                                    {% with avg=doctor.average_rating|default_if_none:"0.0"|floatformat:1 %}
+                                        <span class="star">★</span>
+                                        <span class="rating-number">{{ avg }}</span>
+                                        {% if doctor.rating_count > 0 %}
+                                            <span class="rating-count">({{ doctor.rating_count }} review{% if doctor.rating_count > 1 %}s{% endif %})</span>
+                                        {% else %}
+                                            <span class="rating-count">(No reviews yet)</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </div>
+
+
+
+                                <!-- Patient rating link -->
+                                {% if user.role == "patient" %}
+                                    <a href="{% url 'rate_doctor_page' doctor.id %}" class="rate-doctor-btn">
+                                        Rate this Doctor
+                                    </a>
+                                {% endif %}
+                            </div>
                         </div>
-                    {% endfor %}
+
+                        <div class="doctor-details">
+                            <p>Details about this doctor</p>
+                        </div>
+
+                        <div class="available-slots">
+                            {% if doctor.availabilities.exists %}
+                                {% for s in doctor.availabilities.all %}
+                                    <span class="slot">{{ s.get_weekday_display|slice:":3" }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="no-schedule">No schedule available</span>
+                            {% endif %}
+                        </div>
                     </div>
-                {% else %}
-                    <div class="doctors-empty">
-                        No approved doctors available.
-                    </div>
-                {% endif %}
+                {% endfor %}
             </div>
-    {% endif %}
+        {% else %}
+            <div class="doctors-empty">
+                No approved doctors available.
+            </div>
+        {% endif %}
+    </div>
+{% endif %}
 {% endblock %}

@@ -11,7 +11,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from calendar import monthrange
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Avg, Count
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 import json
@@ -28,7 +28,8 @@ from .models import (
     DoctorAvailability,
     CompletedAppointment,
     CustomDoctorAvailability,
-    MedicalRecord
+    MedicalRecord,
+    DoctorRating,
 )
 
 from .forms import (
@@ -50,7 +51,8 @@ from .forms import (
     PrescriptionForm,
     PrescriptionFormSet,
     GeneralSettingsForm,
-    SecuritySettingsForm
+    SecuritySettingsForm,
+    DoctorRatingForm
 )
 
 # Authentication
@@ -80,7 +82,6 @@ def logout_user(request):
     messages.success(request, "You have been logged out.")
     return redirect("home")
 
-# Add this view to website/views.py
 @login_required
 def account_settings(request):
     """Handle account settings for username, email, and password changes"""
@@ -673,6 +674,12 @@ def manager_add_specialization(request):
     })
 
 
+from django.db.models import Avg, Count
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from .models import DoctorInfo
+
 @login_required
 def view_doctors(request):
     # Only allow staff or patients
@@ -680,12 +687,20 @@ def view_doctors(request):
         messages.error(request, "Access denied.")
         return redirect("home")
 
-    # Fetch only approved doctors
-    approved_doctors = DoctorInfo.objects.filter(is_approved=True).select_related("user").order_by("user__last_name")
+    # Fetch only approved doctors and annotate with ratings
+    approved_doctors = DoctorInfo.objects.filter(is_approved=True).select_related("user").annotate(
+        average_rating=Avg('ratings__rating'),  # <--- use 'ratings' instead of 'rating'
+        rating_count=Count('ratings')
+    ).order_by("user__last_name")
+
+    # Pass a stars list to template
+    stars = [1, 2, 3, 4, 5]
 
     return render(request, "view_doctors.html", {
-        "doctors": approved_doctors
+        "doctors": approved_doctors,
+        "stars": stars
     })
+
 
 @login_required
 def patient_appointment_calendar(request):
@@ -1696,3 +1711,61 @@ def view_medical_record(request, pk):
         'record': record,
         'prescriptions': prescriptions
     })
+
+
+@login_required
+def rate_doctor(request, doctor_id):
+    # Only patients can rate
+    if request.user.role != 'patient':
+        messages.error(request, "Only patients can rate doctors.")
+        return redirect('home')
+
+    doctor = get_object_or_404(DoctorInfo, pk=doctor_id)
+    patient = get_object_or_404(PatientInfo, user=request.user)
+
+    # Check if patient already rated
+    rating_instance = DoctorRating.objects.filter(patient=patient, doctor=doctor).first()
+
+    if request.method == 'POST':
+        form = DoctorRatingForm(request.POST, instance=rating_instance)
+        if form.is_valid():
+            rating = form.save(commit=False)
+            rating.patient = patient
+            rating.doctor = doctor
+            rating.save()
+            messages.success(request, "Your rating has been saved!")
+            return redirect('view_doctors')  # or doctor detail page
+    else:
+        form = DoctorRatingForm(instance=rating_instance)
+
+    return render(request, 'doctors/rate_doctor.html', {
+        'form': form,
+        'doctor': doctor
+    })
+    
+@login_required
+def rate_doctor_page(request, doctor_id):
+    doctor = get_object_or_404(DoctorInfo, id=doctor_id, is_approved=True)
+    return render(request, "doctors/rate_doctor.html", {"doctor": doctor})
+
+@login_required
+def submit_doctor_rating(request, doctor_id):
+    if request.method == "POST":
+        rating_value = request.POST.get("rating")
+        review_text = request.POST.get("comment", "")
+
+        doctor = get_object_or_404(DoctorInfo, id=doctor_id)
+        patient = get_object_or_404(PatientInfo, user=request.user)
+
+        # Create or update the rating
+        DoctorRating.objects.update_or_create(
+            patient=patient,
+            doctor=doctor,
+            defaults={'rating': rating_value, 'review': review_text}
+        )
+
+        messages.success(request, "Your rating has been submitted successfully!")
+        return redirect("view_doctors")  # Adjust redirect
+
+    messages.error(request, "Invalid request method.")
+    return redirect("view_doctors")
