@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="{% static 'css/appointments.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/bootstrap-icons.min.css">
 
+
     {% if user.is_authenticated %}
         {% include "components/sidebar/staff.html" %}
 
@@ -75,16 +76,17 @@
                     <i class="fas fa-search"></i>
                     <input type="text" id="searchInput" placeholder="Search patient or doctor name..." class="form-control border-0">
                 </div>
+                
                 <div class="dropdown">
-                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-filter"></i> All Status
+                    <button class="dropdown-toggle" type="button" id="statusFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                        All Status
                     </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item status-filter active" data-status="">All Status</a></li>
-                        <li><a class="dropdown-item status-filter" data-status="pending">Pending</a></li>
-                        <li><a class="dropdown-item status-filter" data-status="approved">Confirmed</a></li>
-                        <li><a class="dropdown-item status-filter" data-status="completed">Completed</a></li>
-                        <li><a class="dropdown-item status-filter" data-status="rejected">Rejected</a></li>
+                    <ul class="dropdown-menu" aria-labelledby="statusFilterBtn">
+                        <li><a class="dropdown-item active" href="#" data-value="">All Status</a></li>
+                        <li><a class="dropdown-item" href="#" data-value="pending">Pending</a></li>
+                        <li><a class="dropdown-item" href="#" data-value="approved">Confirmed</a></li>
+                        <li><a class="dropdown-item" href="#" data-value="completed">Completed</a></li>
+                        <li><a class="dropdown-item" href="#" data-value="rejected">Rejected</a></li>
                     </ul>
                 </div>
             </div>
@@ -203,11 +205,67 @@
             document.addEventListener("DOMContentLoaded", function() {
                 const csrftoken = document.querySelector('meta[name="csrf-token"]').content;
                 const searchInput = document.getElementById("searchInput");
-                const statusLinks = document.querySelectorAll(".status-filter");
+                const filterBtn = document.getElementById("statusFilterBtn");
+                const filterMenu = document.querySelector(".dropdown-menu");
+                const filterItems = document.querySelectorAll(".dropdown-item");
                 const rows = document.querySelectorAll(".appointment-row");
-                const dropdownButton = document.querySelector(".dropdown-toggle");
+                let currentStatusFilter = "";
 
-                // Action buttons - FIXED VERSION with data-type
+                // Filter function
+                function filterTable() {
+                    const searchTerm = searchInput.value.toLowerCase().trim();
+                    const statusValue = currentStatusFilter.toLowerCase();
+
+                    rows.forEach(row => {
+                        const status = row.dataset.status.toLowerCase();
+                        const text = row.textContent.toLowerCase();
+                        
+                        const matchesSearch = !searchTerm || text.includes(searchTerm);
+                        const matchesStatus = !statusValue || status === statusValue;
+                        
+                        row.style.display = (matchesSearch && matchesStatus) ? "" : "none";
+                    });
+                }
+
+                // Toggle dropdown menu
+                filterBtn.addEventListener("click", function(e) {
+                    e.stopPropagation();
+                    filterMenu.classList.toggle("show");
+                });
+
+                // Close dropdown when clicking outside
+                document.addEventListener("click", function(e) {
+                    if (!e.target.closest(".dropdown")) {
+                        filterMenu.classList.remove("show");
+                    }
+                });
+
+                // Search input listener
+                searchInput.addEventListener("input", filterTable);
+
+                // Status filter dropdown items
+                filterItems.forEach(item => {
+                    item.addEventListener("click", function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Update active state
+                        filterItems.forEach(i => i.classList.remove("active"));
+                        this.classList.add("active");
+                        
+                        // Update button text
+                        currentStatusFilter = this.dataset.value;
+                        filterBtn.textContent = this.textContent;
+                        
+                        // Close dropdown
+                        filterMenu.classList.remove("show");
+                        
+                        // Filter table
+                        filterTable();
+                    });
+                });
+
+                // Action buttons
                 document.querySelector('.table-container').addEventListener('click', function(e) {
                     const btn = e.target.closest('.approve-btn, .reject-btn, .complete-btn');
                     if (!btn) return;
@@ -235,34 +293,6 @@
                     .catch(err => {
                         console.error('Error:', err);
                         alert('An error occurred while updating the appointment.');
-                    });
-                });
-
-                // Filter function
-                function filterTable() {
-                    const searchTerm = searchInput.value.toLowerCase().trim();
-                    const statusFilter = document.querySelector(".status-filter.active")?.dataset.status || "";
-
-                    rows.forEach(row => {
-                        const status = row.dataset.status.toLowerCase();
-                        const text = row.textContent.toLowerCase().trim();
-                        const matchesSearch = text.includes(searchTerm);
-                        const matchesStatus = !statusFilter || status === statusFilter;
-                        row.style.display = (matchesSearch && matchesStatus) ? "" : "none";
-                    });
-                }
-
-                // Search input
-                searchInput.addEventListener("input", filterTable);
-
-                // Status filter click events
-                statusLinks.forEach(link => {
-                    link.addEventListener("click", function(e) {
-                        e.preventDefault();
-                        statusLinks.forEach(l => l.classList.remove("active"));
-                        this.classList.add("active");
-                        dropdownButton.innerHTML = `<i class="fas fa-filter"></i> ${this.textContent.trim()}`;
-                        filterTable();
                     });
                 });
             });

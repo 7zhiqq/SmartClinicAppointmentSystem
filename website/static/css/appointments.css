@@ -222,6 +222,7 @@
     animation: slideDown 0.3s var(--ease-out);
 }
 
+
 @keyframes slideDown {
     from {
         opacity: 0;

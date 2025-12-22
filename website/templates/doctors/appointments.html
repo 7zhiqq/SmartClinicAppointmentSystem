@@ -4,6 +4,84 @@
 
 {% block content %}
     <link rel="stylesheet" href="{% static 'css/appointments.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/bootstrap-icons.min.css">
+    
+    <style>
+        /* Override Bootstrap dropdown styles */
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 1000;
+            min-width: 160px;
+            background: var(--white);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: 0.5rem 0;
+            margin-top: 0.5rem;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+            animation: slideDown 0.3s var(--ease-out);
+        }
+
+        .dropdown-menu li {
+            list-style: none;
+        }
+
+        .dropdown-menu .dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 10px 16px;
+            clear: both;
+            color: var(--text-main);
+            text-align: inherit;
+            white-space: nowrap;
+            background-color: transparent;
+            border: 0;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all var(--transition-fast);
+        }
+
+        .dropdown-menu .dropdown-item:hover {
+            background-color: var(--bg-muted);
+            color: var(--primary);
+            padding-left: 20px;
+        }
+
+        .dropdown-menu .dropdown-item.active {
+            background-color: var(--primary-lighter);
+            color: var(--primary);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        .dropdown-toggle::after {
+            display: inline-block;
+            margin-left: 0.5rem;
+            vertical-align: 0.255em;
+            content: "";
+            border-top: 0.3em solid;
+            border-right: 0.3em solid transparent;
+            border-bottom: 0;
+            border-left: 0.3em solid transparent;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+
     {% if user.is_authenticated and user.role == "doctor" %}
         {% include "components/sidebar/doctor.html" %}
         <div class="main-content">
@@ -20,16 +98,17 @@
                         <i class="fas fa-search"></i>
                         <input type="text" id="searchInput" placeholder="Search patient name..." class="form-control border-0">
                     </div>
+                    
                     <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle" id="filterDropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-filter"></i> All Status
+                        <button class="dropdown-toggle" type="button" id="statusFilterBtn" aria-expanded="false">
+                            All Status
                         </button>
-                        <ul class="dropdown-menu" aria-labelledby="filterDropdown">
-                            <li><a class="dropdown-item status-filter active" href="#" data-status="">All Status</a></li>
-                            <li><a class="dropdown-item status-filter" href="#" data-status="pending">Pending</a></li>
-                            <li><a class="dropdown-item status-filter" href="#" data-status="approved">Confirmed</a></li>
-                            <li><a class="dropdown-item status-filter" href="#" data-status="completed">Completed</a></li>
-                            <li><a class="dropdown-item status-filter" href="#" data-status="rejected">Rejected</a></li>
+                        <ul class="dropdown-menu" aria-labelledby="statusFilterBtn">
+                            <li><a class="dropdown-item active" href="#" data-value="">All Status</a></li>
+                            <li><a class="dropdown-item" href="#" data-value="pending">Pending</a></li>
+                            <li><a class="dropdown-item" href="#" data-value="approved">Confirmed</a></li>
+                            <li><a class="dropdown-item" href="#" data-value="completed">Completed</a></li>
+                            <li><a class="dropdown-item" href="#" data-value="rejected">Rejected</a></li>
                         </ul>
                     </div>
                 </div>
@@ -112,20 +191,75 @@
             document.addEventListener("DOMContentLoaded", function() {
                 const csrftoken = document.querySelector('meta[name="csrf-token"]').content;
                 const searchInput = document.getElementById("searchInput");
-                const statusLinks = document.querySelectorAll(".status-filter");
+                const filterBtn = document.getElementById("statusFilterBtn");
+                const filterMenu = document.querySelector(".dropdown-menu");
+                const filterItems = document.querySelectorAll(".dropdown-item");
                 const rows = document.querySelectorAll(".appointment-row");
+                let currentStatusFilter = "";
 
-                // Action buttons - FIXED VERSION with data-type from button
+                // Filter function
+                function filterTable() {
+                    const searchTerm = searchInput.value.toLowerCase().trim();
+                    const statusValue = currentStatusFilter.toLowerCase();
+
+                    rows.forEach(row => {
+                        const status = row.dataset.status.toLowerCase();
+                        const text = row.textContent.toLowerCase();
+                        
+                        const matchesSearch = !searchTerm || text.includes(searchTerm);
+                        const matchesStatus = !statusValue || status === statusValue;
+                        
+                        row.style.display = (matchesSearch && matchesStatus) ? "" : "none";
+                    });
+                }
+
+                // Toggle dropdown menu
+                filterBtn.addEventListener("click", function(e) {
+                    e.stopPropagation();
+                    filterMenu.classList.toggle("show");
+                });
+
+                // Close dropdown when clicking outside
+                document.addEventListener("click", function(e) {
+                    if (!e.target.closest(".dropdown")) {
+                        filterMenu.classList.remove("show");
+                    }
+                });
+
+                // Search input listener
+                searchInput.addEventListener("input", filterTable);
+
+                // Status filter dropdown items
+                filterItems.forEach(item => {
+                    item.addEventListener("click", function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Update active state
+                        filterItems.forEach(i => i.classList.remove("active"));
+                        this.classList.add("active");
+                        
+                        // Update button text
+                        currentStatusFilter = this.dataset.value;
+                        filterBtn.textContent = this.textContent;
+                        
+                        // Close dropdown
+                        filterMenu.classList.remove("show");
+                        
+                        // Filter table
+                        filterTable();
+                    });
+                });
+
+                // Action buttons
                 document.querySelector('.table-container').addEventListener('click', function(e) {
                     const btn = e.target.closest('.approve-btn, .reject-btn, .complete-btn');
                     if (!btn) return;
                     
                     const appointmentId = btn.dataset.id;
-                    const appointmentType = btn.dataset.type; // Get type from button's data-type attribute
+                    const appointmentType = btn.dataset.type || 'self';
                     const action = btn.classList.contains('approve-btn') ? 'approve' :
                                 btn.classList.contains('reject-btn') ? 'reject' : 'complete';
-
-                    console.log('Updating appointment:', appointmentId, 'Type:', appointmentType, 'Action:', action);
 
                     const formData = new FormData();
                     formData.append('appointment_type', appointmentType);
@@ -139,87 +273,12 @@
                     })
                     .then(res => res.json())
                     .then(data => {
-                        console.log('Response:', data);
-                        if(data.error) {
-                            alert('Error: ' + data.error);
-                        } else {
-                            location.reload();
-                        }
+                        if(data.error) alert(data.error);
+                        else location.reload();
                     })
                     .catch(err => {
                         console.error('Error:', err);
                         alert('An error occurred while updating the appointment.');
-                    });
-                });
-
-                // Filter function
-                function filterTable() {
-                    const searchTerm = searchInput.value.toLowerCase().trim();
-                    const statusFilter = document.querySelector(".status-filter.active")?.dataset.status || "";
-
-                    let visibleCount = 0;
-
-                    rows.forEach(row => {
-                        const status = row.dataset.status.toLowerCase();
-                        
-                        // Get patient name from the patient cell
-                        const patientCell = row.querySelector('.patient-cell');
-                        const patientName = patientCell ? patientCell.textContent.toLowerCase().trim() : '';
-                        
-                        // Get time from time cell
-                        const timeCell = row.querySelector('.time-cell');
-                        const timeText = timeCell ? timeCell.textContent.toLowerCase().trim() : '';
-                        
-                        // Check if search term matches patient name or time
-                        const matchesSearch = !searchTerm || patientName.includes(searchTerm) || timeText.includes(searchTerm);
-                        
-                        // Check if status matches filter
-                        const matchesStatus = !statusFilter || status === statusFilter;
-                        
-                        // Show or hide row
-                        const shouldShow = matchesSearch && matchesStatus;
-                        row.style.display = shouldShow ? "" : "none";
-                        
-                        if (shouldShow) visibleCount++;
-                    });
-
-                    // Show empty message if no results
-                    const tableBody = document.querySelector('tbody');
-                    let emptyRow = tableBody.querySelector('.empty-message-row');
-                    
-                    if (visibleCount === 0 && rows.length > 0) {
-                        if (!emptyRow) {
-                            emptyRow = document.createElement('tr');
-                            emptyRow.className = 'empty-message-row';
-                            emptyRow.innerHTML = `
-                                <td colspan="4" class="text-center text-muted py-4">
-                                    <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-                                    <p>No appointments match your search</p>
-                                </td>
-                            `;
-                            tableBody.appendChild(emptyRow);
-                        }
-                    } else if (emptyRow) {
-                        emptyRow.remove();
-                    }
-                }
-
-                // Search input with live filtering
-                if (searchInput) {
-                    searchInput.addEventListener("input", filterTable);
-                }
-
-                // Status filter click events
-                statusLinks.forEach(link => {
-                    link.addEventListener("click", function(e) {
-                        e.preventDefault();
-                        statusLinks.forEach(l => l.classList.remove("active"));
-                        this.classList.add("active");
-                        
-                        const filterDropdown = document.getElementById("filterDropdown");
-                        filterDropdown.innerHTML = `<i class="fas fa-filter"></i> ${this.textContent.trim()}`;
-                        
-                        filterTable();
                     });
                 });
             });
