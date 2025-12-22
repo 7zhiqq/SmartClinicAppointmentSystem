@@ -75,11 +75,6 @@ def register_invite(request, token):
         user.role = invite.role
         user.save()
 
-        Phone.objects.create(
-            user=user,
-            number=form.cleaned_data["phone"]
-        )
-
         # Create role-based profile
         if user.role == "doctor":
             DoctorProfile.objects.create(
@@ -120,11 +115,6 @@ def register_patient(request):
         user = form.save(commit=False)
         user.role = "patient"
         user.save()
-
-        Phone.objects.create(
-            user=user,
-            number=form.cleaned_data["phone"]
-        )
 
         PatientProfile.objects.create(
             user=user,

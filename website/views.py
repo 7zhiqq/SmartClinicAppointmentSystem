@@ -18,6 +18,9 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 from django import forms
 from itertools import chain
+from django.core.exceptions import ValidationError
+
+from accounts.models import Phone
 
 from .models import (
     PatientInfo,
@@ -338,30 +341,36 @@ def doctor_patient_list(request):
 # USER PATIENT PROFILE
 @login_required
 def edit_my_patient_info(request):
-    try:
-        patient_info = PatientInfo.objects.get(user=request.user)
-    except PatientInfo.DoesNotExist:
-        # Create an unsaved instance so we don't attempt to save
-        # required fields (like birthdate) before the user submits the form.
-        patient_info = PatientInfo(user=request.user)
+    user = request.user
 
-    user_form = UserBasicInfoForm(instance=request.user)
-    patient_form = PatientInfoForm(instance=patient_info)
+    # Try to get patient info; if none, create new but do not save yet
+    try:
+        patient_info = PatientInfo.objects.get(user=user)
+    except PatientInfo.DoesNotExist:
+        patient_info = PatientInfo(user=user)
+
+    user_form = UserBasicInfoForm(request.POST or None, instance=user)
+    patient_form = PatientInfoForm(request.POST or None, instance=patient_info)
 
     if request.method == "POST":
-        user_form = UserBasicInfoForm(request.POST, instance=request.user)
-        patient_form = PatientInfoForm(request.POST, instance=patient_info)
-
         if user_form.is_valid() and patient_form.is_valid():
-            user_form.save()
-            patient_form.save()
-            messages.success(request, "Profile updated.")
-            return redirect("medical_records")
+            try:
+                user_form.save()
+                patient_instance = patient_form.save(commit=False)
+                patient_instance.user = user
+                patient_instance.save()
+                messages.success(request, "Profile updated successfully.")
+                return redirect("medical_records")
+            except ValidationError as e:
+                # Catch any unexpected model validation errors
+                for message in e.messages:
+                    messages.error(request, message)
 
     return render(request, "patients/edit_my_profile.html", {
         "user_form": user_form,
         "patient_form": patient_form,
     })
+
 
 # DEPENDENT PATIENTS
 @login_required

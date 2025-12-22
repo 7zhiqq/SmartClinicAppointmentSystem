@@ -2,6 +2,10 @@ from django import forms
 from datetime import date
 from django.contrib.auth.models import User
 from django.forms import inlineformset_factory
+from django.core.exceptions import ValidationError
+from accounts.models import Phone
+from accounts.validators import normalize_ph_phone_number
+
 from .models import (
     PatientInfo,
     DependentPatient,
@@ -18,7 +22,7 @@ from .models import (
     CustomDoctorAvailability,
     MedicalRecord,
     Prescription,
-    DoctorRating
+    DoctorRating,
 )
 
 class UserBasicInfoForm(forms.ModelForm):
@@ -114,6 +118,7 @@ class SecuritySettingsForm(forms.Form):
         return new_password1
 
 
+
 class PatientInfoForm(forms.ModelForm):
     phone = forms.CharField(
         max_length=20,
@@ -129,7 +134,7 @@ class PatientInfoForm(forms.ModelForm):
         disabled=True,
         widget=forms.NumberInput(attrs={"class": "form-control"})
     )
-    
+
     class Meta:
         model = PatientInfo
         fields = ["gender", "birthdate", "blood_type"]
@@ -138,33 +143,55 @@ class PatientInfoForm(forms.ModelForm):
             "birthdate": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
             "blood_type": forms.Select(attrs={"class": "form-select"}),
         }
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Set initial age
         birthdate = self.initial.get("birthdate") or getattr(self.instance, "birthdate", None)
         if birthdate:
             today = date.today()
             self.fields["age"].initial = today.year - birthdate.year - ((today.month, today.day) < (birthdate.month, birthdate.day))
-        
-        # Load phone number if it exists
-        if self.instance and self.instance.user:
+
+        # Set initial phone number
+        if self.instance and hasattr(self.instance, "user"):
             try:
-                phone = self.instance.user.phone
-                self.fields["phone"].initial = phone.number
-            except:
-                pass
-    
+                phone_obj = Phone.objects.get(user=self.instance.user)
+                self.fields["phone"].initial = phone_obj.number
+            except Phone.DoesNotExist:
+                self.fields["phone"].initial = ""
+
+    def clean_phone(self):
+        phone = self.cleaned_data.get("phone", "")
+        if not phone:
+            return ""
+
+        normalized = normalize_ph_phone_number(phone)
+        if not normalized:
+            raise ValidationError("Invalid phone number format.")
+
+        # Make sure no other user has this phone
+        qs = Phone.objects.filter(number=normalized)
+        if self.instance.user:
+            qs = qs.exclude(user=self.instance.user)
+        if qs.exists():
+            raise ValidationError("This phone number is already registered.")
+
+        return normalized
+
     def save(self, commit=True):
-        instance = super().save(commit=commit)
-        
-        # Save phone number
-        phone_number = self.cleaned_data.get("phone")
-        if phone_number and instance.user:
-            from accounts.models import Phone
-            phone_obj, created = Phone.objects.get_or_create(user=instance.user)
-            phone_obj.number = phone_number
-            phone_obj.save()
-        
+        instance = super().save(commit=False)
+
+        # Save phone separately
+        phone_number = self.cleaned_data.get("phone", "")
+        if instance.user:
+            Phone.objects.update_or_create(
+                user=instance.user,
+                defaults={"number": phone_number}
+            )
+
+        if commit:
+            instance.save()
         return instance
     
 class DependentPatientForm(forms.ModelForm):

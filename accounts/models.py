@@ -3,6 +3,8 @@ from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 import uuid
 from datetime import datetime
+from .validators import validate_ph_phone_number
+from django.core.exceptions import ValidationError
 
 # generate unique ID function
 def generate_unique_id(user, model, letter):
@@ -37,14 +39,25 @@ class User(AbstractUser):
 class Phone(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True
+        on_delete=models.CASCADE
     )
-    number = models.CharField(max_length=20)
+    number = models.CharField(
+        max_length=20,
+        validators=[validate_ph_phone_number],
+        unique=True
+    )
+
+    def save(self, *args, **kwargs):
+        from .validators import normalize_ph_phone_number
+        normalized = normalize_ph_phone_number(self.number)
+        if not normalized:
+            raise ValidationError("Invalid phone number.")
+        self.number = normalized
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.number
+
 
 # Invitation Model
 class Invite(models.Model):

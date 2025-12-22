@@ -29,7 +29,7 @@
                         {% endif %}
                     </p>
                 </div>
-                {% if user.role == 'patients' %}
+                {% if user.role == 'patient' %}
                     <a href="{% url 'medical_records' %}" class="add-schedule-btn">
                         ← Back to Medical Records
                     </a>
@@ -120,9 +120,11 @@
                     <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
                         <i class="bi bi-graph-up" style="font-size: 3rem; opacity: 0.4; margin-bottom: 1rem; display: block;"></i>
                         <p>No vitals recorded yet. 
-                            <a href="{% url 'add_patient_vitals' patient_type patient.pk %}">
-                                Add your first vitals
-                            </a>
+                            {% if user.role == 'staff' %}
+                                <a href="{% url 'add_patient_vitals' patient_type patient.pk %}">
+                                    Add your first vitals
+                                </a>
+                            {% endif %}
                         </p>
                     </div>
                 {% endif %}

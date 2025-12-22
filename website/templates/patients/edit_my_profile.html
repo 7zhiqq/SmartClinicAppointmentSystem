@@ -19,6 +19,23 @@
                     {% endfor %}
                 {% endif %}
 
+                {% if user_form.non_field_errors %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {% for error in user_form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if patient_form.non_field_errors %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {% for error in patient_form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+
                 <form method="post" novalidate>
                     {% csrf_token %}
 
