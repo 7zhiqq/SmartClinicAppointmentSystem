@@ -105,14 +105,10 @@
                         {% for a in appointments %}
                         <tr class="appointment-row" data-id="{{ a.id }}" data-status="{{ a.status }}">
                             <td class="time-cell">
-                                <div class="appointment-time">
-                                    {{ a.start_time|date:"M d, Y" }}<br>
-                                    <small>{{ a.start_time|date:"h:i A" }} - {{ a.end_time|date:"h:i A" }}</small>
-                                </div>
+                                {{ a.start_time|date:"M d, Y" }}<br>
+                                <small>{{ a.start_time|date:"h:i A" }} - {{ a.end_time|date:"h:i A" }}</small>
                             </td>
-                            <td class="patient-cell">
-                                {% if a.patient %}{{ a.patient.get_full_name }}{% else %}{{ a.dependent_patient.full_name }}{% endif %}
-                            </td>
+                            <td class="patient-cell">{{ a.patient.get_full_name }}</td>
                             <td class="doctor-cell">{{ a.doctor.user.get_full_name }}</td>
                             <td class="status-cell">
                                 <span class="status-badge status-{{ a.status }}" id="status-{{ a.id }}">
@@ -143,15 +139,58 @@
                                 </div>
                             </td>
                         </tr>
-                        {% empty %}
+                        {% endfor %}
+
+                        {% for da in dependent_appointments %}
+                        <tr class="appointment-row" data-id="{{ da.id }}" data-status="{{ da.status }}">
+                            <td class="time-cell">
+                                {{ da.start_time|date:"M d, Y" }}<br>
+                                <small>{{ da.start_time|date:"h:i A" }} - {{ da.end_time|date:"h:i A" }}</small>
+                            </td>
+                            <td class="patient-cell">{{ da.dependent_patient.full_name }}</td>
+                            <td class="doctor-cell">{{ da.doctor.user.get_full_name }}</td>
+                            <td class="status-cell">
+                                <span class="status-badge status-{{ da.status }}" id="status-{{ da.id }}">
+                                    {% if da.status == 'pending' %} Pending
+                                    {% elif da.status == 'approved' %} Confirmed
+                                    {% elif da.status == 'completed' %} Completed
+                                    {% else %} Rejected
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td class="actions-cell">
+                                <div class="action-buttons" id="actions-{{ da.id }}">
+                                    {% if da.status == 'pending' %}
+                                        <button class="btn-action approve-btn" data-id="{{ da.id }}" title="Approve">
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+                                        <button class="btn-action reject-btn" data-id="{{ da.id }}" title="Reject">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    {% elif da.status == 'approved' %}
+                                        <button class="btn-action complete-btn" data-id="{{ da.id }}" title="Mark Complete">
+                                            <i class="bi bi-check-circle-fill"></i>
+                                        </button>
+                                        <a href="{% url 'reschedule_appointment' da.id %}" class="btn-action reschedule-btn" title="Reschedule">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+
+                        {% if not appointments and not dependent_appointments %}
                         <tr>
                             <td colspan="6" class="text-center text-muted py-4">
                                 <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem;"></i>
                                 <p>No appointments found</p>
                             </td>
                         </tr>
-                        {% endfor %}
+                        {% endif %}
                     </tbody>
+
+
                 </table>
             </div>
         </div>

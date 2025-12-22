@@ -31,14 +31,30 @@ def create_invite(request):
         )
 
         # * Send email with invite link
-        # TODO: Make better email content and template
         send_mail(
-            subject="Your Registration Invite",
-            message=f"Click to register: {invite_link}",
+            subject="You're Invited to Join Smart Clinic Platform",
+            message=f"""Hello,
+
+        We are excited to invite you to register with our Smart Clinic Platform! By signing up, you’ll gain access to your patients' records, appointments, scheduling, and more.
+
+        Getting started is quick and easy:
+        1. Click the link below to visit our registration page.
+        2. Fill out your details.
+        3. Wait for approval.
+        4. Start enjoying all the benefits immediately!
+
+        Register here: {invite_link}
+
+        We look forward to welcoming you to our community. If you have any questions, feel free to reach out to us at {settings.DEFAULT_FROM_EMAIL}.
+
+        Best regards,
+        WestPoint Team
+        """,
             from_email=settings.DEFAULT_FROM_EMAIL, 
             recipient_list=[email],
             fail_silently=False
         )
+
 
         return render(request, "register/invite_success.html", {
             "invite_link": invite_link

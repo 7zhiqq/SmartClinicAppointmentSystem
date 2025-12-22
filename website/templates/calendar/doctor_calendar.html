@@ -47,7 +47,18 @@
 
                 const calendar = new FullCalendar.Calendar(calendarEl, {
                     initialView: "dayGridMonth",
-                    events: "{% url 'doctor_calendar_events' %}",
+                    events: function(info, successCallback, failureCallback) {
+                        fetch("{% url 'doctor_calendar_events' %}")
+                            .then(res => res.json())
+                            .then(events => {
+                                console.log("Events loaded:", events);
+                                successCallback(events);
+                            })
+                            .catch(err => {
+                                console.error("Error loading events:", err);
+                                failureCallback(err);
+                            });
+                    },
                     headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth' },
                     dateClick: function(info) {
                         const dateStr = info.dateStr;
@@ -57,9 +68,10 @@
                         });
                         selectedDateEl.textContent = formattedDate;
 
-                        fetch(`/doctor/calendar/day-appointments/?date=${dateStr}`)
+                        fetch("{% url 'doctor_day_appointments' %}?date=" + dateStr)
                             .then(res => res.json())
                             .then(data => {
+                                console.log("Day appointments:", data);
                                 let html = "";
                                 if (data.length === 0) {
                                     html = '<li class="empty-state"><span>No appointments for this day</span></li>';
@@ -80,7 +92,7 @@
                                 }
                                 appointmentsEl.innerHTML = html;
                             })
-                            .catch(err => console.error(err));
+                            .catch(err => console.error("Error loading day appointments:", err));
                     }
                 });
 

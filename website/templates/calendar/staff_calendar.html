@@ -11,7 +11,6 @@
             </div>
 
             <div class="calendar-wrapper">
-
                 <div class="calendar-section">
                     <div id="calendar"></div>
                 </div>
@@ -43,8 +42,23 @@
 
                 const calendar = new FullCalendar.Calendar(calendarEl, {
                     initialView: "dayGridMonth",
-                    events: "{% url 'calendar_events' %}",
-                    headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth' },
+                    events: function(info, successCallback, failureCallback) {
+                        fetch("{% url 'calendar_events' %}")
+                            .then(res => res.json())
+                            .then(events => {
+                                console.log("Events loaded:", events); // Debug
+                                successCallback(events);
+                            })
+                            .catch(err => {
+                                console.error("Error loading events:", err);
+                                failureCallback(err);
+                            });
+                    },
+                    headerToolbar: { 
+                        left: 'prev,next today', 
+                        center: 'title', 
+                        right: 'dayGridMonth' 
+                    },
                     dateClick: function(info) {
                         const dateStr = info.dateStr;
                         const date = new Date(dateStr);
@@ -56,6 +70,7 @@
                         fetch(`/calendar/day-appointments/?date=${dateStr}`)
                             .then(res => res.json())
                             .then(data => {
+                                console.log("Day appointments:", data); // Debug
                                 let html = "";
                                 if (data.length === 0) {
                                     html = '<li class="empty-state"><span>No appointments for this day</span></li>';
@@ -76,7 +91,7 @@
                                 }
                                 appointmentsEl.innerHTML = html;
                             })
-                            .catch(err => console.error(err));
+                            .catch(err => console.error("Error loading day appointments:", err));
                     }
                 });
 

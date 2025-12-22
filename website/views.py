@@ -17,12 +17,14 @@ from django.utils import timezone
 import json
 from django.views.decorators.csrf import csrf_exempt
 from django import forms
+from itertools import chain
 
 from .models import (
     PatientInfo,
     DependentPatient,
     DoctorInfo,
     Appointment,
+    DependentAppointment,
     DoctorAvailability,
     CompletedAppointment,
     CustomDoctorAvailability,
@@ -282,21 +284,19 @@ def doctor_patient_list(request):
 
     doctor = request.user.doctor_info
 
-    # Get users (self patients) who have appointments with this doctor
+    # Self patients (linked via Appointment)
     user_ids = Appointment.objects.filter(
-        doctor=doctor,
-        patient__isnull=False
+        doctor=doctor
     ).values_list('patient_id', flat=True).distinct()
 
-    # Get dependent patients who have appointments with this doctor
-    dependent_ids = Appointment.objects.filter(
-        doctor=doctor,
-        dependent_patient__isnull=False
+    # Dependent patients (linked via DependentAppointment)
+    dependent_ids = DependentAppointment.objects.filter(
+        doctor=doctor
     ).values_list('dependent_patient_id', flat=True).distinct()
 
     patients = []
 
-    # Fetch self patients (linked via User)
+    # Fetch self patients
     for p in PatientInfo.objects.filter(user_id__in=user_ids).select_related('user'):
         setattr(p, "patient_type", "self")
         patients.append(p)
@@ -306,7 +306,7 @@ def doctor_patient_list(request):
         setattr(d, "patient_type", "dependent")
         patients.append(d)
 
-    # Optional: sort by name
+    # Sort by name
     patients.sort(key=lambda x: x.user.get_full_name() if hasattr(x, 'user') else x.full_name)
 
     return render(request, "doctors/patient_list.html", {"patients": patients})
@@ -507,7 +507,11 @@ def manager_doctor_list(request):
         return redirect("home")
 
     doctors = DoctorInfo.objects.all().order_by("user__last_name")
-    return render(request, "managers/users.html", {"doctors": doctors})
+    pending_count = doctors.filter(is_approved=False, is_rejected=False).count()
+    return render(request, "managers/users.html", {
+        "doctors": doctors,
+        'pending_count': pending_count,
+    })
 
 # approve doctors accounts when info is added
 @login_required
@@ -627,9 +631,11 @@ def appointment_details(request, pk):
 
 @login_required
 def book_appointment(request):
+    # Only patients can book
     if request.user.role != "patient":
         return redirect("home")
 
+    # Get query parameters
     doctor_id = request.GET.get("doctor")
     start = request.GET.get("start")
     end = request.GET.get("end")
@@ -638,43 +644,50 @@ def book_appointment(request):
     dependents = DependentPatient.objects.filter(guardian=request.user)
 
     if request.method == "POST":
-        patient_type = request.POST.get("patient_type")
+        patient_type = request.POST.get("patient_type")  # "self" or dependent.patient_id
 
         with transaction.atomic():
-            # Lock overlapping approved appointments
-            conflict = Appointment.objects.select_for_update().filter(
+            # Check conflicts for this doctor (both self and dependent appointments)
+            conflict_self = Appointment.objects.select_for_update().filter(
                 doctor=doctor,
                 start_time__lt=end,
                 end_time__gt=start,
                 status="approved"
             ).exists()
 
-            if conflict:
-                messages.error(
-                    request,
-                    "This time slot was just booked. Please choose another."
-                )
+            conflict_dependent = DependentAppointment.objects.select_for_update().filter(
+                doctor=doctor,
+                start_time__lt=end,
+                end_time__gt=start,
+                status="approved"
+            ).exists()
+
+            if conflict_self or conflict_dependent:
+                messages.error(request, "This time slot was just booked. Please choose another.")
                 return redirect("patient_calendar")
 
-            appointment = Appointment(
-                doctor=doctor,
-                start_time=start,
-                end_time=end,
-                status="pending"
-            )
-
+            # Create appointment depending on type
             if patient_type == "self":
-                appointment.patient = request.user
+                Appointment.objects.create(
+                    doctor=doctor,
+                    patient=request.user,
+                    start_time=start,
+                    end_time=end,
+                    status="pending"
+                )
             else:
-                # ✅ Use patient_id, not id
                 dependent = get_object_or_404(
                     DependentPatient,
                     patient_id=patient_type,
                     guardian=request.user
                 )
-                appointment.dependent_patient = dependent
-
-            appointment.save()
+                DependentAppointment.objects.create(
+                    doctor=doctor,
+                    dependent_patient=dependent,
+                    start_time=start,
+                    end_time=end,
+                    status="pending"
+                )
 
         messages.success(request, "Appointment requested successfully.")
         return redirect("patient_calendar")
@@ -893,43 +906,50 @@ def staff_appointment_calendar(request):
 @login_required
 def calendar_events(request):
     user = request.user
+    events = []
 
     if user.role == "staff":
-        # Exclude completed from calendar
+        # Staff sees all appointments
         appointments = Appointment.objects.exclude(status="completed").select_related(
-            "patient", "dependent_patient", "doctor"
+            "patient", "doctor"
         )
-    elif user.role == "patient":
-        appointments = Appointment.objects.filter(patient=user).select_related("doctor")
-    else:
-        return JsonResponse([], safe=False)
-
-    events = []
-    for a in appointments:
-        if a.patient:
-            title = f"{a.patient.get_full_name()} ({a.status})"
-        elif a.dependent_patient:
-            title = f"{a.dependent_patient.full_name} ({a.status})"
-        else:
-            title = f"Unknown ({a.status})"
-
-        color = (
-            "#ffc107" if a.status == "pending" else
-            "#28a745" if a.status == "approved" else
-            "#6c757d" if a.status == "completed" else
-            "#dc3545"
+        dependent_appointments = DependentAppointment.objects.exclude(status="completed").select_related(
+            "dependent_patient", "doctor"
         )
+        
+        for a in appointments:
+            try:
+                patient_name = a.patient.get_full_name() if a.patient else "Unknown Patient"
+                title = f"{patient_name} ({a.status})"
+                color = "#ffc107" if a.status == "pending" else "#28a745" if a.status == "approved" else "#dc3545"
+                events.append({
+                    "id": a.id,
+                    "title": title,
+                    "start": a.start_time.isoformat(),
+                    "end": a.end_time.isoformat(),
+                    "color": color
+                })
+            except Exception as e:
+                print(f"Error processing appointment {a.id}: {e}")
+                continue
 
-        events.append({
-            "id": a.id,
-            "title": title,
-            "start": a.start_time.isoformat(),
-            "end": a.end_time.isoformat(),
-            "color": color
-        })
-
+        for a in dependent_appointments:
+            try:
+                patient_name = a.dependent_patient.full_name if a.dependent_patient else "Unknown Patient"
+                title = f"{patient_name} ({a.status})"
+                color = "#ffc107" if a.status == "pending" else "#28a745" if a.status == "approved" else "#dc3545"
+                events.append({
+                    "id": a.id,
+                    "title": title,
+                    "start": a.start_time.isoformat(),
+                    "end": a.end_time.isoformat(),
+                    "color": color
+                })
+            except Exception as e:
+                print(f"Error processing dependent appointment {a.id}: {e}")
+                continue
+    
     return JsonResponse(events, safe=False)
-
 
 @login_required
 def staff_day_appointments(request):
@@ -942,38 +962,44 @@ def staff_day_appointments(request):
 
     date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
 
+    # Normal appointments
     appointments = Appointment.objects.filter(
         start_time__date=date_obj
-    ).select_related("patient", "dependent_patient", "doctor")
+    ).select_related("patient", "doctor")
+
+    # Dependent appointments
+    dependent_appointments = DependentAppointment.objects.filter(
+        start_time__date=date_obj
+    ).select_related("dependent_patient", "doctor")
 
     data = []
+
     for a in appointments:
-        patient_name = a.patient.get_full_name() if a.patient else a.dependent_patient.full_name
-
-        if a.status == "completed":
-            status_class = 'bg-secondary text-white'  # gray for completed
-        elif a.status == 'approved':
-            status_class = 'bg-success text-white'
-        elif a.status == 'pending':
-            status_class = 'bg-warning text-dark'
-        else:  # rejected
-            status_class = 'bg-danger text-white'
-
-        doctor_name = (
-            a.doctor.user.get_full_name()
-            if a.doctor and a.doctor.user
-            else "Unassigned"
-        )
-
+        patient_name = a.patient.get_full_name()
+        doctor_name = a.doctor.user.get_full_name() if a.doctor else "Unassigned"
         data.append({
             'id': a.id,
             'patient_name': patient_name,
             'doctor_name': doctor_name,
             'start_time': a.start_time.strftime("%I:%M %p"),
             'end_time': a.end_time.strftime("%I:%M %p"),
-            'status': a.status,
-            'status_class': status_class
+            'status': a.status
         })
+
+    for a in dependent_appointments:
+        patient_name = a.dependent_patient.full_name
+        doctor_name = a.doctor.user.get_full_name() if a.doctor else "Unassigned"
+        data.append({
+            'id': a.id,
+            'patient_name': patient_name,
+            'doctor_name': doctor_name,
+            'start_time': a.start_time.strftime("%I:%M %p"),
+            'end_time': a.end_time.strftime("%I:%M %p"),
+            'status': a.status
+        })
+
+    # Sort by start time
+    data.sort(key=lambda x: x['start_time'])
 
     return JsonResponse(data, safe=False)
 
@@ -997,22 +1023,28 @@ def staff_appointments(request):
 
     today = date.today()
 
-    appointments = Appointment.objects.select_related(
-        "patient", "dependent_patient", "doctor"
-    ).order_by("-start_time")
+    # Regular patient appointments
+    appointments = Appointment.objects.select_related("patient", "doctor").order_by("-start_time")
+    
+    # Dependent patient appointments
+    dependent_appointments = DependentAppointment.objects.select_related("dependent_patient", "doctor").order_by("-start_time")
 
-    total_today = appointments.filter(start_time__date=today).count()
-    confirmed_count = appointments.filter(status="approved").count()
-    pending_count = appointments.filter(status="pending").count()
-    completed_count = CompletedAppointment.objects.count()
+    # Counts
+    total_today = appointments.filter(start_time__date=today).count() + dependent_appointments.filter(start_time__date=today).count()
+    confirmed_count = appointments.filter(status="approved").count() + dependent_appointments.filter(status="approved").count()
+    pending_count = appointments.filter(status="pending").count() + dependent_appointments.filter(status="pending").count()
+    completed_count = CompletedAppointment.objects.count()  # includes only Appointment; adjust if needed
 
-    return render(request, "staffs/appointments.html", {
+    context = {
         "appointments": appointments,
+        "dependent_appointments": dependent_appointments,
         "total_today": total_today,
         "confirmed_count": confirmed_count,
         "pending_count": pending_count,
         "completed_count": completed_count,
-    })
+    }
+
+    return render(request, "staffs/appointments.html", context)
 
 @login_required
 def approve_appointment(request, pk):
@@ -1052,7 +1084,7 @@ def reject_appointment(request, pk):
 
 @login_required
 def update_appointment_status(request, pk, action):
-    if request.user.role != "staff":
+    if request.user.role == "patient":
         return JsonResponse({"error": "Unauthorized"}, status=403)
 
     if request.method != "POST":
@@ -1148,99 +1180,247 @@ def patient_appointments(request):
     if request.user.role != "patient":
         return redirect("home")
 
+    # Own appointments
     own_appointments = Appointment.objects.filter(patient=request.user)
 
+    # Dependent appointments
     dependents = DependentPatient.objects.filter(guardian=request.user)
-    dependent_appointments = Appointment.objects.filter(dependent_patient__in=dependents)
+    dependent_appointments = DependentAppointment.objects.filter(
+        dependent_patient__in=dependents
+    )
 
-    appointments = own_appointments.union(dependent_appointments).order_by('start_time')
+    # Combine both querysets into a single list, sorted by start_time
+    appointments = sorted(
+        chain(own_appointments, dependent_appointments),
+        key=lambda a: a.start_time
+    )
 
     return render(request, "patients/appointments.html", {
         "appointments": appointments
     })
 
+
 @login_required
 @doctor_approved_required
 def doctor_calendar(request):
+    """Render doctor calendar page"""
     doctor = request.user.doctor_info
     return render(request, "calendar/doctor_calendar.html", {"doctor": doctor})
+
 
 @login_required
 @doctor_approved_required
 def doctor_calendar_events(request):
-    doctor = request.user.doctor_info
-    appointments = Appointment.objects.filter(
-        doctor=doctor
-    ).select_related("patient", "dependent_patient")
+    """Return all appointments for the doctor as JSON for calendar"""
+    try:
+        doctor = request.user.doctor_info
+        events = []
 
-    events = []
-    for a in appointments:
-        if a.patient:
-            title = f"{a.patient.get_full_name()} ({a.status})"
-        elif a.dependent_patient:
-            title = f"{a.dependent_patient.full_name} ({a.status})"
-        else:
-            title = f"Unknown ({a.status})"
+        # Self appointments
+        appointments = Appointment.objects.filter(
+            doctor=doctor
+        ).select_related("patient")
+        
+        for a in appointments:
+            try:
+                patient_name = a.patient.get_full_name() if a.patient else "Unknown Patient"
+                color = "#28a745" if a.status == "approved" else "#ffc107" if a.status == "pending" else "#dc3545"
+                events.append({
+                    "id": f"self-{a.id}",
+                    "title": f"{patient_name} ({a.status})",
+                    "start": a.start_time.isoformat(),
+                    "end": a.end_time.isoformat(),
+                    "color": color
+                })
+            except Exception as e:
+                print(f"Error processing appointment {a.id}: {e}")
+                continue
 
-        color = "#ffc107" if a.status == "pending" else "#28a745" if a.status == "approved" else "#dc3545"
+        # Dependent appointments
+        dependent_appointments = DependentAppointment.objects.filter(
+            doctor=doctor
+        ).select_related("dependent_patient")
+        
+        for a in dependent_appointments:
+            try:
+                patient_name = a.dependent_patient.full_name if a.dependent_patient else "Unknown Patient"
+                color = "#28a745" if a.status == "approved" else "#ffc107" if a.status == "pending" else "#dc3545"
+                events.append({
+                    "id": f"dep-{a.id}",
+                    "title": f"{patient_name} ({a.status})",
+                    "start": a.start_time.isoformat(),
+                    "end": a.end_time.isoformat(),
+                    "color": color
+                })
+            except Exception as e:
+                print(f"Error processing dependent appointment {a.id}: {e}")
+                continue
 
-        events.append({
-            "id": a.id,
-            "title": title,
-            "start": a.start_time.isoformat(),
-            "end": a.end_time.isoformat(),
-            "color": color
-        })
+        return JsonResponse(events, safe=False)
 
-    return JsonResponse(events, safe=False)
+    except Exception as e:
+        print(f"Error in doctor_calendar_events: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse([], safe=False)
+
 
 @login_required
 @doctor_approved_required
 def doctor_day_appointments(request):
+    """Return appointments for a given date"""
+    try:
+        doctor = request.user.doctor_info
+        date_str = request.GET.get("date")
+        
+        if not date_str:
+            return JsonResponse([], safe=False)
+
+        try:
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            return JsonResponse([], safe=False)
+
+        data = []
+
+        # Self appointments
+        appointments = Appointment.objects.filter(
+            doctor=doctor,
+            start_time__date=date_obj
+        ).select_related("patient")
+        
+        for a in appointments:
+            try:
+                patient_name = a.patient.get_full_name() if a.patient else "Unknown"
+                status_class = "status-confirmed" if a.status == "approved" else "status-pending" if a.status == "pending" else "status-cancelled"
+                
+                data.append({
+                    "id": f"self-{a.id}",
+                    "patient_name": patient_name,
+                    "start_time": a.start_time.strftime("%I:%M %p"),
+                    "end_time": a.end_time.strftime("%I:%M %p"),
+                    "status": a.status,
+                    "status_class": status_class
+                })
+            except Exception as e:
+                print(f"Error processing appointment {a.id}: {e}")
+                continue
+
+        # Dependent appointments
+        dependent_appointments = DependentAppointment.objects.filter(
+            doctor=doctor,
+            start_time__date=date_obj
+        ).select_related("dependent_patient")
+        
+        for a in dependent_appointments:
+            try:
+                patient_name = a.dependent_patient.full_name if a.dependent_patient else "Unknown"
+                status_class = "status-confirmed" if a.status == "approved" else "status-pending" if a.status == "pending" else "status-cancelled"
+                
+                data.append({
+                    "id": f"dep-{a.id}",
+                    "patient_name": patient_name,
+                    "start_time": a.start_time.strftime("%I:%M %p"),
+                    "end_time": a.end_time.strftime("%I:%M %p"),
+                    "status": a.status,
+                    "status_class": status_class
+                })
+            except Exception as e:
+                print(f"Error processing dependent appointment {a.id}: {e}")
+                continue
+
+        # Sort by start time
+        data.sort(key=lambda x: x['start_time'])
+        return JsonResponse(data, safe=False)
+
+    except Exception as e:
+        print(f"Error in doctor_day_appointments: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse([], safe=False)
+
+def get_status_class(status, for_calendar=False):
+    """Return CSS color code for status"""
+    mapping = {
+        'approved': '#28a745',  # green
+        'pending': '#ffc107',   # yellow
+        'completed': '#6c757d', # gray
+        'rejected': '#dc3545'   # red
+    }
+    if for_calendar:
+        return mapping.get(status, '#ffc107')  # fallback yellow
+    else:
+        # bootstrap classes for lists
+        bootstrap_mapping = {
+            'approved': 'bg-success text-white',
+            'pending': 'bg-warning text-dark',
+            'completed': 'bg-secondary text-white',
+            'rejected': 'bg-danger text-white'
+        }
+        return bootstrap_mapping.get(status, 'bg-warning text-dark')
+
+@login_required
+@doctor_approved_required
+def doctor_day_appointments(request):
+    """Return appointments for a given date"""
     doctor = request.user.doctor_info
     date_str = request.GET.get("date")
     if not date_str:
         return JsonResponse([], safe=False)
 
-    date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+    try:
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return JsonResponse([], safe=False)
 
-    appointments = Appointment.objects.filter(
-        doctor=doctor,
-        start_time__date=date_obj
-    ).select_related("patient", "dependent_patient")
+    appointments = Appointment.objects.filter(doctor=doctor, start_time__date=date_obj).select_related("patient")
+    dependent_appointments = DependentAppointment.objects.filter(doctor=doctor, start_time__date=date_obj).select_related("dependent_patient")
 
     data = []
+
     for a in appointments:
-        patient_name = a.patient.get_full_name() if a.patient else a.dependent_patient.full_name
-
-        if a.status == "completed":
-            status_class = 'bg-secondary text-white'
-        elif a.status == 'approved':
-            status_class = 'bg-success text-white'
-        elif a.status == 'pending':
-            status_class = 'bg-warning text-dark'
-        else:
-            status_class = 'bg-danger text-white'
-
+        patient_name = a.patient.get_full_name() if a.patient else "Unknown"
         data.append({
-            'id': a.id,
-            'patient_name': patient_name,
-            'start_time': a.start_time.strftime("%I:%M %p"),
-            'end_time': a.end_time.strftime("%I:%M %p"),
-            'status': a.status,
-            'status_class': status_class
+            "id": f"self-{a.id}",
+            "patient_name": patient_name,
+            "start_time": a.start_time.strftime("%I:%M %p"),
+            "end_time": a.end_time.strftime("%I:%M %p"),
+            "status": a.status,
+            "status_class": get_status_class(a.status)
         })
 
+    for a in dependent_appointments:
+        patient_name = a.dependent_patient.full_name if a.dependent_patient else "Unknown"
+        data.append({
+            "id": f"dep-{a.id}",
+            "patient_name": patient_name,
+            "start_time": a.start_time.strftime("%I:%M %p"),
+            "end_time": a.end_time.strftime("%I:%M %p"),
+            "status": a.status,
+            "status_class": get_status_class(a.status)
+        })
+
+    # Sort by start time
+    data.sort(key=lambda x: x['start_time'])
     return JsonResponse(data, safe=False)
+
 
 @login_required
 @doctor_approved_required
 def doctor_appointments(request):
-    doctor = request.user.doctor_info
-    appointments = Appointment.objects.filter(doctor=doctor).select_related(
-        "patient", "dependent_patient"
-    ).order_by("start_time")
-    
+    if request.user.role != "doctor":
+        return redirect("home")
+
+    # All appointments for this doctor
+    own_appointments = Appointment.objects.filter(doctor=request.user.doctor_info)
+    dependent_appointments = DependentAppointment.objects.filter(doctor=request.user.doctor_info)
+
+    # Combine and sort
+    appointments = sorted(
+        chain(own_appointments, dependent_appointments),
+        key=lambda a: a.start_time
+    )
+
     return render(request, "doctors/appointments.html", {"appointments": appointments})
 
 @login_required
