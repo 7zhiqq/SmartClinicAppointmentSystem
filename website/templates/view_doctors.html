@@ -35,7 +35,10 @@
                                 <h3 class="doctor-name">Dr. {{ doctor.user.get_full_name }}</h3>
                                 <p class="doctor-specialization">{{ doctor.specialization.name }}</p>
 
-                                <!-- Ratings -->
+                                {% if doctor.bio %}
+                                    <p class="doctor-bio">{{ doctor.bio }}</p>
+                                {% endif %}
+
                                 <!-- Ratings -->
                                 <div class="doctor-rating">
                                     {% with avg=doctor.average_rating|default_if_none:"0.0"|floatformat:1 %}
@@ -49,8 +52,6 @@
                                     {% endwith %}
                                 </div>
 
-
-
                                 <!-- Patient rating link -->
                                 {% if user.role == "patient" %}
                                     <a href="{% url 'rate_doctor_page' doctor.id %}" class="rate-doctor-btn">
@@ -58,10 +59,6 @@
                                     </a>
                                 {% endif %}
                             </div>
-                        </div>
-
-                        <div class="doctor-details">
-                            <p>Details about this doctor</p>
                         </div>
 
                         <div class="available-slots">
@@ -83,4 +80,28 @@
         {% endif %}
     </div>
 {% endif %}
+
+<style>
+    .doctor-info p {
+        margin: 2px 0;
+        font-size: 14px;
+    }
+
+    .rate-doctor-btn {
+        display: inline-block;
+        margin-top: 6px;
+        padding: 3px;
+        color: var(--primary);
+        border-radius: 6px;
+        font-size: 13px;
+        text-decoration: none;
+    }
+
+    .rate-doctor-btn:hover {
+        background: var(--primary);
+        color: var(--white);
+    }
+
+</style>
+
 {% endblock %}

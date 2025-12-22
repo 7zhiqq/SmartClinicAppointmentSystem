@@ -42,6 +42,7 @@
 
                 const calendar = new FullCalendar.Calendar(calendarEl, {
                     initialView: "dayGridMonth",
+                    timeZone: 'Asia/Manila',
                     events: function(info, successCallback, failureCallback) {
                         fetch("{% url 'calendar_events' %}")
                             .then(res => res.json())

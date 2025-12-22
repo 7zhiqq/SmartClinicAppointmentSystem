@@ -287,6 +287,13 @@ class DoctorInfo(models.Model):
     is_rejected = models.BooleanField(default=False)
     rejected_at = models.DateTimeField(null=True, blank=True)
 
+    # New fields for experiences & details
+    years_experience = models.PositiveIntegerField(
+        default=0,
+        help_text="Number of years of medical experience"
+    )
+    bio = models.TextField(blank=True, null=True, help_text="Short biography of the doctor")
+    qualifications = models.TextField(blank=True, null=True, help_text="Doctor's qualifications, e.g., MD, PhD, certifications")
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -294,7 +301,9 @@ class DoctorInfo(models.Model):
         ordering = ["user__last_name", "user__first_name"]
 
     def __str__(self):
-        return f"Dr. {self.user.first_name} {self.user.last_name} - {self.specialization}"
+        specialization_name = self.specialization.name if self.specialization else "General"
+        return f"Dr. {self.user.first_name} {self.user.last_name} - {specialization_name}, {self.years_experience} yrs experience"
+
 
 class Appointment(models.Model):
     patient = models.ForeignKey(

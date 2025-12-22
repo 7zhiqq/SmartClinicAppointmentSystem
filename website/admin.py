@@ -68,7 +68,12 @@ class SpecializationAdmin(admin.ModelAdmin):
 
 @admin.register(DoctorInfo)
 class DoctorInfoAdmin(admin.ModelAdmin):
-    list_display = ("user", "specialization", "is_approved")
+    list_display = (
+        "user",
+        "specialization",
+        "years_experience",
+        "is_approved",
+    )
     
     search_fields = (
         "user__first_name",
@@ -78,3 +83,16 @@ class DoctorInfoAdmin(admin.ModelAdmin):
     
     list_filter = ("is_approved", "specialization")
     ordering = ("user__last_name",)
+    
+    # Add a fieldset to include bio and qualifications
+    fieldsets = (
+        (None, {
+            "fields": ("user", "profile_picture", "specialization", "license_number", "years_experience")
+        }),
+        ("Details", {
+            "fields": ("bio", "qualifications")
+        }),
+        ("Approval Status", {
+            "fields": ("is_approved", "approved_at", "is_rejected", "rejected_at")
+        }),
+    )
