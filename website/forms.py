@@ -1,6 +1,7 @@
 from django import forms
 from datetime import date
 from django.contrib.auth.models import User
+from django.forms import inlineformset_factory
 from .models import (
     PatientInfo,
     DependentPatient,
@@ -15,7 +16,8 @@ from .models import (
     DoctorAvailability,
     Appointment,
     CustomDoctorAvailability,
-    MedicalRecord
+    MedicalRecord,
+    Prescription
 )
 
 class UserBasicInfoForm(forms.ModelForm):
@@ -297,11 +299,11 @@ class CustomDoctorAvailabilityForm(forms.ModelForm):
 class MedicalRecordForm(forms.ModelForm):
     class Meta:
         model = MedicalRecord
-        fields = ['reason_for_visit', 'symptoms', 'diagnosis', 'prescription']
+        fields = ['reason_for_visit', 'symptoms', 'diagnosis']
         widgets = {
             'reason_for_visit': forms.Textarea(attrs={
                 'class': 'form-control',
-                'rows': 2,         # small initial height
+                'rows': 2,
                 'placeholder': 'Enter reason for visit...'
             }),
             'symptoms': forms.Textarea(attrs={
@@ -314,9 +316,28 @@ class MedicalRecordForm(forms.ModelForm):
                 'rows': 2,
                 'placeholder': 'Enter diagnosis...'
             }),
-            'prescription': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 2,
-                'placeholder': 'Enter prescription...'
-            }),
         }
+        
+class PrescriptionForm(forms.ModelForm):
+    create_medication = forms.BooleanField(
+        required=False,
+        label="Add to patient's medications"
+    )
+
+    class Meta:
+        model = Prescription
+        fields = ['medication_name', 'dosage', 'frequency', 'notes', 'create_medication']
+        widgets = {
+            'medication_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Medication name'}),
+            'dosage': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Dosage'}),
+            'frequency': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Frequency'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Optional notes'}),
+        }
+        
+PrescriptionFormSet = inlineformset_factory(
+    MedicalRecord,
+    Prescription,
+    form=PrescriptionForm,
+    extra=1,        # start with 1 blank form
+    can_delete=True # allow deleting extra forms
+)

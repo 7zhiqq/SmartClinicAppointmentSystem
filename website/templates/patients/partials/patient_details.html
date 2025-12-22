@@ -130,17 +130,35 @@
             {% else %}
                 <p class="muted">No vitals recorded yet...</p>
             {% endif %}
-            {% if user.role == "staff" %}
-                <div class="card-footer">
+
+            <div class="card-footer">
+                {% if patient and patient.pk %}
+                    {% if user.role != "staff" %}
+                        {% if patient_type == "self" %}
+                                <a href="{% url 'vital_history' 'self' patient.pk %}"
+                                class="card-link">
+                                    View Vitals
+                                </a>
+                        {% else %}
+                            <a href="{% url 'vital_history' 'dependent' patient.pk %}"
+                            class="card-link">
+                                View Vitals
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                {% endif %}
+
+                {% if user.role == "staff" %}
                     <a href="{% url 'add_patient_vitals' patient_type patient.pk %}" class="card-link">
                         {% if vitals %}
-                            Record Vitals
+                            Record New
                         {% else %}
                             Add Vitals
                         {% endif %}
                     </a>
-                </div>
-            {% endif %}
+                {% endif %}
+            </div>
+
         </div>
 
         <!-- Medications -->
@@ -158,11 +176,16 @@
                     <p class="muted">No Medications</p>
                 {% endif %}
             </div>
-            {% if user.role == "staff" %}
-                <div class="card-footer">
-                    <a href="{% url 'add_patient_medication' patient_type|default:'self' patient.pk %}" class="card-link">Add Medication</a>
-                </div>
-            {% endif %}
+            <div class="card-footer">
+                {% if user.role != "staff" %}
+                    <a href="{% url 'medication_history' patient_type patient.pk %}"
+                        class="card-link">
+                            View Medications
+                    </a>
+                {% elif user.role == "staff" %}
+                        <a href="{% url 'add_patient_medication' patient_type|default:'self' patient.pk %}" class="card-link">Add Medication</a>
+                {% endif %}
+            </div>
         </div>
 
         <!-- Allergies -->

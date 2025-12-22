@@ -1,48 +1,67 @@
 {% extends "components/base.html" %}
 {% load static %}
 {% block content %}
-    <link rel="stylesheet" href="{% static 'css/record-details.css' %}">
-    {% if user.is_authenticated %}
-        {% if user.role == "doctor" %}
-            {% include "components/sidebar/doctor.html" %}
-        {% elif user.role == "patient" %}
-            {% include "components/sidebar/patient.html" %}
-        {% elif user.role == "staff" %}
-            {% include "components/sidebar/staff.html" %}
-        {% endif %}
-        <div class="main-content">
-            <div class="record-details-wrapper">
-                <h2>Medical Record Details</h2>
+<link rel="stylesheet" href="{% static 'css/record-details.css' %}">
 
-                <p><strong>Patient:</strong>
-                    {% if patient_type == "self" %}
-                        {{ patient.user.get_full_name }}
-                    {% else %}
-                        {{ patient.full_name }}
-                    {% endif %}
-                </p>
-                <p><strong>Reason for Visit:</strong> {{ record.reason_for_visit }}</p>
-                <p><strong>Symptoms:</strong> {{ record.symptoms }}</p>
-                <p><strong>Diagnosis:</strong> {{ record.diagnosis }}</p>
-                <p><strong>Prescription:</strong> {{ record.prescription }}</p>
-                <p><strong>Date Created:</strong> {{ record.created_at }}</p>
+{% if user.is_authenticated %}
+    {% if user.role == "doctor" %}
+        {% include "components/sidebar/doctor.html" %}
+    {% elif user.role == "patient" %}
+        {% include "components/sidebar/patient.html" %}
+    {% elif user.role == "staff" %}
+        {% include "components/sidebar/staff.html" %}
+    {% endif %}
 
-                <div class="history-actions mb-2">
+    <div class="main-content">
+        <div class="record-details-wrapper">
+            <h2>Medical Record Details</h2>
+
+            <p><strong>Patient:</strong>
+                {% if patient_type == "self" %}
+                    {{ patient.user.get_full_name }}
+                {% else %}
+                    {{ patient.full_name }}
+                {% endif %}
+            </p>
+
+            <p><strong>Reason for Visit:</strong> {{ record.reason_for_visit }}</p>
+            <p><strong>Symptoms:</strong> {{ record.symptoms }}</p>
+            <p><strong>Diagnosis:</strong> {{ record.diagnosis }}</p>
+
+            <!-- Display prescriptions -->
+            <p><strong>Prescriptions:</strong></p>
+            {% if record.prescriptions.exists %}
+                <ul>
+                    {% for prescription in record.prescriptions.all %}
+                        <li>
+                            {{ prescription.medication_name }} 
+                            {% if prescription.dosage %} - {{ prescription.dosage }}{% endif %}
+                            {% if prescription.frequency %} - {{ prescription.frequency }}{% endif %}
+                            {% if prescription.notes %} ({{ prescription.notes }}){% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No prescriptions added.</p>
+            {% endif %}
+
+            <p><strong>Date Created:</strong> {{ record.created_at }}</p>
+
+            <div class="history-actions mb-2">
                 {% if user.role in "staff doctor" %}
-                    <button class="btn btn-primary">
-                        <a href="{% url 'edit_medical_record' record.pk %}">
-                            Edit
-                        </a>
-                    </button>
-                    
+                    <a href="{% url 'edit_medical_record' record.pk %}" class="btn btn-primary">
+                        Edit
+                    </a>
                 {% endif %}
 
-                    <a href="{% if request.META.HTTP_REFERER %}{{ request.META.HTTP_REFERER }}{% else %}{% url 'patient_details' record.patient.pk %}{% endif %}"
-                    class="btn  btn-sm btn-secondary">
-                        ← Back
-                    </a>
-                </div>
+                <a href="{% if request.META.HTTP_REFERER %}{{ request.META.HTTP_REFERER }}{% else %}
+                          {% if patient_type == 'self' %}{% url 'patient_details' record.patient.pk %}{% else %}{% url 'patient_details' record.dependent_patient.pk %}{% endif %}
+                          {% endif %}"
+                   class="btn btn-sm btn-secondary">
+                    ← Back
+                </a>
             </div>
         </div>
-    {% endif %}
+    </div>
+{% endif %}
 {% endblock %}

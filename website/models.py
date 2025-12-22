@@ -179,9 +179,10 @@ class PatientMedication(models.Model):
     medication_name = models.CharField(max_length=255)
     dosage = models.CharField(max_length=100)
     frequency = models.CharField(max_length=100)
+    prescribed_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        ordering = ["medication_name"]
+        ordering = ["-prescribed_at"]
         verbose_name = "Patient Medication"
         verbose_name_plural = "Patient Medications"
 
@@ -237,9 +238,10 @@ class DependentPatientMedication(models.Model):
     medication_name = models.CharField(max_length=255)
     dosage = models.CharField(max_length=100)
     frequency = models.CharField(max_length=100)
+    prescribed_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        ordering = ["medication_name"]
+        ordering = ["-prescribed_at"]
         verbose_name = "Dependent Patient Medication"
         verbose_name_plural = "Dependent Patient Medications"
 
@@ -374,16 +376,14 @@ class CompletedAppointment(models.Model):
         return f"Completed: {patient_name} on {self.completed_at.strftime('%Y-%m-%d %H:%M')}"
     
 class MedicalRecord(models.Model):
-    # Either a PatientInfo or DependentPatient
     patient = models.ForeignKey('PatientInfo', null=True, blank=True, on_delete=models.CASCADE)
     dependent_patient = models.ForeignKey('DependentPatient', null=True, blank=True, on_delete=models.CASCADE)
     
-    patient_id_str = models.CharField(max_length=20, editable=False)  # generated ID for reference
+    patient_id_str = models.CharField(max_length=20, editable=False)
 
     reason_for_visit = models.TextField()
     symptoms = models.TextField()
     diagnosis = models.TextField()
-    prescription = models.TextField()
     created_at = models.DateTimeField(default=timezone.now)
 
     def save(self, *args, **kwargs):
@@ -392,3 +392,49 @@ class MedicalRecord(models.Model):
         elif self.dependent_patient:
             self.patient_id_str = self.dependent_patient.patient_id
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.patient_id_str} - {self.reason_for_visit[:20]}"
+
+# Prescription linked to MedicalRecord
+class Prescription(models.Model):
+    medical_record = models.ForeignKey(
+        MedicalRecord,
+        on_delete=models.CASCADE,
+        related_name="prescriptions"
+    )
+    medication_name = models.CharField(max_length=255)
+    dosage = models.CharField(max_length=100)
+    frequency = models.CharField(max_length=100)
+    notes = models.TextField(blank=True, null=True)
+    prescribed_at = models.DateTimeField(default=timezone.now)
+    create_medication = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-prescribed_at"]
+
+    def __str__(self):
+        return f"{self.medical_record.patient_id_str} - {self.medication_name}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Auto-create medication if requested
+        if self.create_medication:
+            if self.medical_record.patient:
+                from .models import PatientMedication
+                PatientMedication.objects.create(
+                    patient=self.medical_record.patient,
+                    medication_name=self.medication_name,
+                    dosage=self.dosage,
+                    frequency=self.frequency,
+                    prescribed_at=self.prescribed_at
+                )
+            elif self.medical_record.dependent_patient:
+                from .models import DependentPatientMedication
+                DependentPatientMedication.objects.create(
+                    dependent_patient=self.medical_record.dependent_patient,
+                    medication_name=self.medication_name,
+                    dosage=self.dosage,
+                    frequency=self.frequency,
+                    prescribed_at=self.prescribed_at
+                )

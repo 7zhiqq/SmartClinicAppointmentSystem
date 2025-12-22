@@ -47,6 +47,8 @@ from .forms import (
     DoctorAvailabilityForm,
     CustomDoctorAvailabilityForm,
     MedicalRecordForm,
+    PrescriptionForm,
+    PrescriptionFormSet,
     GeneralSettingsForm,
     SecuritySettingsForm
 )
@@ -421,6 +423,39 @@ def add_patient_vitals(request, patient_type, pk):
 
     return render(request, "patients/add_vitals.html", {"form": form, "patient": patient})
 
+@login_required
+def vital_history(request, patient_type, pk):
+    # Permission check
+    if request.user.role not in ['patient', 'staff', 'doctor']:
+        messages.error(request, "Access denied")
+        return redirect('home')
+
+    if patient_type == 'self':
+        if request.user.role == 'patient':
+            patient = get_object_or_404(PatientInfo, pk=pk, user=request.user)
+        else:
+            patient = get_object_or_404(PatientInfo, pk=pk)
+
+        vitals = patient.vitals.order_by('-recorded_at')
+
+    elif patient_type == 'dependent':
+        if request.user.role == 'patient':
+            patient = get_object_or_404(DependentPatient, pk=pk, guardian=request.user)
+        else:
+            patient = get_object_or_404(DependentPatient, pk=pk)
+
+        vitals = patient.vitals.order_by('-recorded_at')
+
+    else:
+        messages.error(request, "Invalid patient type")
+        return redirect('home')
+
+    return render(request, 'patients/vitals_history.html', {
+        'patient': patient,
+        'patient_type': patient_type,
+        'vitals': vitals
+    })
+ 
 # ALLERGIES
 @login_required
 def add_patient_allergy(request, patient_type, pk):
@@ -473,6 +508,25 @@ def add_patient_medication(request, patient_type, pk):
 
     return render(request, "patients/add_medication.html", {"form": form, "patient": patient})
 
+@login_required
+def medication_history(request, patient_type, pk):
+    if patient_type == "self":
+        patient = get_object_or_404(PatientInfo, pk=pk)
+        medications = patient.medications.all()
+
+    elif patient_type == "dependent":
+        patient = get_object_or_404(DependentPatient, pk=pk)
+        medications = patient.medications.all()
+
+    else:
+        return redirect("home")
+
+    return render(request, "patients/medication_history.html", {
+        "patient": patient,
+        "patient_type": patient_type,
+        "medications": medications,
+    })
+    
 @login_required
 def doctor_dashboard(request):
     if request.user.role != "doctor":
@@ -1560,39 +1614,45 @@ def add_medical_record(request, patient_type, pk):
         return redirect('patient_list')
 
     if request.method == 'POST':
-        form = MedicalRecordForm(request.POST)
-        if form.is_valid():
-            record = form.save(commit=False)
+        record_form = MedicalRecordForm(request.POST)
+        prescription_formset = PrescriptionFormSet(request.POST)
+
+        if record_form.is_valid() and prescription_formset.is_valid():
+            # Save medical record
+            record = record_form.save(commit=False)
             if patient_type == 'self':
                 record.patient = patient
             else:
                 record.dependent_patient = patient
             record.save()
+
+            # Save prescriptions
+            prescription_formset.instance = record
+            prescription_formset.save()
+
             messages.success(request, "Medical record added successfully")
-
-            # --- Redirect dynamically based on role ---
             if request.user.role == 'doctor':
-                return redirect('doctor_patient_list')  # your doctor patient list URL name
-            else:  # staff
+                return redirect('doctor_patient_list')
+            else:
                 return redirect('patient_list')
-
     else:
-        form = MedicalRecordForm()
+        record_form = MedicalRecordForm()
+        prescription_formset = PrescriptionFormSet()
 
     return render(request, 'medical_records/add_medical_record.html', {
-        'form': form,
+        'record_form': record_form,
+        'prescription_formset': prescription_formset,
         'patient': patient,
         'patient_type': patient_type
     })
 
+
 @login_required
 def edit_medical_record(request, pk):
-    # Only staff or doctor can edit
     if request.user.role not in ['staff', 'doctor']:
         messages.error(request, "Access denied")
         return redirect('home')
 
-    # Get the medical record
     record = get_object_or_404(MedicalRecord, pk=pk)
 
     # Determine patient type
@@ -1607,24 +1667,32 @@ def edit_medical_record(request, pk):
         return redirect('home')
 
     if request.method == 'POST':
-        form = MedicalRecordForm(request.POST, instance=record)
-        if form.is_valid():
-            form.save()
+        record_form = MedicalRecordForm(request.POST, instance=record)
+        prescription_formset = PrescriptionFormSet(request.POST, instance=record)
+
+        if record_form.is_valid() and prescription_formset.is_valid():
+            record_form.save()
+            prescription_formset.save()
             messages.success(request, "Medical record updated successfully")
             return redirect('view_medical_record', pk=record.pk)
-
-
     else:
-        form = MedicalRecordForm(instance=record)
+        record_form = MedicalRecordForm(instance=record)
+        prescription_formset = PrescriptionFormSet(instance=record)
 
     return render(request, 'medical_records/edit_medical_record.html', {
-        'form': form,
+        'record_form': record_form,
+        'prescription_formset': prescription_formset,
         'patient': patient,
         'patient_type': patient_type,
         'record': record
     })
 
 
+@login_required
 def view_medical_record(request, pk):
     record = get_object_or_404(MedicalRecord, pk=pk)
-    return render(request, 'medical_records/medical_record_detail.html', {'record': record})
+    prescriptions = record.prescriptions.all()  # get all prescriptions for display
+    return render(request, 'medical_records/medical_record_detail.html', {
+        'record': record,
+        'prescriptions': prescriptions
+    })

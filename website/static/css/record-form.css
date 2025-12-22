@@ -173,6 +173,113 @@
     overflow: hidden;
 }
 
+/* ================================
+   Prescription Formset UI
+================================ */
+
+.prescriptions-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+}
+
+.prescription-form {
+    padding: var(--space-md);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    transition: all var(--transition-fast);
+}
+
+.prescription-form:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: var(--primary-light);
+}
+
+.prescription-form .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    align-items: flex-end;
+}
+
+.prescription-form .col-md-2,
+.prescription-form .col-md-3 {
+    flex: 1;
+    min-width: 120px;
+}
+
+.prescription-form label {
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-sm);
+    color: var(--text-main);
+    display: block;
+    margin-bottom: var(--space-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.prescription-form input,
+.prescription-form textarea,
+.prescription-form select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--border-light);
+    background: var(--white);
+    font-size: var(--font-size-sm);
+    color: var(--text-main);
+    transition: all var(--transition-fast);
+    box-sizing: border-box;
+}
+
+.prescription-form textarea {
+    min-height: 50px;
+    max-height: 200px;
+    resize: vertical;
+}
+
+.prescription-form input:focus,
+.prescription-form textarea:focus,
+.prescription-form select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+    background: rgba(79, 70, 229, 0.02);
+}
+
+.prescription-form .form-check {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: var(--space-xs);
+}
+
+.prescription-form .form-check label {
+    text-transform: none;
+    font-weight: var(--font-weight-normal);
+    font-size: var(--font-size-xs);
+    color: var(--text-main);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .prescription-form .row {
+        flex-direction: column;
+        gap: var(--space-sm);
+    }
+    .prescription-form .col-md-2,
+    .prescription-form .col-md-3 {
+        min-width: 100%;
+    }
+}
+
+
 /* Responsive */
 @media (max-width: 1024px) {
     .record-form-wrapper {

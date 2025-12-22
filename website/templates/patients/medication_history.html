@@ -1,0 +1,101 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/medrecords.css' %}">
+
+{% if user.is_authenticated and user.role == "patient" %}
+    {% include "components/sidebar/patient.html" %}
+{% elif user.is_authenticated and user.role == "staff" %}
+    {% include "components/sidebar/staff.html" %}
+{% elif user.is_authenticated and user.role == "doctor" %}
+    {% include "components/sidebar/doctor.html" %}
+{% else %}
+    <div style="text-align: center; padding: 40px;">
+        <p>Please log in to view medication history.</p>
+    </div>
+{% endif %}
+
+<div class="main-content">
+
+    <!-- Header -->
+    <div class="schedule-header mb-4">
+        <div>
+            <h2 class="heading-title">
+                <i class="bi bi-capsule"></i> Medication History
+            </h2>
+            <p class="subtitle">
+                {% if patient_type == "self" %}
+                    Your prescribed medications over time
+                {% else %}
+                    {{ patient.full_name }}'s medications over time
+                {% endif %}
+            </p>
+        </div>
+
+        {% if user.role == 'patient' %}
+            <a href="{% url 'medical_records' %}" class="add-schedule-btn">
+                ← Back to Medical Records
+            </a>
+        {% elif user.role == 'staff' %}
+            <a href="{% url 'patient_list' %}" class="add-schedule-btn">
+                ← Back to Medical Records
+            </a>
+        {% elif user.role == 'doctor' %}
+            <a href="{% url 'doctor_patient_list' %}" class="add-schedule-btn">
+                ← Back to Medical Records
+            </a>
+        {% endif %}
+    </div>
+
+
+    <!-- Medication Table -->
+    <div class="table-container">
+        {% if medications %}
+            <table class="appointments-table">
+                <thead>
+                    <tr>
+                        <th>Date Prescribed</th>
+                        <th>Medication</th>
+                        <th>Dosage</th>
+                        <th>Frequency</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for med in medications %}
+                        <tr class="appointment-row">
+                            <td class="time-cell">
+                                <div class="appointment-time">
+                                    {{ med.prescribed_at|date:"M d, Y" }}<br>
+                                    <small>{{ med.prescribed_at|time:"h:i A" }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">
+                                    {{ med.medication_name }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-warning">
+                                    {{ med.dosage }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-success">
+                                    {{ med.frequency }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+                <i class="bi bi-capsule" style="font-size: 3rem; opacity: 0.4; margin-bottom: 1rem; display: block;"></i>
+                <p>No medications recorded yet.</p>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

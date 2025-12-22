@@ -1,0 +1,131 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/medrecords.css' %}">
+    {% if user.is_authenticated and user.role == "patient" %}
+        {% include "components/sidebar/patient.html" %}
+    {% elif user.is_authenticated and user.role == "staff" %}
+        {% include "components/sidebar/staff.html" %}
+    {% elif user.is_authenticated and user.role == "doctor" %}
+        {% include "components/sidebar/doctor.html" %}
+    {% else %}
+        <div style="text-align: center; padding: 40px;">
+            <p>Please log in to view vitals history.</p>
+        </div>
+    {% endif %}
+        
+        <div class="main-content">
+            <div class="schedule-header mb-4">
+                <div>
+                    <h2 class="heading-title">
+                        <i class="bi bi-heart-pulse"></i> Vitals History
+                    </h2>
+                    <p class="subtitle">
+                        {% if patient_type == "self" %}
+                            Your vital signs over time
+                        {% else %}
+                            {{ patient.full_name }}'s vital signs over time
+                        {% endif %}
+                    </p>
+                </div>
+                {% if user.role == 'patients' %}
+                    <a href="{% url 'medical_records' %}" class="add-schedule-btn">
+                        ← Back to Medical Records
+                    </a>
+                {% elif user.role == 'staff' %}
+                    <a href="{% url 'patient_list' %}" class="add-schedule-btn">
+                        ← Back to Medical Records
+                    </a>
+                {% elif user.role == 'doctor' %}
+                    <a href="{% url 'doctor_patient_list' %}" class="add-schedule-btn">
+                        ← Back to Medical Records
+                    </a>
+                {% endif %}
+            </div>
+
+            <!-- Vitals Summary Cards -->
+            <div class="row g-3 mb-4">
+                {% if latest_vital %}
+                    <div class="col-md-3">
+                        <div class="stat-card confirmed">
+                            <div class="stat-number">{{ latest_vital.blood_pressure }}</div>
+                            <div class="stat-label">Blood Pressure</div>
+                            <div class="stat-meta">{{ latest_vital.recorded_at|date:"M d, Y" }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card pending">
+                            <div class="stat-number">{{ latest_vital.heart_rate }} <span style="font-size: 1rem;">bpm</span></div>
+                            <div class="stat-label">Heart Rate</div>
+                            <div class="stat-meta">Beats per minute</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card total">
+                            <div class="stat-number">{{ latest_vital.height_cm }}</div>
+                            <div class="stat-label">Height</div>
+                            <div class="stat-meta">cm</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card completed">
+                            <div class="stat-number">{{ latest_vital.weight_kg }}</div>
+                            <div class="stat-label">Weight</div>
+                            <div class="stat-meta">kg</div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Vitals Table -->
+            <div class="table-container">
+                {% if vitals %}
+                    <table class="appointments-table">
+                        <thead>
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Blood Pressure</th>
+                                <th>Heart Rate</th>
+                                <th>Height</th>
+                                <th>Weight</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vital in vitals %}
+                                <tr class="appointment-row">
+                                    <td class="time-cell">
+                                        <div class="appointment-time">
+                                            {{ vital.recorded_at|date:"M d, Y" }}<br>
+                                            <small>{{ vital.recorded_at|time:"h:i A" }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ vital.blood_pressure|default:"N/A" }} mmHg</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger">{{ vital.heart_rate|default:"N/A" }} bpm</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning">{{ vital.height_cm|default:"N/A" }} cm</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">{{ vital.weight_kg|default:"N/A" }} kg</span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+                        <i class="bi bi-graph-up" style="font-size: 3rem; opacity: 0.4; margin-bottom: 1rem; display: block;"></i>
+                        <p>No vitals recorded yet. 
+                            <a href="{% url 'add_patient_vitals' patient_type patient.pk %}">
+                                Add your first vitals
+                            </a>
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+{% endblock %}
