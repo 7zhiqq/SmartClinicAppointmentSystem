@@ -1084,24 +1084,34 @@ def reject_appointment(request, pk):
 
 @login_required
 def update_appointment_status(request, pk, action):
+    """Update status for either Appointment or DependentAppointment"""
     if request.user.role == "patient":
         return JsonResponse({"error": "Unauthorized"}, status=403)
 
     if request.method != "POST":
         return JsonResponse({"error": "Invalid method"}, status=400)
 
-    appointment = get_object_or_404(Appointment, pk=pk)
+    # Get the appointment type from POST data
+    appointment_type = request.POST.get("appointment_type", "self")
+    
+    try:
+        if appointment_type == "dependent":
+            appointment = DependentAppointment.objects.get(pk=pk)
+        else:
+            appointment = Appointment.objects.get(pk=pk)
+    except (Appointment.DoesNotExist, DependentAppointment.DoesNotExist):
+        return JsonResponse({"error": "Appointment not found"}, status=404)
 
+    # Update status based on action
     if action == "approve":
         appointment.status = "approved"
-
     elif action == "reject":
         appointment.status = "rejected"
-
     elif action == "complete":
         appointment.status = "completed"
-        CompletedAppointment.objects.get_or_create(appointment=appointment)
-
+        # Only create CompletedAppointment record for regular Appointment
+        if appointment_type == "self":
+            CompletedAppointment.objects.get_or_create(appointment=appointment)
     else:
         return JsonResponse({"error": "Invalid action"}, status=400)
 
@@ -1111,7 +1121,7 @@ def update_appointment_status(request, pk, action):
         "id": appointment.id,
         "status": appointment.status
     })
-
+    
 @login_required
 def reschedule_appointment(request, pk):
     appointment = get_object_or_404(Appointment, pk=pk)
@@ -1411,17 +1421,31 @@ def doctor_appointments(request):
     if request.user.role != "doctor":
         return redirect("home")
 
-    # All appointments for this doctor
-    own_appointments = Appointment.objects.filter(doctor=request.user.doctor_info)
-    dependent_appointments = DependentAppointment.objects.filter(doctor=request.user.doctor_info)
+    doctor = request.user.doctor_info
+    
+    # Get all appointments for this doctor
+    own_appointments = Appointment.objects.filter(doctor=doctor).select_related("patient")
+    dependent_appointments = DependentAppointment.objects.filter(doctor=doctor).select_related("dependent_patient")
 
-    # Combine and sort
+    # Add appointment_type to each appointment for template differentiation
+    for a in own_appointments:
+        a.appointment_type = "self"
+    
+    for da in dependent_appointments:
+        da.appointment_type = "dependent"
+
+    # Combine and sort by start_time
     appointments = sorted(
-        chain(own_appointments, dependent_appointments),
-        key=lambda a: a.start_time
+        list(own_appointments) + list(dependent_appointments),
+        key=lambda a: a.start_time,
+        reverse=True
     )
 
-    return render(request, "doctors/appointments.html", {"appointments": appointments})
+    return render(request, "doctors/appointments.html", {
+        "appointments": appointments,
+        "own_appointments": own_appointments,
+        "dependent_appointments": dependent_appointments
+    })
 
 @login_required
 @doctor_approved_required

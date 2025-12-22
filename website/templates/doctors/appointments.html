@@ -21,15 +21,15 @@
                         <input type="text" id="searchInput" placeholder="Search patient name..." class="form-control border-0">
                     </div>
                     <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" id="filterDropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-filter"></i> All Status
                         </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item status-filter active" data-status="">All Status</a></li>
-                            <li><a class="dropdown-item status-filter" data-status="pending">Pending</a></li>
-                            <li><a class="dropdown-item status-filter" data-status="approved">Confirmed</a></li>
-                            <li><a class="dropdown-item status-filter" data-status="completed">Completed</a></li>
-                            <li><a class="dropdown-item status-filter" data-status="rejected">Rejected</a></li>
+                        <ul class="dropdown-menu" aria-labelledby="filterDropdown">
+                            <li><a class="dropdown-item status-filter active" href="#" data-status="">All Status</a></li>
+                            <li><a class="dropdown-item status-filter" href="#" data-status="pending">Pending</a></li>
+                            <li><a class="dropdown-item status-filter" href="#" data-status="approved">Confirmed</a></li>
+                            <li><a class="dropdown-item status-filter" href="#" data-status="completed">Completed</a></li>
+                            <li><a class="dropdown-item status-filter" href="#" data-status="rejected">Rejected</a></li>
                         </ul>
                     </div>
                 </div>
@@ -46,8 +46,9 @@
                         </tr>
                     </thead>
                     <tbody>
+                        <!-- ALL APPOINTMENTS (COMBINED) -->
                         {% for a in appointments %}
-                        <tr class="appointment-row" data-id="{{ a.id }}" data-status="{{ a.status }}">
+                        <tr class="appointment-row" data-id="{{ a.id }}" data-status="{{ a.status }}" data-type="{{ a.appointment_type }}">
                             <td class="time-cell">
                                 <div class="appointment-time">
                                     {{ a.start_time|date:"M d, Y" }}<br>
@@ -55,7 +56,11 @@
                                 </div>
                             </td>
                             <td class="patient-cell">
-                                {% if a.patient %}{{ a.patient.get_full_name }}{% else %}{{ a.dependent_patient.full_name }}{% endif %}
+                                {% if a.appointment_type == "self" %}
+                                    {{ a.patient.get_full_name }}
+                                {% else %}
+                                    {{ a.dependent_patient.full_name }}
+                                {% endif %}
                             </td>
                             <td class="status-cell">
                                 <span class="status-badge status-{{ a.status }}" id="status-{{ a.id }}">
@@ -69,20 +74,19 @@
                             <td class="actions-cell">
                                 <div class="action-buttons" id="actions-{{ a.id }}">
                                     {% if a.status == 'pending' %}
-                                        <button class="btn-action approve-btn" data-id="{{ a.id }}" title="Approve">
+                                        <button class="btn-action approve-btn" data-id="{{ a.id }}" data-type="{{ a.appointment_type }}" title="Approve">
                                             <i class="bi bi-check-lg"></i>
                                         </button>
-                                        <button class="btn-action reject-btn" data-id="{{ a.id }}" title="Reject">
+                                        <button class="btn-action reject-btn" data-id="{{ a.id }}" data-type="{{ a.appointment_type }}" title="Reject">
                                             <i class="bi bi-x"></i>
                                         </button>
                                     {% elif a.status == 'approved' %}
-                                        <button class="btn-action complete-btn" data-id="{{ a.id }}" title="Mark Complete">
+                                        <button class="btn-action complete-btn" data-id="{{ a.id }}" data-type="{{ a.appointment_type }}" title="Mark Complete">
                                             <i class="bi bi-check-circle-fill"></i>
                                         </button>
                                         <a href="{% url 'reschedule_appointment' a.id %}" class="btn-action reschedule-btn" title="Reschedule">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
-
                                     {% endif %}
                                 </div>
                             </td>
@@ -110,28 +114,41 @@
                 const searchInput = document.getElementById("searchInput");
                 const statusLinks = document.querySelectorAll(".status-filter");
                 const rows = document.querySelectorAll(".appointment-row");
-                const dropdownButton = document.querySelector(".dropdown-toggle");
 
-                // Action buttons
+                // Action buttons - FIXED VERSION with data-type from button
                 document.querySelector('.table-container').addEventListener('click', function(e) {
                     const btn = e.target.closest('.approve-btn, .reject-btn, .complete-btn');
                     if (!btn) return;
+                    
                     const appointmentId = btn.dataset.id;
+                    const appointmentType = btn.dataset.type; // Get type from button's data-type attribute
                     const action = btn.classList.contains('approve-btn') ? 'approve' :
                                 btn.classList.contains('reject-btn') ? 'reject' : 'complete';
+
+                    console.log('Updating appointment:', appointmentId, 'Type:', appointmentType, 'Action:', action);
+
+                    const formData = new FormData();
+                    formData.append('appointment_type', appointmentType);
 
                     fetch(`/appointments/${appointmentId}/update_status/${action}/`, {
                         method: "POST",
                         headers: {
                             "X-CSRFToken": csrftoken,
-                            "Content-Type": "application/json"
                         },
-                        body: JSON.stringify({})
+                        body: formData
                     })
                     .then(res => res.json())
                     .then(data => {
-                        if(data.error) alert(data.error);
-                        else location.reload();
+                        console.log('Response:', data);
+                        if(data.error) {
+                            alert('Error: ' + data.error);
+                        } else {
+                            location.reload();
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error:', err);
+                        alert('An error occurred while updating the appointment.');
                     });
                 });
 
@@ -140,17 +157,57 @@
                     const searchTerm = searchInput.value.toLowerCase().trim();
                     const statusFilter = document.querySelector(".status-filter.active")?.dataset.status || "";
 
+                    let visibleCount = 0;
+
                     rows.forEach(row => {
                         const status = row.dataset.status.toLowerCase();
-                        const text = row.textContent.toLowerCase().trim();
-                        const matchesSearch = text.includes(searchTerm);
+                        
+                        // Get patient name from the patient cell
+                        const patientCell = row.querySelector('.patient-cell');
+                        const patientName = patientCell ? patientCell.textContent.toLowerCase().trim() : '';
+                        
+                        // Get time from time cell
+                        const timeCell = row.querySelector('.time-cell');
+                        const timeText = timeCell ? timeCell.textContent.toLowerCase().trim() : '';
+                        
+                        // Check if search term matches patient name or time
+                        const matchesSearch = !searchTerm || patientName.includes(searchTerm) || timeText.includes(searchTerm);
+                        
+                        // Check if status matches filter
                         const matchesStatus = !statusFilter || status === statusFilter;
-                        row.style.display = (matchesSearch && matchesStatus) ? "" : "none";
+                        
+                        // Show or hide row
+                        const shouldShow = matchesSearch && matchesStatus;
+                        row.style.display = shouldShow ? "" : "none";
+                        
+                        if (shouldShow) visibleCount++;
                     });
+
+                    // Show empty message if no results
+                    const tableBody = document.querySelector('tbody');
+                    let emptyRow = tableBody.querySelector('.empty-message-row');
+                    
+                    if (visibleCount === 0 && rows.length > 0) {
+                        if (!emptyRow) {
+                            emptyRow = document.createElement('tr');
+                            emptyRow.className = 'empty-message-row';
+                            emptyRow.innerHTML = `
+                                <td colspan="4" class="text-center text-muted py-4">
+                                    <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                                    <p>No appointments match your search</p>
+                                </td>
+                            `;
+                            tableBody.appendChild(emptyRow);
+                        }
+                    } else if (emptyRow) {
+                        emptyRow.remove();
+                    }
                 }
 
-                // Search input
-                searchInput.addEventListener("input", filterTable);
+                // Search input with live filtering
+                if (searchInput) {
+                    searchInput.addEventListener("input", filterTable);
+                }
 
                 // Status filter click events
                 statusLinks.forEach(link => {
@@ -158,7 +215,10 @@
                         e.preventDefault();
                         statusLinks.forEach(l => l.classList.remove("active"));
                         this.classList.add("active");
-                        dropdownButton.innerHTML = `<i class="fas fa-filter"></i> ${this.textContent.trim()}`;
+                        
+                        const filterDropdown = document.getElementById("filterDropdown");
+                        filterDropdown.innerHTML = `<i class="fas fa-filter"></i> ${this.textContent.trim()}`;
+                        
                         filterTable();
                     });
                 });

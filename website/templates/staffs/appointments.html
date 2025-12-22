@@ -6,7 +6,6 @@
     <link rel="stylesheet" href="{% static 'css/appointments.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/bootstrap-icons.min.css">
 
-
     {% if user.is_authenticated %}
         {% include "components/sidebar/staff.html" %}
 
@@ -102,6 +101,7 @@
                         </tr>
                     </thead>
                     <tbody>
+                        <!-- REGULAR APPOINTMENTS -->
                         {% for a in appointments %}
                         <tr class="appointment-row" data-id="{{ a.id }}" data-status="{{ a.status }}">
                             <td class="time-cell">
@@ -122,14 +122,14 @@
                             <td class="actions-cell">
                                 <div class="action-buttons" id="actions-{{ a.id }}">
                                     {% if a.status == 'pending' %}
-                                        <button class="btn-action approve-btn" data-id="{{ a.id }}" title="Approve">
+                                        <button class="btn-action approve-btn" data-id="{{ a.id }}" data-type="self" title="Approve">
                                             <i class="bi bi-check-lg"></i>
                                         </button>
-                                        <button class="btn-action reject-btn" data-id="{{ a.id }}" title="Reject">
+                                        <button class="btn-action reject-btn" data-id="{{ a.id }}" data-type="self" title="Reject">
                                             <i class="bi bi-x"></i>
                                         </button>
                                     {% elif a.status == 'approved' %}
-                                        <button class="btn-action complete-btn" data-id="{{ a.id }}" title="Mark Complete">
+                                        <button class="btn-action complete-btn" data-id="{{ a.id }}" data-type="self" title="Mark Complete">
                                             <i class="bi bi-check-circle-fill"></i>
                                         </button>
                                         <a href="{% url 'reschedule_appointment' a.id %}" class="btn-action reschedule-btn" title="Reschedule">
@@ -141,6 +141,7 @@
                         </tr>
                         {% endfor %}
 
+                        <!-- DEPENDENT APPOINTMENTS -->
                         {% for da in dependent_appointments %}
                         <tr class="appointment-row" data-id="{{ da.id }}" data-status="{{ da.status }}">
                             <td class="time-cell">
@@ -161,14 +162,14 @@
                             <td class="actions-cell">
                                 <div class="action-buttons" id="actions-{{ da.id }}">
                                     {% if da.status == 'pending' %}
-                                        <button class="btn-action approve-btn" data-id="{{ da.id }}" title="Approve">
+                                        <button class="btn-action approve-btn" data-id="{{ da.id }}" data-type="dependent" title="Approve">
                                             <i class="bi bi-check-lg"></i>
                                         </button>
-                                        <button class="btn-action reject-btn" data-id="{{ da.id }}" title="Reject">
+                                        <button class="btn-action reject-btn" data-id="{{ da.id }}" data-type="dependent" title="Reject">
                                             <i class="bi bi-x"></i>
                                         </button>
                                     {% elif da.status == 'approved' %}
-                                        <button class="btn-action complete-btn" data-id="{{ da.id }}" title="Mark Complete">
+                                        <button class="btn-action complete-btn" data-id="{{ da.id }}" data-type="dependent" title="Mark Complete">
                                             <i class="bi bi-check-circle-fill"></i>
                                         </button>
                                         <a href="{% url 'reschedule_appointment' da.id %}" class="btn-action reschedule-btn" title="Reschedule">
@@ -180,23 +181,21 @@
                         </tr>
                         {% endfor %}
 
+                        <!-- EMPTY STATE -->
                         {% if not appointments and not dependent_appointments %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
+                            <td colspan="5" class="text-center text-muted py-4">
                                 <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem;"></i>
                                 <p>No appointments found</p>
                             </td>
                         </tr>
                         {% endif %}
                     </tbody>
-
-
                 </table>
             </div>
         </div>
 
         <meta name="csrf-token" content="{{ csrf_token }}">
-
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -208,26 +207,34 @@
                 const rows = document.querySelectorAll(".appointment-row");
                 const dropdownButton = document.querySelector(".dropdown-toggle");
 
-                // Action buttons
+                // Action buttons - FIXED VERSION with data-type
                 document.querySelector('.table-container').addEventListener('click', function(e) {
                     const btn = e.target.closest('.approve-btn, .reject-btn, .complete-btn');
                     if (!btn) return;
+                    
                     const appointmentId = btn.dataset.id;
+                    const appointmentType = btn.dataset.type || 'self';
                     const action = btn.classList.contains('approve-btn') ? 'approve' :
                                 btn.classList.contains('reject-btn') ? 'reject' : 'complete';
+
+                    const formData = new FormData();
+                    formData.append('appointment_type', appointmentType);
 
                     fetch(`/appointments/${appointmentId}/update_status/${action}/`, {
                         method: "POST",
                         headers: {
                             "X-CSRFToken": csrftoken,
-                            "Content-Type": "application/json"
                         },
-                        body: JSON.stringify({})
+                        body: formData
                     })
                     .then(res => res.json())
                     .then(data => {
                         if(data.error) alert(data.error);
                         else location.reload();
+                    })
+                    .catch(err => {
+                        console.error('Error:', err);
+                        alert('An error occurred while updating the appointment.');
                     });
                 });
 
