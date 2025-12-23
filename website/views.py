@@ -1455,19 +1455,26 @@ def reschedule_appointment(request, pk):
 
         if not new_start or not new_end:
             messages.error(request, "Start and end times are required.")
-            return redirect("reschedule_appointment", pk=pk)
+            return render(request, "calendar/partials/reschedule_appointment.html", {
+                "appointment": appointment
+            })
 
         try:
             new_start_dt = parse_datetime(new_start)
             new_end_dt = parse_datetime(new_end)
         except:
             messages.error(request, "Invalid date/time format.")
-            return redirect("reschedule_appointment", pk=pk)
+            return render(request, "calendar/partials/reschedule_appointment.html", {
+                "appointment": appointment
+            })
 
         if new_start_dt >= new_end_dt:
             messages.error(request, "End time must be after start time.")
-            return redirect("reschedule_appointment", pk=pk)
+            return render(request, "calendar/partials/reschedule_appointment.html", {
+                "appointment": appointment
+            })
 
+        # Check for conflicting approved appointments
         conflict = Appointment.objects.filter(
             doctor=appointment.doctor,
             start_time__lt=new_end_dt,
@@ -1477,7 +1484,49 @@ def reschedule_appointment(request, pk):
 
         if conflict:
             messages.error(request, "This time slot is already booked.")
-            return redirect("reschedule_appointment", pk=pk)
+            return render(request, "calendar/partials/reschedule_appointment.html", {
+                "appointment": appointment
+            })
+
+        # ============ NEW: Check if the new time is within doctor's availability ============
+        doctor = appointment.doctor
+        new_date = new_start_dt.date()
+        new_start_time = new_start_dt.time()
+        new_end_time = new_end_dt.time()
+        weekday = new_start_dt.weekday()
+        
+        # Get day name for error message
+        day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        day_name = day_names[weekday]
+
+        # Check for custom availability first
+        custom_avail = doctor.custom_availabilities.filter(date=new_date).first()
+        
+        if custom_avail:
+            # Check if new time falls within custom availability
+            if not (new_start_time >= custom_avail.start_time and new_end_time <= custom_avail.end_time):
+                messages.error(request, f"The selected time is outside Dr. {doctor.user.get_full_name()}'s availability on {new_date.strftime('%B %d, %Y')}.")
+                return render(request, "calendar/partials/reschedule_appointment.html", {
+                    "appointment": appointment
+                })
+        else:
+            # Check regular weekly availability
+            regular_avail = doctor.availabilities.filter(weekday=weekday).first()
+            
+            if not regular_avail:
+                messages.error(request, f"Dr. {doctor.user.get_full_name()} is not available on {day_name}s ({new_date.strftime('%B %d, %Y')}).")
+                return render(request, "calendar/partials/reschedule_appointment.html", {
+                    "appointment": appointment
+                })
+            
+            # Check if new time falls within regular availability
+            if not (new_start_time >= regular_avail.start_time and new_end_time <= regular_avail.end_time):
+                messages.error(request, f"The selected time is outside Dr. {doctor.user.get_full_name()}'s availability hours ({regular_avail.start_time.strftime('%I:%M %p')} - {regular_avail.end_time.strftime('%I:%M %p')}) on {day_name}s.")
+                return render(request, "calendar/partials/reschedule_appointment.html", {
+                    "appointment": appointment
+                })
+
+        # ============ END: Availability check ============
 
         old_start, old_end = appointment.start_time, appointment.end_time
         appointment.start_time = new_start_dt
