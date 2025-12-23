@@ -105,3 +105,4 @@ class ActivityLogAdmin(admin.ModelAdmin):
     list_filter = ('action_type', 'model_name', 'user')
     search_fields = ('description', 'model_name', 'user__username', 'related_object_repr')
     date_hierarchy = 'timestamp'
+

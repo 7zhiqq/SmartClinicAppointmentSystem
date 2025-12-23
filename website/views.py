@@ -2100,3 +2100,4 @@ def submit_doctor_rating(request, doctor_id):
 
     messages.success(request, "Your rating has been submitted successfully!")
     return redirect("view_doctors")
+

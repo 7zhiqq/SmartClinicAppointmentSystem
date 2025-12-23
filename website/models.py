@@ -41,6 +41,7 @@ class PatientInfo(models.Model):
         on_delete=models.SET_NULL,
         related_name='patients_created'
     )
+    
 
     class Meta:
         ordering = ["patient_id"]

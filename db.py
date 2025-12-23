@@ -9,6 +9,6 @@ database = mysql.connector.connect(
 
 cursorObject = database.cursor()
 
-cursorObject.execute("CREATE DATABASE westpoint_database")
+cursorObject.execute("CREATE DATABASE smart_clinic_db")
 
 print("Created successfully")
