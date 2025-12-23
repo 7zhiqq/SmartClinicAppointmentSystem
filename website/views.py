@@ -1700,50 +1700,6 @@ def get_status_class(status, for_calendar=False):
         }
         return bootstrap_mapping.get(status, 'bg-warning text-dark')
 
-@login_required
-@doctor_approved_required
-def doctor_day_appointments(request):
-    """Return appointments for a given date"""
-    doctor = request.user.doctor_info
-    date_str = request.GET.get("date")
-    if not date_str:
-        return JsonResponse([], safe=False)
-
-    try:
-        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
-    except ValueError:
-        return JsonResponse([], safe=False)
-
-    appointments = Appointment.objects.filter(doctor=doctor, start_time__date=date_obj).select_related("patient")
-    dependent_appointments = DependentAppointment.objects.filter(doctor=doctor, start_time__date=date_obj).select_related("dependent_patient")
-
-    data = []
-
-    for a in appointments:
-        patient_name = a.patient.get_full_name() if a.patient else "Unknown"
-        data.append({
-            "id": f"self-{a.id}",
-            "patient_name": patient_name,
-            "start_time": a.start_time.strftime("%I:%M %p"),
-            "end_time": a.end_time.strftime("%I:%M %p"),
-            "status": a.status,
-            "status_class": get_status_class(a.status)
-        })
-
-    for a in dependent_appointments:
-        patient_name = a.dependent_patient.full_name if a.dependent_patient else "Unknown"
-        data.append({
-            "id": f"dep-{a.id}",
-            "patient_name": patient_name,
-            "start_time": a.start_time.strftime("%I:%M %p"),
-            "end_time": a.end_time.strftime("%I:%M %p"),
-            "status": a.status,
-            "status_class": get_status_class(a.status)
-        })
-
-    # Sort by start time
-    data.sort(key=lambda x: x['start_time'])
-    return JsonResponse(data, safe=False)
 
 @login_required
 @doctor_approved_required
