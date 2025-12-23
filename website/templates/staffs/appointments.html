@@ -117,6 +117,7 @@
                                     {% if a.status == 'pending' %} Pending
                                     {% elif a.status == 'approved' %} Confirmed
                                     {% elif a.status == 'completed' %} Completed
+                                    {% elif a.status == 'no_show' %} No Show
                                     {% else %} Rejected
                                     {% endif %}
                                 </span>
@@ -133,6 +134,9 @@
                                     {% elif a.status == 'approved' %}
                                         <button class="btn-action complete-btn" data-id="{{ a.id }}" data-type="self" title="Mark Complete">
                                             <i class="bi bi-check-circle-fill"></i>
+                                        </button>
+                                        <button class="btn-action no-show-btn" data-id="{{ a.id }}" data-type="self" title="Mark No Show">
+                                            <i class="bi bi-x-circle"></i>
                                         </button>
                                         <a href="{% url 'reschedule_appointment' a.id %}" class="btn-action reschedule-btn" title="Reschedule">
                                             <i class="bi bi-pencil-square"></i>
@@ -157,24 +161,28 @@
                                     {% if da.status == 'pending' %} Pending
                                     {% elif da.status == 'approved' %} Confirmed
                                     {% elif da.status == 'completed' %} Completed
+                                    {% elif da.status == 'no_show' %} No Show
                                     {% else %} Rejected
                                     {% endif %}
                                 </span>
                             </td>
                             <td class="actions-cell">
-                                <div class="action-buttons" id="actions-{{ da.id }}">
-                                    {% if da.status == 'pending' %}
-                                        <button class="btn-action approve-btn" data-id="{{ da.id }}" data-type="dependent" title="Approve">
+                                <div class="action-buttons" id="actions-{{ a.id }}">
+                                    {% if a.status == 'pending' %}
+                                        <button class="btn-action approve-btn" data-id="{{ a.id }}" data-type="self" title="Approve">
                                             <i class="bi bi-check-lg"></i>
                                         </button>
-                                        <button class="btn-action reject-btn" data-id="{{ da.id }}" data-type="dependent" title="Reject">
+                                        <button class="btn-action reject-btn" data-id="{{ a.id }}" data-type="self" title="Reject">
                                             <i class="bi bi-x"></i>
                                         </button>
-                                    {% elif da.status == 'approved' %}
-                                        <button class="btn-action complete-btn" data-id="{{ da.id }}" data-type="dependent" title="Mark Complete">
+                                    {% elif a.status == 'approved' %}
+                                        <button class="btn-action complete-btn" data-id="{{ a.id }}" data-type="self" title="Mark Complete">
                                             <i class="bi bi-check-circle-fill"></i>
                                         </button>
-                                        <a href="{% url 'reschedule_appointment' da.id %}" class="btn-action reschedule-btn" title="Reschedule">
+                                        <button class="btn-action no-show-btn" data-id="{{ a.id }}" data-type="self" title="Mark No Show">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                        <a href="{% url 'reschedule_appointment' a.id %}" class="btn-action reschedule-btn" title="Reschedule">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
                                     {% endif %}
@@ -267,13 +275,17 @@
 
                 // Action buttons
                 document.querySelector('.table-container').addEventListener('click', function(e) {
-                    const btn = e.target.closest('.approve-btn, .reject-btn, .complete-btn');
+                    const btn = e.target.closest('.approve-btn, .reject-btn, .complete-btn, .no-show-btn');
                     if (!btn) return;
                     
                     const appointmentId = btn.dataset.id;
                     const appointmentType = btn.dataset.type || 'self';
                     const action = btn.classList.contains('approve-btn') ? 'approve' :
-                                btn.classList.contains('reject-btn') ? 'reject' : 'complete';
+                                btn.classList.contains('reject-btn') ? 'reject' : 
+                                btn.classList.contains('complete-btn') ? 'complete' :
+                                btn.classList.contains('no-show-btn') ? 'no_show' : null;
+
+                    if (!action) return;
 
                     const formData = new FormData();
                     formData.append('appointment_type', appointmentType);

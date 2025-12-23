@@ -397,6 +397,16 @@
     box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
 }
 
+.status-no_show {
+    background: #17a2b8 !important;
+    color: white !important;
+    border-color: #117a8b !important;
+}
+
+.status-no_show:hover {
+    box-shadow: 0 2px 8px rgba(23, 162, 184, 0.2);
+}
+
 /* ==================== ACTION BUTTONS ==================== */
 .actions-cell {
     text-align: center;

@@ -306,6 +306,14 @@ class DoctorInfo(models.Model):
 
 
 class Appointment(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('completed', 'Completed'),
+        ('rejected', 'Rejected'),
+        ('no_show', 'No Show'),
+    ]
+    
     patient = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
@@ -313,7 +321,11 @@ class Appointment(models.Model):
     doctor = models.ForeignKey(DoctorInfo, on_delete=models.CASCADE)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
-    status = models.CharField(max_length=20, default="pending")
+    status = models.CharField(
+        max_length=20,
+        default="pending",
+        choices=STATUS_CHOICES
+    )
 
     def __str__(self):
         return f"{self.patient.get_full_name()} - {self.start_time}"
@@ -323,6 +335,14 @@ class Appointment(models.Model):
         return self.patient.get_full_name()
 
 class DependentAppointment(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('completed', 'Completed'),
+        ('rejected', 'Rejected'),
+        ('no_show', 'No Show'),
+    ]
+    
     dependent_patient = models.ForeignKey(
         DependentPatient,
         on_delete=models.CASCADE
@@ -330,7 +350,11 @@ class DependentAppointment(models.Model):
     doctor = models.ForeignKey(DoctorInfo, on_delete=models.CASCADE)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
-    status = models.CharField(max_length=20, default="pending")
+    status = models.CharField(
+        max_length=20,
+        default="pending",
+        choices=STATUS_CHOICES
+    )
 
     def __str__(self):
         return f"{self.dependent_patient.full_name} - {self.start_time}"

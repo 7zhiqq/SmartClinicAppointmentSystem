@@ -1044,13 +1044,25 @@ def staff_appointment_calendar(request):
         return redirect("home")
     return render(request, "calendar/staff_calendar.html")
 
+def get_event_color(status):
+    """Return calendar event color based on appointment status"""
+    colors = {
+        'pending': '#ffc107',        # yellow
+        'approved': '#28a745',       # green
+        'completed': '#6c757d',      # gray
+        'rejected': '#dc3545',       # red
+        'no_show': '#17a2b8',        # blue/info
+    }
+    return colors.get(status, '#ffc107')  # default to yellow
+
+
 @login_required
 def calendar_events(request):
     user = request.user
     events = []
 
     if user.role == "staff":
-        # Staff sees all appointments
+        # Staff sees all appointments (excluding completed)
         appointments = Appointment.objects.exclude(status="completed").select_related(
             "patient", "doctor"
         )
@@ -1062,7 +1074,7 @@ def calendar_events(request):
             try:
                 patient_name = a.patient.get_full_name() if a.patient else "Unknown Patient"
                 title = f"{patient_name} ({a.status})"
-                color = "#ffc107" if a.status == "pending" else "#28a745" if a.status == "approved" else "#dc3545"
+                color = get_event_color(a.status)  # USE THE HELPER FUNCTION
                 events.append({
                     "id": a.id,
                     "title": title,
@@ -1078,7 +1090,7 @@ def calendar_events(request):
             try:
                 patient_name = a.dependent_patient.full_name if a.dependent_patient else "Unknown Patient"
                 title = f"{patient_name} ({a.status})"
-                color = "#ffc107" if a.status == "pending" else "#28a745" if a.status == "approved" else "#dc3545"
+                color = get_event_color(a.status)  # USE THE HELPER FUNCTION
                 events.append({
                     "id": a.id,
                     "title": title,
@@ -1253,6 +1265,8 @@ def update_appointment_status(request, pk, action):
         # Only create CompletedAppointment record for regular Appointment
         if appointment_type == "self":
             CompletedAppointment.objects.get_or_create(appointment=appointment)
+    elif action == "no_show":  # NEW
+        appointment.status = "no_show"
     else:
         return JsonResponse({"error": "Invalid action"}, status=400)
 
@@ -1603,6 +1617,8 @@ def update_doctor_appointment_status(request, pk, action):
     elif action == "complete":
         appointment.status = "completed"
         CompletedAppointment.objects.get_or_create(appointment=appointment)
+    elif action == "no_show":  # NEW
+        appointment.status = "no_show"
     else:
         return JsonResponse({"error": "Invalid action"}, status=400)
     
@@ -1613,15 +1629,17 @@ def update_doctor_appointment_status(request, pk, action):
         "status_class": get_status_class(appointment.status)
     })
 
+
 def get_status_class(status):
+    """Return CSS color code for status"""
     mapping = {
         'approved': 'bg-success text-white',
         'pending': 'bg-warning text-dark',
         'completed': 'bg-secondary text-white',
-        'rejected': 'bg-danger text-white'
+        'rejected': 'bg-danger text-white',
+        'no_show': 'bg-info text-white',  # NEW - using info/blue color
     }
     return mapping.get(status, 'bg-warning text-dark')
-
 @login_required
 def add_medical_record(request, patient_type, pk):
     if request.user.role not in ['staff', 'doctor']:
