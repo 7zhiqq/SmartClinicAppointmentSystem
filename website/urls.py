@@ -59,7 +59,8 @@ urlpatterns = [
     
     path('appointments/<int:pk>/update_status/<str:action>/', views.update_appointment_status, name='update_status'),
     path("appointment/<int:pk>/reschedule/", views.reschedule_appointment, name="reschedule_appointment"),
-
+    path('appointment/<int:pk>/cancel/', views.cancel_appointment, name='cancel_appointment'),
+    
     path('my-appointments/', views.patient_appointments, name='patient_appointments'),
 
     # urls.py

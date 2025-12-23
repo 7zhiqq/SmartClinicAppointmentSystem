@@ -1,0 +1,138 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+{% include "components/sidebar/patient.html" %}
+
+<style>
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-badge.pending {
+        background: var(--warning-bg);
+        color: var(--warning);
+    }
+
+    .status-badge.approved {
+        background: var(--success-bg);
+        color: var(--success);
+    }
+</style>
+
+<div class="main-content">
+    <div style="max-width: 600px; margin: 40px auto; padding: 30px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-lg); border: 1px solid var(--border-light);">
+        
+        <h2 style="color: var(--danger); margin-bottom: 20px; text-align: center;">
+            <i class="bi bi-exclamation-triangle"></i> Cancel Appointment
+        </h2>
+
+        <div style="background: rgba(239, 68, 68, 0.1); padding: 15px; border-left: 4px solid var(--danger); border-radius: 8px; margin-bottom: 20px;">
+            <p style="margin: 0; color: var(--danger); font-weight: 600;">
+                Are you sure you want to cancel this appointment?
+            </p>
+        </div>
+
+        <!-- Appointment Details -->
+        <div style="background: var(--bg-muted); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h4 style="margin-top: 0; color: var(--text-main);">Appointment Details</h4>
+            
+            <p style="margin: 10px 0;">
+                <strong>Doctor:</strong> Dr. {{ appointment.doctor.user.get_full_name }}
+            </p>
+            
+            <p style="margin: 10px 0;">
+                <strong>Specialization:</strong> {{ appointment.doctor.specialization.name|default:"General" }}
+            </p>
+            
+            <p style="margin: 10px 0;">
+                <strong>Patient:</strong> 
+                {% if is_dependent %}
+                    {{ appointment.dependent_patient.full_name }}
+                {% else %}
+                    {{ appointment.patient.get_full_name }}
+                {% endif %}
+            </p>
+            
+            <p style="margin: 10px 0;">
+                <strong>Date & Time:</strong>
+                {{ appointment.start_time|date:"F d, Y" }}
+                at
+                {{ appointment.start_time|time:"h:i A" }}
+            </p>
+            
+            <p style="margin: 10px 0;">
+                <strong>Status:</strong>
+                <span class="status-badge {{ appointment.status }}">
+                    {{ appointment.status|title }}
+                </span>
+            </p>
+        </div>
+
+        <!-- Warning Message -->
+        <div style="background: rgba(245, 158, 11, 0.1); padding: 15px; border-left: 4px solid var(--warning); border-radius: 8px; margin-bottom: 20px;">
+            <p style="margin: 0; color: var(--warning);">
+                <i class="bi bi-info-circle"></i>
+                <strong>Note:</strong> Once cancelled, you'll need to book a new appointment if you want to reschedule.
+            </p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 12px;">
+            <form method="POST" style="flex: 1;">
+                {% csrf_token %}
+                <button type="submit" style="
+                    width: 100%;
+                    padding: 12px;
+                    background: var(--danger);
+                    color: var(--white);
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    font-size: 14px;
+                    cursor: pointer;
+                    transition: all var(--transition-fast);
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+                "
+                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(239, 68, 68, 0.4)';"
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(239, 68, 68, 0.3)';">
+                    <i class="bi bi-trash"></i> Yes, Cancel Appointment
+                </button>
+            </form>
+            
+            <a href="{% url 'patient_appointments' %}" style="
+                flex: 1;
+                padding: 12px;
+                background: var(--gray-100);
+                color: var(--text-main);
+                border: 2px solid var(--border-light);
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 14px;
+                text-decoration: none;
+                text-align: center;
+                transition: all var(--transition-fast);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+            "
+            onmouseover="this.style.backgroundColor='var(--gray-200)'; this.style.borderColor='var(--text-muted)'; this.style.transform='translateY(-2px)';"
+            onmouseout="this.style.backgroundColor='var(--gray-100)'; this.style.borderColor='var(--border-light)'; this.style.transform='translateY(0)';">
+                <i class="bi bi-x"></i> Keep Appointment
+            </a>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

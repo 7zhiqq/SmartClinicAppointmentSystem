@@ -1554,7 +1554,58 @@ def reschedule_appointment(request, pk):
     return render(request, "calendar/partials/reschedule_appointment.html", {
         "appointment": appointment
     })
+  
+@login_required
+def cancel_appointment(request, pk):
+    """Allow patient to cancel their own appointment request"""
+    if request.user.role != "patient":
+        messages.error(request, "Only patients can cancel appointments.")
+        return redirect("home")
     
+    try:
+        # Try to find self appointment
+        appointment = Appointment.objects.get(pk=pk, patient=request.user)
+        is_dependent = False
+    except Appointment.DoesNotExist:
+        # Try to find dependent appointment
+        try:
+            appointment = DependentAppointment.objects.get(
+                pk=pk, 
+                dependent_patient__guardian=request.user
+            )
+            is_dependent = True
+        except DependentAppointment.DoesNotExist:
+            messages.error(request, "Appointment not found.")
+            return redirect("patient_appointments")
+    
+    # Allow cancellation only for pending or approved appointments
+    if appointment.status not in ['pending', 'approved']:
+        messages.error(request, f"Cannot cancel a {appointment.status} appointment.")
+        return redirect("patient_appointments")
+    
+    if request.method == "POST":
+        old_status = appointment.status
+        appointment.status = "rejected"  # Mark as rejected/cancelled
+        appointment.save()
+        
+        # Log activity
+        ActivityLog.objects.create(
+            user=request.user,
+            action_type="update",
+            model_name="DependentAppointment" if is_dependent else "Appointment",
+            object_id=str(appointment.id),
+            related_object_repr=str(appointment),
+            description=f"Cancelled appointment (was {old_status})"
+        )
+        
+        messages.success(request, "Your appointment has been cancelled successfully.")
+        return redirect("patient_appointments")
+    
+    return render(request, "calendar/cancel_appointment.html", {
+        "appointment": appointment,
+        "is_dependent": is_dependent
+    })
+  
 @login_required
 def patient_appointments(request):
     if request.user.role != "patient":
