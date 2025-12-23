@@ -70,6 +70,22 @@
             border-left: 0.3em solid transparent;
         }
 
+        .status-no_show {
+            background: #17a2b8 !important;
+            color: white !important;
+            border-color: #117a8b !important;
+        }
+
+        .status-no_show:hover {
+            box-shadow: 0 2px 8px rgba(23, 162, 184, 0.2);
+        }
+
+        .no-show-btn:hover {
+            color: #17a2b8;
+            border-color: #17a2b8;
+            background: rgba(23, 162, 184, 0.1);
+        }
+
         @keyframes slideDown {
             from {
                 opacity: 0;
@@ -109,6 +125,7 @@
                             <li><a class="dropdown-item" href="#" data-value="approved">Confirmed</a></li>
                             <li><a class="dropdown-item" href="#" data-value="completed">Completed</a></li>
                             <li><a class="dropdown-item" href="#" data-value="rejected">Rejected</a></li>
+                            <li><a class="dropdown-item" href="#" data-value="no_show">No Show</a></li>
                         </ul>
                     </div>
                 </div>
@@ -146,6 +163,7 @@
                                     {% if a.status == 'pending' %} Pending
                                     {% elif a.status == 'approved' %} Confirmed
                                     {% elif a.status == 'completed' %} Completed
+                                    {% elif a.status == 'no_show' %} No Show
                                     {% else %} Rejected
                                     {% endif %}
                                 </span>
@@ -163,13 +181,16 @@
                                         <button class="btn-action complete-btn" data-id="{{ a.id }}" data-type="{{ a.appointment_type }}" title="Mark Complete">
                                             <i class="bi bi-check-circle-fill"></i>
                                         </button>
-                                        <a href="{% url 'reschedule_appointment' a.id %}" class="btn-action reschedule-btn" title="Reschedule">
+                                        <button class="btn-action no-show-btn" data-id="{{ a.id }}" data-type="{{ a.appointment_type }}" title="Mark No Show">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                        <a href="{% url 'reschedule_appointment' a.id %}" class="btn-action reschedule-btn" title="Reschedule" onclick="event.stopPropagation();">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
                                     {% endif %}
                                 </div>
                             </td>
-                        </tr>
+                        <tr>
                         {% empty %}
                         <tr>
                             <td colspan="4" class="text-center text-muted py-4">
@@ -253,13 +274,17 @@
 
                 // Action buttons
                 document.querySelector('.table-container').addEventListener('click', function(e) {
-                    const btn = e.target.closest('.approve-btn, .reject-btn, .complete-btn');
+                    const btn = e.target.closest('.approve-btn, .reject-btn, .complete-btn, .no-show-btn');
                     if (!btn) return;
                     
                     const appointmentId = btn.dataset.id;
                     const appointmentType = btn.dataset.type || 'self';
                     const action = btn.classList.contains('approve-btn') ? 'approve' :
-                                btn.classList.contains('reject-btn') ? 'reject' : 'complete';
+                                btn.classList.contains('reject-btn') ? 'reject' : 
+                                btn.classList.contains('complete-btn') ? 'complete' :
+                                btn.classList.contains('no-show-btn') ? 'no_show' : null;
+
+                    if (!action) return;
 
                     const formData = new FormData();
                     formData.append('appointment_type', appointmentType);

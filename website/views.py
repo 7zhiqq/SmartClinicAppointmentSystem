@@ -22,6 +22,7 @@ from django.core.exceptions import ValidationError
 
 from accounts.models import Phone
 
+
 from .models import (
     PatientInfo,
     DependentPatient,
@@ -33,6 +34,7 @@ from .models import (
     CustomDoctorAvailability,
     MedicalRecord,
     DoctorRating,
+    ActivityLog
 )
 
 from .forms import (
@@ -343,7 +345,6 @@ def doctor_patient_list(request):
 def edit_my_patient_info(request):
     user = request.user
 
-    # Try to get patient info; if none, create new but do not save yet
     try:
         patient_info = PatientInfo.objects.get(user=user)
     except PatientInfo.DoesNotExist:
@@ -352,19 +353,28 @@ def edit_my_patient_info(request):
     user_form = UserBasicInfoForm(request.POST or None, instance=user)
     patient_form = PatientInfoForm(request.POST or None, instance=patient_info)
 
-    if request.method == "POST":
-        if user_form.is_valid() and patient_form.is_valid():
-            try:
-                user_form.save()
-                patient_instance = patient_form.save(commit=False)
-                patient_instance.user = user
-                patient_instance.save()
-                messages.success(request, "Profile updated successfully.")
-                return redirect("medical_records")
-            except ValidationError as e:
-                # Catch any unexpected model validation errors
-                for message in e.messages:
-                    messages.error(request, message)
+    if request.method == "POST" and user_form.is_valid() and patient_form.is_valid():
+        try:
+            user_form.save()
+            patient_instance = patient_form.save(commit=False)
+            patient_instance.user = user
+            patient_instance.save()
+
+            # Log activity
+            ActivityLog.objects.create(
+                user=user,
+                action_type="update",
+                model_name="PatientInfo",
+                object_id=patient_instance.patient_id,
+                related_object_repr=str(patient_instance)
+            )
+
+            messages.success(request, "Profile updated successfully.")
+            return redirect("medical_records")
+
+        except ValidationError as e:
+            for message in e.messages:
+                messages.error(request, message)
 
     return render(request, "patients/edit_my_profile.html", {
         "user_form": user_form,
@@ -381,12 +391,23 @@ def add_dependent(request):
             dependent = form.save(commit=False)
             dependent.guardian = request.user
             dependent.save()
+
+            # Log activity
+            ActivityLog.objects.create(
+                user=request.user,
+                action_type="create",
+                model_name="DependentPatient",
+                object_id=dependent.patient_id,
+                related_object_repr=str(dependent)
+            )
+
             messages.success(request, "Dependent patient added successfully.")
             return redirect("medical_records")
     else:
         form = DependentPatientForm()
 
     return render(request, "patients/add_dependent.html", {"form": form})
+
 
 @login_required
 def edit_dependent(request, pk):
@@ -399,7 +420,17 @@ def edit_dependent(request, pk):
     if request.method == "POST":
         form = DependentPatientForm(request.POST, instance=dependent)
         if form.is_valid():
-            form.save()
+            dependent = form.save()
+
+            # Log activity
+            ActivityLog.objects.create(
+                user=request.user,
+                action_type="update",
+                model_name="DependentPatient",
+                object_id=dependent.patient_id,
+                related_object_repr=str(dependent)
+            )
+
             messages.success(request, "Dependent patient updated.")
             return redirect("medical_records")
     else:
@@ -407,14 +438,20 @@ def edit_dependent(request, pk):
 
     return render(request, "patients/edit_dependent.html", {"form": form})
 
-# VITALS
+#VITALS
 @login_required
 def add_patient_vitals(request, patient_type, pk):
     if patient_type == "self":
-        patient = get_object_or_404(PatientInfo, pk=pk) if getattr(request.user, 'role', None) == 'staff' else get_object_or_404(PatientInfo, pk=pk, user=request.user)
+        patient = get_object_or_404(
+            PatientInfo,
+            pk=pk
+        ) if getattr(request.user, 'role', None) == 'staff' else get_object_or_404(PatientInfo, pk=pk, user=request.user)
         form_class = PatientVitalsForm
     else:
-        patient = get_object_or_404(DependentPatient, pk=pk) if getattr(request.user, 'role', None) == 'staff' else get_object_or_404(DependentPatient, pk=pk, guardian=request.user)
+        patient = get_object_or_404(
+            DependentPatient,
+            pk=pk
+        ) if getattr(request.user, 'role', None) == 'staff' else get_object_or_404(DependentPatient, pk=pk, guardian=request.user)
         form_class = DependentPatientVitalsForm
 
     if request.method == "POST":
@@ -426,12 +463,23 @@ def add_patient_vitals(request, patient_type, pk):
             else:
                 vitals.dependent_patient = patient
             vitals.save()
+
+            ActivityLog.objects.create(
+                user=request.user,
+                action_type='create',
+                model_name=vitals.__class__.__name__,
+                object_id=str(vitals.pk),
+                related_object_repr=str(vitals)
+            )
+
             messages.success(request, "Vitals added successfully.")
             return redirect("patient_list" if getattr(request.user, 'role', None) == 'staff' else "medical_records")
     else:
         form = form_class()
 
     return render(request, "patients/add_vitals.html", {"form": form, "patient": patient})
+
+
 
 @login_required
 def vital_history(request, patient_type, pk):
@@ -469,22 +517,40 @@ def vital_history(request, patient_type, pk):
 # ALLERGIES
 @login_required
 def add_patient_allergy(request, patient_type, pk):
+    # Determine patient
     if patient_type == "self":
-        patient = get_object_or_404(PatientInfo, pk=pk) if getattr(request.user, 'role', None) == 'staff' else get_object_or_404(PatientInfo, pk=pk, user=request.user)
+        patient = get_object_or_404(
+            PatientInfo,
+            pk=pk
+        ) if getattr(request.user, 'role', None) == 'staff' else get_object_or_404(PatientInfo, pk=pk, user=request.user)
         form_class = PatientAllergyForm
     else:
-        patient = get_object_or_404(DependentPatient, pk=pk) if getattr(request.user, 'role', None) == 'staff' else get_object_or_404(DependentPatient, pk=pk, guardian=request.user)
+        patient = get_object_or_404(
+            DependentPatient,
+            pk=pk
+        ) if getattr(request.user, 'role', None) == 'staff' else get_object_or_404(DependentPatient, pk=pk, guardian=request.user)
         form_class = DependentPatientAllergyForm
 
     if request.method == "POST":
         form = form_class(request.POST)
         if form.is_valid():
             allergy = form.save(commit=False)
+            # Assign the correct patient
             if patient_type == "self":
                 allergy.patient = patient
             else:
                 allergy.dependent_patient = patient
             allergy.save()
+
+            # Create ActivityLog
+            ActivityLog.objects.create(
+                user=request.user,
+                action_type='create',
+                model_name=allergy.__class__.__name__,
+                object_id=str(allergy.pk),
+                related_object_repr=str(allergy)
+            )
+
             messages.success(request, "Allergy added successfully.")
             return redirect("patient_list" if getattr(request.user, 'role', None) == 'staff' else "medical_records")
     else:
@@ -496,10 +562,16 @@ def add_patient_allergy(request, patient_type, pk):
 @login_required
 def add_patient_medication(request, patient_type, pk):
     if patient_type == "self":
-        patient = get_object_or_404(PatientInfo, pk=pk) if getattr(request.user, 'role', None) == 'staff' else get_object_or_404(PatientInfo, pk=pk, user=request.user)
+        patient = get_object_or_404(
+            PatientInfo,
+            pk=pk
+        ) if getattr(request.user, 'role', None) == 'staff' else get_object_or_404(PatientInfo, pk=pk, user=request.user)
         form_class = PatientMedicationForm
     else:
-        patient = get_object_or_404(DependentPatient, pk=pk) if getattr(request.user, 'role', None) == 'staff' else get_object_or_404(DependentPatient, pk=pk, guardian=request.user)
+        patient = get_object_or_404(
+            DependentPatient,
+            pk=pk
+        ) if getattr(request.user, 'role', None) == 'staff' else get_object_or_404(DependentPatient, pk=pk, guardian=request.user)
         form_class = DependentPatientMedicationForm
 
     if request.method == "POST":
@@ -511,6 +583,16 @@ def add_patient_medication(request, patient_type, pk):
             else:
                 medication.dependent_patient = patient
             medication.save()
+
+            # Activity log
+            ActivityLog.objects.create(
+                user=request.user,
+                action_type='create',
+                model_name=medication.__class__.__name__,
+                object_id=str(medication.pk),
+                related_object_repr=str(medication)
+            )
+
             messages.success(request, "Medication added successfully.")
             return redirect("patient_list" if getattr(request.user, 'role', None) == 'staff' else "medical_records")
     else:
@@ -551,16 +633,24 @@ def doctor_dashboard(request):
 @login_required
 def doctor_edit_info(request):
     try:
-        # Fetch existing profile
         doctor_info = DoctorInfo.objects.get(user=request.user)
     except DoctorInfo.DoesNotExist:
-        # Create an UNSAVED instance
         doctor_info = DoctorInfo(user=request.user)
 
     if request.method == "POST":
         form = DoctorInfoForm(request.POST, request.FILES, instance=doctor_info)
         if form.is_valid():
-            form.save()  
+            doctor_info = form.save()
+
+            # Log activity
+            ActivityLog.objects.create(
+                user=request.user,
+                action_type="update" if doctor_info.id else "create",
+                model_name="DoctorInfo",
+                object_id=str(doctor_info.id),
+                related_object_repr=str(doctor_info)
+            )
+
             messages.success(request, "Profile submitted successfully.")
             return redirect("home")
         else:
@@ -614,14 +704,21 @@ def manager_approve_doctor(request, doctor_id):
         doctor.approved_at = timezone.now()
         doctor.save()
 
-        messages.success(request, f"{doctor.user.get_full_name()} has been approved.")
+        # Log activity
+        ActivityLog.objects.create(
+            user=request.user,
+            action_type="update",
+            model_name="DoctorInfo",
+            object_id=str(doctor.id),
+            related_object_repr=f"Approved {doctor}"
+        )
 
-        #send email notification
+        # Send email notification
         subject = "Your Doctor Profile Has Been Approved"
         message = f"Hello {doctor.user.get_full_name()},\n\nYour doctor profile has been approved. You can now access all doctor features on the platform.\n\nBest regards,\nThe Team"
-        recipient_list = [doctor.user.email]
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [doctor.user.email])
 
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_list)
+        messages.success(request, f"{doctor.user.get_full_name()} has been approved.")
 
     return redirect("manager_users")
 
@@ -634,34 +731,32 @@ def manager_reject_doctor(request, doctor_id):
     doctor = get_object_or_404(DoctorInfo, id=doctor_id)
 
     if doctor.is_approved:
-        messages.warning(
-            request,
-            f"{doctor.user.get_full_name()} is already approved and cannot be rejected."
-        )
+        messages.warning(request, f"{doctor.user.get_full_name()} is already approved and cannot be rejected.")
     elif doctor.is_rejected:
-        messages.info(
-            request,
-            f"{doctor.user.get_full_name()} has already been rejected."
-        )
+        messages.info(request, f"{doctor.user.get_full_name()} has already been rejected.")
     else:
         doctor.is_rejected = True
         doctor.rejected_at = timezone.now()
         doctor.save()
-        
-        # send email
-        subject = "Your Doctor Profile Has Been Rejected"
-        message = f"Hello {doctor.user.get_full_name()},\n\nWe regret to inform you that your doctor profile has been rejected. Please review your submission and try again.\n\nBest regards,\nThe Team"
-        recipient_list = [doctor.user.email]
 
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_list)
-
-
-        messages.success(
-            request,
-            f"{doctor.user.get_full_name()} has been rejected."
+        # Log activity
+        ActivityLog.objects.create(
+            user=request.user,
+            action_type="update",
+            model_name="DoctorInfo",
+            object_id=str(doctor.id),
+            related_object_repr=f"Rejected {doctor}"
         )
 
+        # Send email
+        subject = "Your Doctor Profile Has Been Rejected"
+        message = f"Hello {doctor.user.get_full_name()},\n\nWe regret to inform you that your doctor profile has been rejected. Please review your submission and try again.\n\nBest regards,\nThe Team"
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [doctor.user.email])
+
+        messages.success(request, f"{doctor.user.get_full_name()} has been rejected.")
+
     return redirect("manager_users")
+
 
 @login_required
 def manager_add_specialization(request):
@@ -672,22 +767,23 @@ def manager_add_specialization(request):
     if request.method == "POST":
         form = SpecializationForm(request.POST)
         if form.is_valid():
-            form.save()
+            specialization = form.save()
+
+            # Log activity
+            ActivityLog.objects.create(
+                user=request.user,
+                action_type="create",
+                model_name="Specialization",
+                object_id=str(specialization.id),
+                related_object_repr=str(specialization)
+            )
+
             messages.success(request, "Specialization added successfully.")
             return redirect("manager_users")
     else:
         form = SpecializationForm()
 
-    return render(request, "managers/add_specialization.html", {
-        "form": form
-    })
-
-
-from django.db.models import Avg, Count
-from django.contrib import messages
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from .models import DoctorInfo
+    return render(request, "managers/add_specialization.html", {"form": form})
 
 @login_required
 def view_doctors(request):
@@ -730,11 +826,9 @@ def appointment_details(request, pk):
 
 @login_required
 def book_appointment(request):
-    # Only patients can book
     if request.user.role != "patient":
         return redirect("home")
 
-    # Get query parameters
     doctor_id = request.GET.get("doctor")
     start = request.GET.get("start")
     end = request.GET.get("end")
@@ -746,7 +840,6 @@ def book_appointment(request):
         patient_type = request.POST.get("patient_type")  # "self" or dependent.patient_id
 
         with transaction.atomic():
-            # Check conflicts for this doctor (both self and dependent appointments)
             conflict_self = Appointment.objects.select_for_update().filter(
                 doctor=doctor,
                 start_time__lt=end,
@@ -765,14 +858,21 @@ def book_appointment(request):
                 messages.error(request, "This time slot was just booked. Please choose another.")
                 return redirect("patient_calendar")
 
-            # Create appointment depending on type
+            # Create appointment
             if patient_type == "self":
-                Appointment.objects.create(
+                appointment = Appointment.objects.create(
                     doctor=doctor,
                     patient=request.user,
                     start_time=start,
                     end_time=end,
                     status="pending"
+                )
+                ActivityLog.objects.create(
+                    user=request.user,
+                    action_type="create",
+                    model_name="Appointment",
+                    object_id=str(appointment.id),
+                    related_object_repr=str(appointment)
                 )
             else:
                 dependent = get_object_or_404(
@@ -780,12 +880,19 @@ def book_appointment(request):
                     patient_id=patient_type,
                     guardian=request.user
                 )
-                DependentAppointment.objects.create(
+                appointment = DependentAppointment.objects.create(
                     doctor=doctor,
                     dependent_patient=dependent,
                     start_time=start,
                     end_time=end,
                     status="pending"
+                )
+                ActivityLog.objects.create(
+                    user=request.user,
+                    action_type="create",
+                    model_name="DependentAppointment",
+                    object_id=str(appointment.id),
+                    related_object_repr=str(appointment)
                 )
 
         messages.success(request, "Appointment requested successfully.")
@@ -797,7 +904,7 @@ def book_appointment(request):
         "end": end,
         "dependents": dependents
     })
-
+    
 @login_required
 @doctor_approved_required
 def doctor_schedule(request):
@@ -810,6 +917,15 @@ def doctor_schedule(request):
             availability = form.save(commit=False)
             availability.doctor = doctor
             availability.save()
+            
+            ActivityLog.objects.create(
+                user=request.user,
+                action_type="create",
+                model_name="DoctorAvailability",
+                object_id=str(availability.id),
+                related_object_repr=str(availability)
+            )
+
             messages.success(request, "Availability added.")
             return redirect("doctor_schedule")
     else:
@@ -820,6 +936,7 @@ def doctor_schedule(request):
         "schedules": schedules
     })
 
+
 @login_required
 @doctor_approved_required
 def delete_availability(request, pk):
@@ -829,8 +946,18 @@ def delete_availability(request, pk):
         doctor=request.user.doctor_info
     )
     availability.delete()
+    
+    ActivityLog.objects.create(
+        user=request.user,
+        action_type="delete",
+        model_name="DoctorAvailability",
+        object_id=str(pk),
+        related_object_repr=str(availability)
+    )
+
     messages.success(request, "Availability removed.")
     return redirect("doctor_schedule")
+
 
 # views.py
 @login_required
@@ -845,6 +972,15 @@ def doctor_custom_schedule(request):
             custom_avail = form.save(commit=False)
             custom_avail.doctor = doctor
             custom_avail.save()
+            
+            ActivityLog.objects.create(
+                user=request.user,
+                action_type="create",
+                model_name="CustomDoctorAvailability",
+                object_id=str(custom_avail.id),
+                related_object_repr=str(custom_avail)
+            )
+
             messages.success(request, "Custom availability added successfully.")
             return redirect("doctor_custom_schedule")
     else:
@@ -855,6 +991,7 @@ def doctor_custom_schedule(request):
         "custom_schedules": custom_schedules
     })
 
+
 @login_required
 @doctor_approved_required
 def delete_custom_availability(request, pk):
@@ -864,9 +1001,17 @@ def delete_custom_availability(request, pk):
         doctor=request.user.doctor_info
     )
     availability.delete()
+
+    ActivityLog.objects.create(
+        user=request.user,
+        action_type="delete",
+        model_name="CustomDoctorAvailability",
+        object_id=str(pk),
+        related_object_repr=str(availability)
+    )
+
     messages.success(request, "Custom availability removed.")
     return redirect("doctor_custom_schedule")
-
 
 @login_required
 def doctor_daily_availability(request):
@@ -1199,6 +1344,7 @@ def staff_appointments(request):
 
     return render(request, "staffs/appointments.html", context)
 
+#! NOT USE
 @login_required
 def approve_appointment(request, pk):
     if request.user.role != "staff":
@@ -1216,7 +1362,7 @@ def approve_appointment(request, pk):
         "status": appointment.status,
         "status_class": "bg-success text-white"  
     })
-
+#! NOT USE
 @login_required
 def reject_appointment(request, pk):
     if request.user.role != "staff":
@@ -1237,53 +1383,64 @@ def reject_appointment(request, pk):
 
 @login_required
 def update_appointment_status(request, pk, action):
-    """Update status for either Appointment or DependentAppointment"""
     if request.user.role == "patient":
         return JsonResponse({"error": "Unauthorized"}, status=403)
 
     if request.method != "POST":
         return JsonResponse({"error": "Invalid method"}, status=400)
 
-    # Get the appointment type from POST data
     appointment_type = request.POST.get("appointment_type", "self")
     
     try:
         if appointment_type == "dependent":
             appointment = DependentAppointment.objects.get(pk=pk)
+            model_name = "DependentAppointment"
+            user_for_log = appointment.dependent_patient.guardian
         else:
             appointment = Appointment.objects.get(pk=pk)
+            model_name = "Appointment"
+            user_for_log = appointment.patient
     except (Appointment.DoesNotExist, DependentAppointment.DoesNotExist):
         return JsonResponse({"error": "Appointment not found"}, status=404)
 
-    # Update status based on action
+    # Update status
+    old_status = appointment.status
     if action == "approve":
         appointment.status = "approved"
     elif action == "reject":
         appointment.status = "rejected"
     elif action == "complete":
         appointment.status = "completed"
-        # Only create CompletedAppointment record for regular Appointment
         if appointment_type == "self":
             CompletedAppointment.objects.get_or_create(appointment=appointment)
-    elif action == "no_show":  # NEW
+    elif action == "no_show":
         appointment.status = "no_show"
     else:
         return JsonResponse({"error": "Invalid action"}, status=400)
 
     appointment.save()
 
+    # Log activity
+    ActivityLog.objects.create(
+        user=request.user,  # who performed the action
+        action_type="update",
+        model_name=model_name,
+        object_id=str(appointment.id),
+        related_object_repr=str(appointment),
+        description=f"Status changed from {old_status} to {appointment.status}"
+    )
+
     return JsonResponse({
         "id": appointment.id,
         "status": appointment.status
     })
-    
+
 @login_required
 def reschedule_appointment(request, pk):
     appointment = get_object_or_404(Appointment, pk=pk)
 
-    # Permission check
     if request.user.role == "staff":
-        pass  # staff can reschedule any appointment
+        pass
     elif request.user.role == "doctor":
         if appointment.doctor != getattr(request.user, "doctor_info", None):
             messages.error(request, "Unauthorized")
@@ -1311,7 +1468,6 @@ def reschedule_appointment(request, pk):
             messages.error(request, "End time must be after start time.")
             return redirect("reschedule_appointment", pk=pk)
 
-        # Check conflicts
         conflict = Appointment.objects.filter(
             doctor=appointment.doctor,
             start_time__lt=new_end_dt,
@@ -1323,23 +1479,33 @@ def reschedule_appointment(request, pk):
             messages.error(request, "This time slot is already booked.")
             return redirect("reschedule_appointment", pk=pk)
 
-        # Update appointment
+        old_start, old_end = appointment.start_time, appointment.end_time
         appointment.start_time = new_start_dt
         appointment.end_time = new_end_dt
-        appointment.status = "pending"  # reset to pending after reschedule
+        appointment.status = "pending"
         appointment.save()
+
+        # Log activity
+        ActivityLog.objects.create(
+            user=request.user,
+            action_type="update",
+            model_name="Appointment",
+            object_id=str(appointment.id),
+            related_object_repr=str(appointment),
+            description=f"Rescheduled from {old_start}–{old_end} to {new_start_dt}–{new_end_dt}"
+        )
 
         messages.success(request, "Appointment rescheduled successfully!")
 
-        # Redirect based on user
         if request.user.role == "staff":
             return redirect("appointments")
         elif request.user.role == "doctor":
             return redirect("doctor_appointments")
 
-    # GET request → render reschedule page
-    return render(request, "calendar/partials/reschedule_appointment.html", {"appointment": appointment})
-
+    return render(request, "calendar/partials/reschedule_appointment.html", {
+        "appointment": appointment
+    })
+    
 @login_required
 def patient_appointments(request):
     if request.user.role != "patient":
@@ -1381,6 +1547,17 @@ def doctor_calendar_events(request):
         doctor = request.user.doctor_info
         events = []
 
+        def get_event_color(status):
+            """Return calendar event color based on appointment status"""
+            colors = {
+                'pending': '#ffc107',        # yellow
+                'approved': '#28a745',       # green
+                'completed': '#6c757d',      # gray
+                'rejected': '#dc3545',       # red
+                'no_show': '#17a2b8',        # blue/info
+            }
+            return colors.get(status, '#ffc107')
+
         # Self appointments
         appointments = Appointment.objects.filter(
             doctor=doctor
@@ -1389,7 +1566,7 @@ def doctor_calendar_events(request):
         for a in appointments:
             try:
                 patient_name = a.patient.get_full_name() if a.patient else "Unknown Patient"
-                color = "#28a745" if a.status == "approved" else "#ffc107" if a.status == "pending" else "#dc3545"
+                color = get_event_color(a.status)  # Use helper function
                 events.append({
                     "id": f"self-{a.id}",
                     "title": f"{patient_name} ({a.status})",
@@ -1409,7 +1586,7 @@ def doctor_calendar_events(request):
         for a in dependent_appointments:
             try:
                 patient_name = a.dependent_patient.full_name if a.dependent_patient else "Unknown Patient"
-                color = "#28a745" if a.status == "approved" else "#ffc107" if a.status == "pending" else "#dc3545"
+                color = get_event_color(a.status)  # Use helper function
                 events.append({
                     "id": f"dep-{a.id}",
                     "title": f"{patient_name} ({a.status})",
@@ -1428,7 +1605,6 @@ def doctor_calendar_events(request):
         import traceback
         traceback.print_exc()
         return JsonResponse([], safe=False)
-
 
 @login_required
 @doctor_approved_required
@@ -1569,7 +1745,6 @@ def doctor_day_appointments(request):
     data.sort(key=lambda x: x['start_time'])
     return JsonResponse(data, safe=False)
 
-
 @login_required
 @doctor_approved_required
 def doctor_appointments(request):
@@ -1629,7 +1804,6 @@ def update_doctor_appointment_status(request, pk, action):
         "status_class": get_status_class(appointment.status)
     })
 
-
 def get_status_class(status):
     """Return CSS color code for status"""
     mapping = {
@@ -1640,6 +1814,7 @@ def get_status_class(status):
         'no_show': 'bg-info text-white',  # NEW - using info/blue color
     }
     return mapping.get(status, 'bg-warning text-dark')
+
 @login_required
 def add_medical_record(request, patient_type, pk):
     if request.user.role not in ['staff', 'doctor']:
@@ -1672,6 +1847,25 @@ def add_medical_record(request, patient_type, pk):
             prescription_formset.instance = record
             prescription_formset.save()
 
+            # Log activity for medical record
+            ActivityLog.objects.create(
+                user=request.user,
+                action_type="create",
+                model_name="MedicalRecord",
+                object_id=str(record.id),
+                related_object_repr=str(record)
+            )
+
+            # Log activity for prescriptions
+            for prescription in record.prescriptions.all():
+                ActivityLog.objects.create(
+                    user=request.user,
+                    action_type="create",
+                    model_name="Prescription",
+                    object_id=str(prescription.id),
+                    related_object_repr=str(prescription)
+                )
+
             messages.success(request, "Medical record added successfully")
             if request.user.role == 'doctor':
                 return redirect('doctor_patient_list')
@@ -1687,7 +1881,6 @@ def add_medical_record(request, patient_type, pk):
         'patient': patient,
         'patient_type': patient_type
     })
-
 
 @login_required
 def edit_medical_record(request, pk):
@@ -1715,6 +1908,25 @@ def edit_medical_record(request, pk):
         if record_form.is_valid() and prescription_formset.is_valid():
             record_form.save()
             prescription_formset.save()
+
+            # Log activity for update
+            ActivityLog.objects.create(
+                user=request.user,
+                action_type="update",
+                model_name="MedicalRecord",
+                object_id=str(record.id),
+                related_object_repr=str(record)
+            )
+
+            for prescription in record.prescriptions.all():
+                ActivityLog.objects.create(
+                    user=request.user,
+                    action_type="update",
+                    model_name="Prescription",
+                    object_id=str(prescription.id),
+                    related_object_repr=str(prescription)
+                )
+
             messages.success(request, "Medical record updated successfully")
             return redirect('view_medical_record', pk=record.pk)
     else:
@@ -1729,7 +1941,6 @@ def edit_medical_record(request, pk):
         'record': record
     })
 
-
 @login_required
 def view_medical_record(request, pk):
     record = get_object_or_404(MedicalRecord, pk=pk)
@@ -1739,7 +1950,7 @@ def view_medical_record(request, pk):
         'prescriptions': prescriptions
     })
 
-
+#! Not use
 @login_required
 def rate_doctor(request, doctor_id):
     # Only patients can rate
@@ -1777,22 +1988,59 @@ def rate_doctor_page(request, doctor_id):
 
 @login_required
 def submit_doctor_rating(request, doctor_id):
-    if request.method == "POST":
-        rating_value = request.POST.get("rating")
-        review_text = request.POST.get("comment", "")
+    if request.user.role != 'patient':
+        messages.error(request, "Only patients can rate doctors.")
+        return redirect('home')
 
-        doctor = get_object_or_404(DoctorInfo, id=doctor_id)
-        patient = get_object_or_404(PatientInfo, user=request.user)
+    if request.method != "POST":
+        messages.error(request, "Invalid request method.")
+        return redirect("view_doctors")
 
-        # Create or update the rating
-        DoctorRating.objects.update_or_create(
+    rating_value = request.POST.get("rating")
+    review_text = request.POST.get("comment", "")
+
+    if not rating_value:
+        messages.error(request, "Rating is required.")
+        return redirect("rate_doctor", doctor_id=doctor_id)
+
+    doctor = get_object_or_404(DoctorInfo, id=doctor_id, is_approved=True)
+    patient = get_object_or_404(PatientInfo, user=request.user)
+
+    # Check if patient already rated
+    rating_instance = DoctorRating.objects.filter(patient=patient, doctor=doctor).first()
+
+    if rating_instance:
+        old_rating = rating_instance.rating
+        rating_instance.rating = rating_value
+        rating_instance.review = review_text
+        rating_instance.save()
+
+        # Log update
+        ActivityLog.objects.create(
+            user=request.user,
+            action_type="update",
+            model_name="DoctorRating",
+            object_id=str(rating_instance.id),
+            related_object_repr=f"{patient.patient_id} → {doctor.user.get_full_name()}",
+            description=f"Updated rating from {old_rating} to {rating_value}"
+        )
+    else:
+        rating_instance = DoctorRating.objects.create(
             patient=patient,
             doctor=doctor,
-            defaults={'rating': rating_value, 'review': review_text}
+            rating=rating_value,
+            review=review_text
         )
 
-        messages.success(request, "Your rating has been submitted successfully!")
-        return redirect("view_doctors")  # Adjust redirect
+        # Log create
+        ActivityLog.objects.create(
+            user=request.user,
+            action_type="create",
+            model_name="DoctorRating",
+            object_id=str(rating_instance.id),
+            related_object_repr=f"{patient.patient_id} → {doctor.user.get_full_name()}",
+            description=f"Rated {rating_value} stars"
+        )
 
-    messages.error(request, "Invalid request method.")
+    messages.success(request, "Your rating has been submitted successfully!")
     return redirect("view_doctors")

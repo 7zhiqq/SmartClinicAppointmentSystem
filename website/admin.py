@@ -9,7 +9,8 @@ from .models import (
     DependentPatientAllergy,
     DependentPatientMedication,
     Specialization,
-    DoctorInfo
+    DoctorInfo,
+    ActivityLog
 )
 
 class PatientVitalsInline(admin.TabularInline):
@@ -96,3 +97,11 @@ class DoctorInfoAdmin(admin.ModelAdmin):
             "fields": ("is_approved", "approved_at", "is_rejected", "rejected_at")
         }),
     )
+
+
+@admin.register(ActivityLog)
+class ActivityLogAdmin(admin.ModelAdmin):
+    list_display = ('timestamp', 'user', 'action_type', 'model_name', 'related_object_repr')
+    list_filter = ('action_type', 'model_name', 'user')
+    search_fields = ('description', 'model_name', 'user__username', 'related_object_repr')
+    date_hierarchy = 'timestamp'
