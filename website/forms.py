@@ -72,7 +72,6 @@ class GeneralSettingsForm(forms.Form):
             raise forms.ValidationError("This email is already in use.")
         return email
 
-
 class SecuritySettingsForm(forms.Form):
     current_password = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control'}),
@@ -116,8 +115,6 @@ class SecuritySettingsForm(forms.Form):
                 raise forms.ValidationError("This password is too common. Please choose a stronger password.")
         
         return new_password1
-
-
 
 class PatientInfoForm(forms.ModelForm):
     phone = forms.CharField(

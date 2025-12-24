@@ -77,4 +77,5 @@ urlpatterns = [
     # path('appointments/<int:pk>/staff-details/', views.staff_appointment_details, name='staff_appointment_details'),
     # path('appointments/<int:pk>/staff-details/', views.staff_appointment_details, name='staff_appointment_details'),
 
+
 ]
