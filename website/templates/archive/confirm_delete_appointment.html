@@ -1,0 +1,137 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/archive.css' %}">
+
+{% if user.is_authenticated %}
+    {% if user.role == "staff" %}
+        {% include "components/sidebar/staff.html" %}
+    {% elif user.role == "doctor" %}
+        {% include "components/sidebar/doctor.html" %}
+    {% endif %}
+
+    <div class="main-content">
+        <div class="delete-confirm-wrapper">
+            <div class="delete-header">
+                <i class="bi bi-trash danger-icon"></i>
+                <h2>Delete Appointment</h2>
+                <p class="danger-text">
+                    <strong>⚠️ Warning: This action is permanent!</strong><br>
+                    This will permanently delete the appointment from the database.
+                </p>
+            </div>
+
+            <div class="patient-summary danger">
+                <h3>Appointment Information</h3>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <span class="label">Patient:</span>
+                        <span class="value">
+                            {% if is_dependent %}
+                                {{ appointment.dependent_patient.full_name }}
+                            {% else %}
+                                {{ appointment.patient.get_full_name }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Doctor:</span>
+                        <span class="value">Dr. {{ appointment.doctor.user.get_full_name }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Date:</span>
+                        <span class="value">{{ appointment.start_time|date:"M d, Y" }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Time:</span>
+                        <span class="value">
+                            {{ appointment.start_time|time:"h:i A" }} - {{ appointment.end_time|time:"h:i A" }}
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Status:</span>
+                        <span class="value">
+                            <span class="status-badge status-{{ appointment.status }}">
+                                {{ appointment.get_status_display }}
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="affected-records danger">
+                <h3>Important Information:</h3>
+                <ul>
+                    <li><i class="bi bi-x-circle"></i> Appointment will be permanently deleted</li>
+                    <li><i class="bi bi-x-circle"></i> This action cannot be undone</li>
+                    <li><i class="bi bi-info-circle" style="color: #3b82f6;"></i> An audit log will be created</li>
+                </ul>
+            </div>
+
+            <form method="post" class="delete-form">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="reason">
+                        Reason for deletion 
+                        <span class="optional">(optional)</span>
+                    </label>
+                    <textarea 
+                        name="reason" 
+                        id="reason" 
+                        rows="3" 
+                        class="form-control"
+                        placeholder="Enter reason for deleting this appointment..."
+                    ></textarea>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Delete Appointment
+                    </button>
+                    <a href="{% if user.role == 'staff' %}{% url 'appointments' %}{% else %}{% url 'doctor_appointments' %}{% endif %}" 
+                       class="btn btn-secondary">
+                        <i class="bi bi-x"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endif %}
+
+<style>
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-pending {
+    background: #ffc107;
+    color: #000;
+}
+
+.status-approved {
+    background: #28a745;
+    color: white;
+}
+
+.status-completed {
+    background: #6c757d;
+    color: white;
+}
+
+.status-rejected {
+    background: #dc3545;
+    color: white;
+}
+
+.status-no_show {
+    background: #17a2b8;
+    color: white;
+}
+</style>
+{% endblock %}

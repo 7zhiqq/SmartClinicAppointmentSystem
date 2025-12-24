@@ -212,9 +212,26 @@ def archived_patients_list(request):
             Q(original_patient_id__icontains=search_query)
         )
     
+    # Combine and sort by archived_at (most recent first)
+    all_patients = []
+    
+    # Add self patients with type marker
+    for patient in archived_self:
+        patient.patient_type = 'self'
+        all_patients.append(patient)
+    
+    # Add dependent patients with type marker
+    for patient in archived_dependents:
+        patient.patient_type = 'dependent'
+        all_patients.append(patient)
+    
+    # Sort by archived_at descending
+    all_patients.sort(key=lambda x: x.archived_at, reverse=True)
+    
     return render(request, 'archive/archived_patients.html', {
         'archived_self': archived_self,
         'archived_dependents': archived_dependents,
+        'all_patients': all_patients,
         'search_query': search_query
     })
 
@@ -313,14 +330,14 @@ def archived_patient_details_ajax(request, pk):
         return JsonResponse({'html': '<p class="muted">Access denied.</p>'})
     
     try:
-        # Try archived self patient first
-        patient = ArchivedPatientInfo.objects.filter(pk=pk).first()
-        patient_type = 'self' if patient else None
+        # Get patient type from query parameter
+        patient_type = request.GET.get('type', 'self')
+        patient = None
         
-        # Try archived dependent
-        if not patient:
+        if patient_type == 'self':
+            patient = ArchivedPatientInfo.objects.filter(pk=pk).first()
+        else:
             patient = ArchivedDependentPatient.objects.filter(pk=pk).first()
-            patient_type = 'dependent' if patient else None
         
         if not patient:
             return JsonResponse({'html': '<p class="muted">Patient not found.</p>'})

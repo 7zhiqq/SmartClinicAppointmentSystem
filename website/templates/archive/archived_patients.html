@@ -45,25 +45,37 @@
 
         <!-- Stats -->
         <div class="row g-3 mb-4">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="stat-card total">
                     <div class="stat-content">
                         <div class="stat-header">
                             <div>
-                                <div class="stat-number">{{ archived_self.count }}</div>
-                                <div class="stat-label">Archived Self Patients</div>
+                                <div class="stat-number">{{ all_patients|length }}</div>
+                                <div class="stat-label">Total Archived Patients</div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
+                <div class="stat-card confirmed">
+                    <div class="stat-content">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-number">{{ archived_self.count }}</div>
+                                <div class="stat-label">Self Patients</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
                 <div class="stat-card pending">
                     <div class="stat-content">
                         <div class="stat-header">
                             <div>
                                 <div class="stat-number">{{ archived_dependents.count }}</div>
-                                <div class="stat-label">Archived Dependents</div>
+                                <div class="stat-label">Dependents</div>
                             </div>
                         </div>
                     </div>
@@ -73,20 +85,40 @@
 
         <div class="dashboard">
             <aside class="patient-list-panel">
-                <h3 class="panel-title">Self Patients</h3>
+                <input
+                    type="text"
+                    id="patientSearch"
+                    class="search-input"
+                    placeholder="Search patients..."
+                >
+                
                 <ul class="patient-list">
-                    {% for patient in archived_self %}
+                    {% for patient in all_patients %}
                         <li class="patient-item archived-item" 
-                            data-patient-id="{{ patient.pk }}" 
-                            onclick="loadArchivedPatient('{{ patient.pk }}')">
+                            data-patient-id="{{ patient.pk }}"
+                            data-patient-type="{{ patient.patient_type }}"
+                            onclick="loadArchivedPatient('{{ patient.pk }}', '{{ patient.patient_type }}')">
                             <div class="avatar">
-                                {{ patient.user_full_name|slice:":1" }}{{ patient.user_full_name|slice:"1:2" }}
+                                {% if patient.patient_type == 'self' %}
+                                    {{ patient.user_full_name|slice:":1" }}{{ patient.user_full_name|slice:"1:2" }}
+                                {% else %}
+                                    {{ patient.first_name|slice:":1" }}{{ patient.last_name|slice:":1" }}
+                                {% endif %}
                             </div>
                             <div>
-                                <strong>{{ patient.user_full_name }}</strong>
+                                <strong>
+                                    {% if patient.patient_type == 'self' %}
+                                        {{ patient.user_full_name }}
+                                    {% else %}
+                                        {{ patient.first_name }} {{ patient.last_name }}
+                                    {% endif %}
+                                </strong>
                                 <small>
                                     {{ patient.age }} yrs • 
                                     {% if patient.gender == 'M' %}Male{% else %}Female{% endif %}
+                                    {% if patient.patient_type == 'dependent' %}
+                                        • <span class="dependent-tag">Dependent</span>
+                                    {% endif %}
                                 </small>
                                 <small class="archived-badge">
                                     <i class="bi bi-archive"></i> Archived {{ patient.archived_at|date:"M d, Y" }}
@@ -94,32 +126,7 @@
                             </div>
                         </li>
                     {% empty %}
-                        <li><p class="muted">No archived self patients.</p></li>
-                    {% endfor %}
-                </ul>
-
-                <h3 class="panel-title mt-4">Dependent Patients</h3>
-                <ul class="patient-list">
-                    {% for patient in archived_dependents %}
-                        <li class="patient-item archived-item" 
-                            data-patient-id="{{ patient.pk }}" 
-                            onclick="loadArchivedPatient('{{ patient.pk }}')">
-                            <div class="avatar">
-                                {{ patient.first_name|slice:":1" }}{{ patient.last_name|slice:":1" }}
-                            </div>
-                            <div>
-                                <strong>{{ patient.first_name }} {{ patient.last_name }}</strong>
-                                <small>
-                                    {{ patient.age }} yrs • 
-                                    {% if patient.gender == 'M' %}Male{% else %}Female{% endif %}
-                                </small>
-                                <small class="archived-badge">
-                                    <i class="bi bi-archive"></i> Archived {{ patient.archived_at|date:"M d, Y" }}
-                                </small>
-                            </div>
-                        </li>
-                    {% empty %}
-                        <li><p class="muted">No archived dependents.</p></li>
+                        <li><p class="muted">No archived patients.</p></li>
                     {% endfor %}
                 </ul>
             </aside>
@@ -144,23 +151,36 @@
         font-weight: 600;
     }
 
-    .panel-title {
-        font-size: 14px;
+    .dependent-tag {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 10px;
         font-weight: 600;
-        padding: 12px 16px;
-        background: var(--bg-muted);
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border-light);
         border-radius: 6px;
-        margin-bottom: 8px;
-        color: var(--text-main);
+        margin-bottom: 12px;
+        font-size: 14px;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--primary);
     }
     </style>
 
     <script>
-        function loadArchivedPatient(patientId) {
+        function loadArchivedPatient(patientId, patientType) {
             const details = document.getElementById('patientDetails');
             details.innerHTML = '<p class="muted">Loading archived patient...</p>';
 
-            const url = `/ajax/archived-patient/${patientId}/`;
+            const url = `/ajax/archived-patient/${patientId}/?type=${patientType}`;
             
             fetch(url)
                 .then(response => response.json())
@@ -169,7 +189,7 @@
 
                     // Highlight active patient
                     document.querySelectorAll('.patient-item').forEach(el => el.classList.remove('active'));
-                    const activeItem = document.querySelector(`[data-patient-id="${patientId}"]`);
+                    const activeItem = document.querySelector(`[data-patient-id="${patientId}"][data-patient-type="${patientType}"]`);
                     if (activeItem) activeItem.classList.add('active');
                 })
                 .catch(err => {
@@ -181,7 +201,29 @@
         // Load first patient on page load
         document.addEventListener('DOMContentLoaded', () => {
             const firstPatient = document.querySelector('.patient-item');
-            if (firstPatient) loadArchivedPatient(firstPatient.dataset.patientId);
+            if (firstPatient) {
+                const patientId = firstPatient.dataset.patientId;
+                const patientType = firstPatient.dataset.patientType;
+                loadArchivedPatient(patientId, patientType);
+            }
+        });
+
+        // Search functionality
+        const searchInput = document.getElementById('patientSearch');
+        searchInput.addEventListener('input', function () {
+            const query = this.value.toLowerCase().trim();
+            const patients = document.querySelectorAll('.patient-item');
+            
+            patients.forEach(item => {
+                const name = item.querySelector('strong')?.innerText.toLowerCase() || '';
+                const meta = item.querySelector('small')?.innerText.toLowerCase() || '';
+                
+                if (name.includes(query) || meta.includes(query)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
         });
     </script>
 {% endif %}
