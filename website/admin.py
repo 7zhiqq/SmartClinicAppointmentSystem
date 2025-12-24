@@ -106,3 +106,45 @@ class ActivityLogAdmin(admin.ModelAdmin):
     search_fields = ('description', 'model_name', 'user__username', 'related_object_repr')
     date_hierarchy = 'timestamp'
 
+from website.archive_models import (
+    ArchivedPatientInfo, ArchivedDependentPatient, ArchivedAppointment,
+    ArchivedMedicalRecord, ArchivedDoctorInfo, DeletedRecord
+)
+
+@admin.register(ArchivedPatientInfo)
+class ArchivedPatientInfoAdmin(admin.ModelAdmin):
+    list_display = ['original_patient_id', 'user_full_name', 'archived_at', 'archived_by']
+    search_fields = ['user_full_name', 'original_patient_id', 'user_email']
+    list_filter = ['archived_at', 'gender']
+    readonly_fields = ['archived_at']
+
+@admin.register(ArchivedDependentPatient)
+class ArchivedDependentPatientAdmin(admin.ModelAdmin):
+    list_display = ['original_patient_id', 'first_name', 'last_name', 'archived_at']
+    search_fields = ['first_name', 'last_name', 'original_patient_id']
+    list_filter = ['archived_at', 'gender']
+
+@admin.register(ArchivedDoctorInfo)
+class ArchivedDoctorInfoAdmin(admin.ModelAdmin):
+    list_display = ['user_full_name', 'specialization', 'archived_at']
+    search_fields = ['user_full_name', 'license_number']
+    list_filter = ['archived_at', 'was_approved']
+
+@admin.register(ArchivedAppointment)
+class ArchivedAppointmentAdmin(admin.ModelAdmin):
+    list_display = ['original_appointment_id', 'patient_name', 'doctor_name', 'start_time', 'archived_at']
+    search_fields = ['patient_name', 'doctor_name']
+    list_filter = ['archived_at', 'status', 'appointment_type']
+
+@admin.register(ArchivedMedicalRecord)
+class ArchivedMedicalRecordAdmin(admin.ModelAdmin):
+    list_display = ['original_record_id', 'patient_name', 'created_at', 'archived_at']
+    search_fields = ['patient_name', 'patient_id_str']
+    list_filter = ['archived_at']
+
+@admin.register(DeletedRecord)
+class DeletedRecordAdmin(admin.ModelAdmin):
+    list_display = ['model_name', 'original_id', 'object_repr', 'deleted_at', 'deleted_by']
+    search_fields = ['object_repr', 'model_name', 'original_id']
+    list_filter = ['deleted_at', 'model_name']
+    readonly_fields = ['deleted_at', 'data_snapshot']

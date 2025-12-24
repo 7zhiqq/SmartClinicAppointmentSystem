@@ -8,6 +8,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include("accounts.urls")),
     path('', include("website.urls")),
+    path('archive/', include('website.urls_archive'))
 
 ]
 urlpatterns += static(

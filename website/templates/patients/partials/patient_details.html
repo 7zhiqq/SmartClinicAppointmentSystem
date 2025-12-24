@@ -3,6 +3,8 @@
 
 {% block content %}
     <link rel="stylesheet" href="{% static 'css/records.css' %}">
+    <link rel="stylesheet" href="{% static 'css/archive.css' %}">
+    
     <div class="card patient-header">
         <div class="patient-header-top">
             <div class="patient-avatar">
@@ -60,13 +62,34 @@
                 {% endif %}
             </div>
 
-
             <div class="contact-item text-end">
                 {% if user.role == "patient" %}
                     {% if patient_type == "self" %}
-                        <a href="{% url 'edit_my_patient_info' %}" class="edit-link">Edit</a>
+                        <a href="{% url 'edit_my_patient_info' %}" class="edit-link">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
                     {% else %}
-                        <a href="{% url 'edit_dependent' patient.pk %}" class="edit-link">Edit</a>
+                        <a href="{% url 'edit_dependent' patient.pk %}" class="edit-link">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <a href="{% url 'archive_dependent' patient.pk %}" class="archive-link" 
+                           onclick="return confirm('Archive this dependent patient? All related records will be archived.')">
+                            <i class="bi bi-archive"></i> Archive
+                        </a>
+                    {% endif %}
+                {% elif user.role == "staff" %}
+                    {% if patient_type == "self" %}
+                        <a href="{% url 'archive_patient' patient.pk %}" class="edit-link">
+                            <i class="bi bi-archive"></i> Archive
+                        </a>
+                        <a href="{% url 'delete_patient' patient.pk %}" class="edit-link" 
+                           onclick="return confirm('Permanently delete this patient? This action CANNOT be undone!')">
+                            <i class="bi bi-trash"></i> Delete
+                        </a>
+                    {% else %}
+                        <a href="{% url 'archive_dependent' patient.pk %}" class="edit-link">
+                            <i class="bi bi-archive"></i> Archive
+                        </a>
                     {% endif %}
                 {% endif %}
             </div>

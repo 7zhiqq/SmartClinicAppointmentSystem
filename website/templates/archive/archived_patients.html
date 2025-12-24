@@ -1,0 +1,188 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/medrecords.css' %}">
+
+{% if user.is_authenticated and user.role == "staff" %}
+    {% include "components/sidebar/staff.html" %}
+    
+    <div class="main-content">
+        <div class="schedule-header mb-4">
+            <div>
+                <h2 class="heading-title">
+                    <i class="bi bi-archive"></i> Archived Patients
+                </h2>
+                <p class="subtitle">View archived patient records</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'patient_list' %}" class="add-schedule-btn">
+                    <i class="bi bi-arrow-left"></i> Back to Patients
+                </a>
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-box mb-4">
+            <form method="get" class="d-flex gap-2">
+                <input 
+                    type="text" 
+                    name="search" 
+                    class="form-control" 
+                    placeholder="Search by name, ID, or email..."
+                    value="{{ search_query }}"
+                >
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Search
+                </button>
+                {% if search_query %}
+                <a href="{% url 'archived_patients' %}" class="btn btn-secondary">
+                    <i class="bi bi-x"></i> Clear
+                </a>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Stats -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="stat-card total">
+                    <div class="stat-content">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-number">{{ archived_self.count }}</div>
+                                <div class="stat-label">Archived Self Patients</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="stat-card pending">
+                    <div class="stat-content">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-number">{{ archived_dependents.count }}</div>
+                                <div class="stat-label">Archived Dependents</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <aside class="patient-list-panel">
+                <h3 class="panel-title">Self Patients</h3>
+                <ul class="patient-list">
+                    {% for patient in archived_self %}
+                        <li class="patient-item archived-item" 
+                            data-patient-id="{{ patient.pk }}" 
+                            onclick="loadArchivedPatient('{{ patient.pk }}')">
+                            <div class="avatar">
+                                {{ patient.user_full_name|slice:":1" }}{{ patient.user_full_name|slice:"1:2" }}
+                            </div>
+                            <div>
+                                <strong>{{ patient.user_full_name }}</strong>
+                                <small>
+                                    {{ patient.age }} yrs • 
+                                    {% if patient.gender == 'M' %}Male{% else %}Female{% endif %}
+                                </small>
+                                <small class="archived-badge">
+                                    <i class="bi bi-archive"></i> Archived {{ patient.archived_at|date:"M d, Y" }}
+                                </small>
+                            </div>
+                        </li>
+                    {% empty %}
+                        <li><p class="muted">No archived self patients.</p></li>
+                    {% endfor %}
+                </ul>
+
+                <h3 class="panel-title mt-4">Dependent Patients</h3>
+                <ul class="patient-list">
+                    {% for patient in archived_dependents %}
+                        <li class="patient-item archived-item" 
+                            data-patient-id="{{ patient.pk }}" 
+                            onclick="loadArchivedPatient('{{ patient.pk }}')">
+                            <div class="avatar">
+                                {{ patient.first_name|slice:":1" }}{{ patient.last_name|slice:":1" }}
+                            </div>
+                            <div>
+                                <strong>{{ patient.first_name }} {{ patient.last_name }}</strong>
+                                <small>
+                                    {{ patient.age }} yrs • 
+                                    {% if patient.gender == 'M' %}Male{% else %}Female{% endif %}
+                                </small>
+                                <small class="archived-badge">
+                                    <i class="bi bi-archive"></i> Archived {{ patient.archived_at|date:"M d, Y" }}
+                                </small>
+                            </div>
+                        </li>
+                    {% empty %}
+                        <li><p class="muted">No archived dependents.</p></li>
+                    {% endfor %}
+                </ul>
+            </aside>
+
+            <section class="patient-details" id="patientDetails">
+                <p class="muted">Select an archived patient to view details...</p>
+            </section>
+        </div>
+    </div>
+
+    <style>
+    .archived-item {
+        border-left: 3px solid #f59e0b;
+        background: rgba(245, 158, 11, 0.05);
+    }
+
+    .archived-badge {
+        display: block;
+        color: #f59e0b;
+        font-size: 11px;
+        margin-top: 4px;
+        font-weight: 600;
+    }
+
+    .panel-title {
+        font-size: 14px;
+        font-weight: 600;
+        padding: 12px 16px;
+        background: var(--bg-muted);
+        border-radius: 6px;
+        margin-bottom: 8px;
+        color: var(--text-main);
+    }
+    </style>
+
+    <script>
+        function loadArchivedPatient(patientId) {
+            const details = document.getElementById('patientDetails');
+            details.innerHTML = '<p class="muted">Loading archived patient...</p>';
+
+            const url = `/ajax/archived-patient/${patientId}/`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    details.innerHTML = data.html;
+
+                    // Highlight active patient
+                    document.querySelectorAll('.patient-item').forEach(el => el.classList.remove('active'));
+                    const activeItem = document.querySelector(`[data-patient-id="${patientId}"]`);
+                    if (activeItem) activeItem.classList.add('active');
+                })
+                .catch(err => {
+                    console.error('Failed to load archived patient details:', err);
+                    details.innerHTML = `<p class="muted">Failed to load patient details.</p>`;
+                });
+        }
+
+        // Load first patient on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstPatient = document.querySelector('.patient-item');
+            if (firstPatient) loadArchivedPatient(firstPatient.dataset.patientId);
+        });
+    </script>
+{% endif %}
+{% endblock %}

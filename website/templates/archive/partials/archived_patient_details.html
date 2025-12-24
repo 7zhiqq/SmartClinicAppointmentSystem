@@ -1,0 +1,182 @@
+{% load static %}
+
+<style>
+.archive-info-banner {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.archive-info-banner i {
+    font-size: 24px;
+    color: #f59e0b;
+}
+
+.archive-info-text h4 {
+    margin: 0 0 4px 0;
+    color: var(--text-main);
+    font-size: 16px;
+}
+
+.archive-info-text p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.archived-data-note {
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 4px solid #3b82f6;
+    padding: 12px;
+    border-radius: 6px;
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--text-main);
+}
+</style>
+
+<div class="archive-info-banner">
+    <i class="bi bi-archive"></i>
+    <div class="archive-info-text">
+        <h4>Archived Record</h4>
+        <p>
+            Archived on {{ patient.archived_at|date:"F d, Y \a\t h:i A" }}
+            {% if patient.archived_by %}
+                by {{ patient.archived_by.get_full_name }}
+            {% endif %}
+        </p>
+        {% if patient.archive_reason %}
+        <p style="margin-top: 6px;"><strong>Reason:</strong> {{ patient.archive_reason }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card patient-header">
+    <div class="patient-header-top">
+        <div class="patient-avatar">
+            {% if patient_type == "self" %}
+                {{ patient.user_full_name|slice:":1" }}{{ patient.user_full_name|slice:"1:2" }}
+            {% else %}
+                {{ patient.first_name|slice:":1" }}{{ patient.last_name|slice:":1" }}
+            {% endif %}
+        </div>
+
+        <div class="patient-info">
+            <h2 class="patient-name">
+                {% if patient_type == "self" %}
+                    {{ patient.user_full_name }}
+                {% else %}
+                    {{ patient.first_name }} {{ patient.last_name }}
+                {% endif %}
+            </h2>
+            <h2 class="patient-meta">
+                {{ patient.age }} yrs •
+                {% if patient.gender == 'M' %}Male{% else %}Female{% endif %} •
+                Blood Type: {{ patient.blood_type|default:"N/A" }}
+                {% if patient_type == "dependent" %}
+                    • Dependent
+                {% endif %}
+            </h2>
+        </div>
+    </div>
+
+    <div class="patient-contacts">
+        {% if patient_type == "self" %}
+            <div class="contact-item">
+                <i class="bi bi-telephone-fill"></i>
+                {{ patient.phone_number|default:"No phone" }}
+            </div>
+            <div class="contact-item">
+                <i class="bi bi-envelope-at-fill"></i>
+                {{ patient.user_email }}
+            </div>
+            <div class="contact-item">
+                <i class="bi bi-person-badge"></i>
+                ID: {{ patient.original_patient_id }}
+            </div>
+        {% else %}
+            <div class="contact-item">
+                <i class="bi bi-telephone-fill"></i>
+                {{ patient.phone|default:"No phone" }}
+            </div>
+            <div class="contact-item">
+                <i class="bi bi-person"></i>
+                Guardian: {{ patient.guardian_username }}
+            </div>
+            <div class="contact-item">
+                <i class="bi bi-person-badge"></i>
+                ID: {{ patient.original_patient_id }}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if patient.additional_data %}
+<div class="card">
+    <h4><i class="bi bi-info-circle"></i> Archived Data Summary</h4>
+    <div class="card-content">
+        <div class="summary-stats">
+            {% if patient.additional_data.vitals_count %}
+            <div class="stat-item">
+                <span class="stat-value">{{ patient.additional_data.vitals_count }}</span>
+                <span class="stat-label">Vital Records</span>
+            </div>
+            {% endif %}
+            {% if patient.additional_data.allergies_count %}
+            <div class="stat-item">
+                <span class="stat-value">{{ patient.additional_data.allergies_count }}</span>
+                <span class="stat-label">Allergies</span>
+            </div>
+            {% endif %}
+            {% if patient.additional_data.medications_count %}
+            <div class="stat-item">
+                <span class="stat-value">{{ patient.additional_data.medications_count }}</span>
+                <span class="stat-label">Medications</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="archived-data-note">
+    <i class="bi bi-info-circle"></i>
+    This is an archived record. The original data has been removed from the active system.
+    Detailed medical records, vitals, and appointment history are preserved in the archive.
+</div>
+
+<style>
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 16px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 16px;
+    background: var(--bg-muted);
+    border-radius: 8px;
+}
+
+.stat-value {
+    display: block;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+</style>

@@ -1,0 +1,216 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/archive.css' %}">
+
+{% if user.is_authenticated and user.role == "staff" %}
+    {% include "components/sidebar/staff.html" %}
+
+    <div class="main-content">
+        <div class="delete-confirm-wrapper">
+            <div class="delete-header">
+                <i class="bi bi-trash danger-icon"></i>
+                <h2>Permanently Delete Patient</h2>
+                <p class="danger-text">
+                    <strong>⚠️ Warning: This action cannot be undone!</strong><br>
+                    This will permanently delete the patient and all related records from the database.
+                    An audit log will be maintained for compliance purposes.
+                </p>
+            </div>
+
+            <div class="patient-summary danger">
+                <h3>Patient Information</h3>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <span class="label">Name:</span>
+                        <span class="value">{{ patient.user.get_full_name }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">ID:</span>
+                        <span class="value">{{ patient.patient_id }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Email:</span>
+                        <span class="value">{{ patient.user.email }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Age:</span>
+                        <span class="value">{{ patient.age }} years</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="affected-records danger">
+                <h3>What will be permanently deleted:</h3>
+                <ul>
+                    <li><i class="bi bi-x-circle"></i> Patient profile and user account</li>
+                    <li><i class="bi bi-x-circle"></i> All vital signs records ({{ patient.vitals.count }} records)</li>
+                    <li><i class="bi bi-x-circle"></i> All allergies ({{ patient.allergies.count }} records)</li>
+                    <li><i class="bi bi-x-circle"></i> All medications ({{ patient.medications.count }} records)</li>
+                    <li><i class="bi bi-x-circle"></i> All appointments</li>
+                    <li><i class="bi bi-x-circle"></i> All medical records</li>
+                </ul>
+                <p class="danger-note">
+                    <i class="bi bi-info-circle"></i>
+                    An audit log will be created to maintain compliance records.
+                </p>
+            </div>
+
+            <form method="post" class="delete-form" onsubmit="return confirmDeletion()">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="reason">
+                        Reason for deletion 
+                        <span class="required">(required)</span>
+                    </label>
+                    <textarea 
+                        name="reason" 
+                        id="reason" 
+                        rows="3" 
+                        class="form-control"
+                        placeholder="Enter reason for permanently deleting this patient..."
+                        required
+                    ></textarea>
+                </div>
+
+                <div class="confirmation-check">
+                    <input type="checkbox" id="confirm" required>
+                    <label for="confirm">
+                        I understand this action is permanent and cannot be undone
+                    </label>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Permanently Delete
+                    </button>
+                    <a href="{% url 'patient_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-x"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endif %}
+
+<style>
+.delete-confirm-wrapper {
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 30px;
+    background: var(--bg-card);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    border: 2px solid #ef4444;
+}
+
+.delete-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #ef4444;
+}
+
+.danger-icon {
+    font-size: 3rem;
+    color: #ef4444;
+    margin-bottom: 10px;
+}
+
+.delete-header h2 {
+    color: #ef4444;
+    margin-bottom: 10px;
+}
+
+.danger-text {
+    color: var(--text-main);
+    font-size: 14px;
+    max-width: 500px;
+    margin: 0 auto;
+    background: rgba(239, 68, 68, 0.1);
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.patient-summary.danger {
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid #ef4444;
+}
+
+.affected-records.danger {
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 4px solid #ef4444;
+}
+
+.affected-records.danger li i {
+    color: #ef4444;
+}
+
+.danger-note {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.danger-note i {
+    color: #3b82f6;
+    font-size: 16px;
+}
+
+.delete-form .required {
+    color: #ef4444;
+    font-weight: 400;
+    font-size: 13px;
+}
+
+.confirmation-check {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(239, 68, 68, 0.05);
+    border-radius: 8px;
+    border: 1px solid #ef4444;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.confirmation-check input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.confirmation-check label {
+    margin: 0;
+    cursor: pointer;
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+</style>
+
+<script>
+function confirmDeletion() {
+    return confirm('Are you absolutely sure you want to permanently delete this patient? This action CANNOT be undone!');
+}
+</script>
+{% endblock %}

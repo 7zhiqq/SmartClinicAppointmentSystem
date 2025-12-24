@@ -1,0 +1,257 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/archive.css' %}">
+
+{% if user.is_authenticated %}
+    {% if user.role == "staff" or user.role == "patient" %}
+        {% if user.role == "staff" %}
+            {% include "components/sidebar/staff.html" %}
+        {% else %}
+            {% include "components/sidebar/patient.html" %}
+        {% endif %}
+
+        <div class="main-content">
+            <div class="archive-confirm-wrapper">
+                <div class="archive-header">
+                    <i class="bi bi-archive warning-icon"></i>
+                    <h2>Archive Patient</h2>
+                    <p class="warning-text">
+                        This action will archive the patient and all related records. 
+                        Archived data can be reviewed but cannot be restored.
+                    </p>
+                </div>
+
+                <div class="patient-summary">
+                    <h3>Patient Information</h3>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <span class="label">Name:</span>
+                            <span class="value">
+                                {% if patient_type == "self" %}
+                                    {{ patient.user.get_full_name }}
+                                {% else %}
+                                    {{ patient.full_name }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">ID:</span>
+                            <span class="value">{{ patient.patient_id }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Age:</span>
+                            <span class="value">{{ patient.age }} years</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Gender:</span>
+                            <span class="value">
+                                {% if patient.gender == 'M' %}Male{% else %}Female{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="affected-records">
+                    <h3>What will be archived:</h3>
+                    <ul>
+                        <li><i class="bi bi-check-circle"></i> Patient profile information</li>
+                        <li><i class="bi bi-check-circle"></i> All vital signs records</li>
+                        <li><i class="bi bi-check-circle"></i> All allergies</li>
+                        <li><i class="bi bi-check-circle"></i> All medications</li>
+                        <li><i class="bi bi-check-circle"></i> All appointments</li>
+                        <li><i class="bi bi-check-circle"></i> All medical records and prescriptions</li>
+                    </ul>
+                </div>
+
+                <form method="post" class="archive-form">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="reason">
+                            Reason for archiving 
+                            <span class="optional">(optional)</span>
+                        </label>
+                        <textarea 
+                            name="reason" 
+                            id="reason" 
+                            rows="3" 
+                            class="form-control"
+                            placeholder="Enter reason for archiving this patient..."
+                        ></textarea>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-archive"></i> Archive Patient
+                        </button>
+                        <a href="{% if user.role == 'staff' %}{% url 'patient_list' %}{% else %}{% url 'medical_records' %}{% endif %}" 
+                           class="btn btn-secondary">
+                            <i class="bi bi-x"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+{% endif %}
+
+<style>
+.archive-confirm-wrapper {
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 30px;
+    background: var(--bg-card);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+}
+
+.archive-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--border-light);
+}
+
+.warning-icon {
+    font-size: 3rem;
+    color: #f59e0b;
+    margin-bottom: 10px;
+}
+
+.archive-header h2 {
+    color: var(--text-main);
+    margin-bottom: 10px;
+}
+
+.warning-text {
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.patient-summary {
+    background: var(--bg-muted);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.patient-summary h3 {
+    font-size: 16px;
+    margin-bottom: 15px;
+    color: var(--text-main);
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.summary-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.summary-item .label {
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.summary-item .value {
+    color: var(--text-main);
+}
+
+.affected-records {
+    background: rgba(245, 158, 11, 0.1);
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid #f59e0b;
+    margin-bottom: 20px;
+}
+
+.affected-records h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    color: var(--text-main);
+}
+
+.affected-records ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.affected-records li {
+    padding: 6px 0;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.affected-records li i {
+    color: #f59e0b;
+}
+
+.archive-form .form-group {
+    margin-bottom: 20px;
+}
+
+.archive-form label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.archive-form .optional {
+    font-weight: 400;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.action-buttons .btn {
+    flex: 1;
+    padding: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-warning {
+    background: #f59e0b;
+    color: white;
+    border: none;
+}
+
+.btn-warning:hover {
+    background: #d97706;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+@media (max-width: 768px) {
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+}
+</style>
+{% endblock %}

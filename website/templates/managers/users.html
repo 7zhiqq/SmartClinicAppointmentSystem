@@ -85,7 +85,12 @@
                                         Reject
                                     </a>    
                                 {% else %}
-                                    <span class="action-menu">More</span>
+                                    <a href="{% url 'archive_doctor' doctor.id %}" 
+                                        class="action-btn action-archive"
+                                        onclick="return confirm('Archive this doctor?')">
+                                            <i class="bi bi-archive"></i>
+                                            Archive
+                                    </a>
                                 {% endif %}
                             </td>
                         </tr>
