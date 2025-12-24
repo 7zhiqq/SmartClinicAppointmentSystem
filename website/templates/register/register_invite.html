@@ -22,8 +22,22 @@
                     Email: <strong>{{ invite.email }}</strong>
                 </p>
 
+                <!-- EXPIRATION WARNING -->
+                <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: var(--text-main);">
+                    <i class="bi bi-clock" style="color: #3b82f6; margin-right: 6px;"></i>
+                    <strong>Link expires in:</strong> <span style="color: #3b82f6; font-weight: 600;">{{ time_remaining }} hours</span>
+                </div>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}" style="margin-bottom: 16px;">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
                 {% if form.errors %}
-                    <div class="alert">
+                    <div class="alert" style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; margin-bottom: 16px;">
                         <strong>Please fix the following:</strong>
                         <ul>
                             {% for field in form %}
@@ -84,4 +98,16 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // Optional: Auto-update countdown timer every minute
+        document.addEventListener('DOMContentLoaded', function() {
+            const timeDisplay = document.querySelector('[style*="color: #3b82f6"]');
+            if (timeDisplay) {
+                setInterval(function() {
+                    location.reload(); // Reload to get fresh time
+                }, 60000); // Every 60 seconds
+            }
+        });
+    </script>
 {% endblock %}

@@ -4,9 +4,27 @@
         {% if user.role == "manager" %}
             {% include 'components/sidebar/manager.html' %}
             <div class="main-content" id="mainContent">
-                <h2>Invite created</h2>
-                <p>Share this link with the user:</p>
-                <p><a href="{{ invite_link }}">{{ invite_link }}</a></p>
+                <div style="max-width: 600px; margin: 40px auto; padding: 30px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-lg); border: 1px solid var(--border-light);">
+                    <h2 style="color: var(--success); margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <i class="bi bi-check-circle"></i> Invite Created
+                    </h2>
+                    
+                    <p style="margin-bottom: 10px;">Share this link with the user:</p>
+                    <div style="background: var(--bg-muted); padding: 15px; border-radius: 8px; margin-bottom: 20px; word-break: break-all;">
+                        <code style="color: var(--primary); font-weight: 600;">{{ invite_link }}</code>
+                    </div>
+
+                    <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                        <p style="margin: 0; font-size: 14px; color: var(--text-main);">
+                            <i class="bi bi-clock" style="color: #3b82f6; margin-right: 6px;"></i>
+                            <strong>Link expires:</strong> {{ expires_at|date:"F d, Y H:i" }}
+                        </p>
+                    </div>
+
+                    <a href="{% url 'manager_users' %}" style="display: inline-block; padding: 10px 20px; background: var(--primary); color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+                        Back to Users
+                    </a>
+                </div>
             </div>
         {% endif %}
     {% endif %}

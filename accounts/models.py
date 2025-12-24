@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from .validators import validate_ph_phone_number
 from django.core.exceptions import ValidationError
 
@@ -69,6 +69,28 @@ class Invite(models.Model):
 
     def __str__(self):
         return f"{self.email} - {self.role}"
+
+    def is_expired(self):
+        """Check if the invite link has expired (24 hours)"""
+        expiry_time = self.created_at + timedelta(hours=24)
+        return datetime.now(self.created_at.tzinfo) > expiry_time
+
+    def is_valid(self):
+        """Check if the invite is still valid (not expired and not used)"""
+        return not self.is_expired() and not self.used
+
+    @property
+    def expires_at(self):
+        """Return the expiration datetime"""
+        return self.created_at + timedelta(hours=24)
+
+    @property
+    def time_remaining(self):
+        """Return remaining time in hours"""
+        if self.is_expired():
+            return 0
+        remaining = self.expires_at - datetime.now(self.created_at.tzinfo)
+        return max(0, remaining.total_seconds() / 3600)
 
 
 # ? Allow google/facebook registration and login (OAuth2, all roles)
