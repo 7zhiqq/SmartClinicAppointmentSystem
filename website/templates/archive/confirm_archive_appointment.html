@@ -1,0 +1,97 @@
+<!-- website/templates/archive/confirm_archive_appointment.html -->
+
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/edit-profile.css' %}">
+    
+    {% if user.is_authenticated and user.role in 'staff,manager' %}
+        {% include "components/sidebar/staff.html" %}
+
+        <div class="main-content">
+            <div class="edit-profile-wrapper">
+                <h2>
+                    <i class="bi bi-archive"></i> 
+                    Archive Appointment
+                </h2>
+
+                <div style="background: rgba(245, 158, 11, 0.1); padding: 15px; border-left: 4px solid var(--warning); border-radius: 8px; margin-bottom: 20px;">
+                    <p style="margin: 0; color: var(--warning);">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Note:</strong> Archiving will move this appointment to the archive. You can restore it later if needed.
+                    </p>
+                </div>
+
+                <!-- Appointment Details -->
+                <div style="background: var(--bg-muted); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 style="margin-top: 0; color: var(--text-main);">Appointment Details</h4>
+                    
+                    <p style="margin: 10px 0;">
+                        <strong>Patient:</strong> 
+                        {% if is_dependent %}
+                            {{ appointment.dependent_patient.full_name }}
+                            <span class="badge bg-info">Dependent</span>
+                        {% else %}
+                            {{ appointment.patient.get_full_name }}
+                        {% endif %}
+                    </p>
+                    
+                    <p style="margin: 10px 0;">
+                        <strong>Doctor:</strong> 
+                        Dr. {{ appointment.doctor.user.get_full_name }}
+                        {% if appointment.doctor.specialization %}
+                            ({{ appointment.doctor.specialization.name }})
+                        {% endif %}
+                    </p>
+                    
+                    <p style="margin: 10px 0;">
+                        <strong>Date & Time:</strong>
+                        {{ appointment.start_time|date:"F d, Y" }}
+                        at
+                        {{ appointment.start_time|time:"h:i A" }}
+                    </p>
+                    
+                    <p style="margin: 10px 0;">
+                        <strong>Status:</strong>
+                        <span class="status-badge status-{{ appointment.status }}">
+                            {{ appointment.get_status_display }}
+                        </span>
+                    </p>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="reason">Archive Reason (Optional):</label>
+                        <textarea 
+                            name="reason" 
+                            id="reason" 
+                            rows="3" 
+                            class="form-control"
+                            placeholder="Enter a reason for archiving this appointment..."
+                        ></textarea>
+                        <small class="form-text text-muted">
+                            <i class="bi bi-info-circle"></i> 
+                            This helps track why the appointment was archived
+                        </small>
+                    </div>
+
+                    <div class="form-actions">
+                        <button 
+                            type="submit" 
+                            class="btn btn-warning"
+                            style="background: var(--warning); color: white;"
+                        >
+                            <i class="bi bi-archive"></i> Archive Appointment
+                        </button>
+                        <a href="{% url 'appointments' %}" class="btn btn-secondary">
+                            <i class="bi bi-x"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

@@ -356,3 +356,171 @@ def archived_patient_details_ajax(request, pk):
     
     except Exception as e:
         return JsonResponse({'html': f'<p class="muted">Error: {str(e)}</p>'})
+    
+# ==================== APPOINTMENT ARCHIVE ====================
+
+@login_required
+def archive_appointment_view(request, pk):
+    """Archive a regular appointment"""
+    if request.user.role not in ['staff', 'manager']:
+        messages.error(request, "Access denied")
+        return redirect('home')
+    
+    appointment = get_object_or_404(Appointment, pk=pk)
+    
+    # Check if appointment can be archived
+    if appointment.status not in ['completed', 'rejected', 'no_show']:
+        messages.error(request, "Only completed, rejected, or no-show appointments can be archived")
+        return redirect('appointments')
+    
+    if request.method == 'POST':
+        reason = request.POST.get('reason', '').strip()
+        
+        try:
+            ArchiveService.archive_appointment(pk, request.user, reason)
+            messages.success(request, f"Appointment archived successfully")
+            return redirect('appointments')
+        except ValidationError as e:
+            messages.error(request, str(e))
+        except Exception as e:
+            messages.error(request, f"Error archiving appointment: {str(e)}")
+    
+    return render(request, 'archive/confirm_archive_appointment.html', {
+        'appointment': appointment,
+        'is_dependent': False
+    })
+
+
+@login_required
+def archive_dependent_appointment_view(request, pk):
+    """Archive a dependent appointment"""
+    if request.user.role not in ['staff', 'manager']:
+        messages.error(request, "Access denied")
+        return redirect('home')
+    
+    appointment = get_object_or_404(DependentAppointment, pk=pk)
+    
+    # Check if appointment can be archived
+    if appointment.status not in ['completed', 'rejected', 'no_show']:
+        messages.error(request, "Only completed, rejected, or no-show appointments can be archived")
+        return redirect('appointments')
+    
+    if request.method == 'POST':
+        reason = request.POST.get('reason', '').strip()
+        
+        try:
+            ArchiveService.archive_dependent_appointment(pk, request.user, reason)
+            messages.success(request, f"Appointment archived successfully")
+            return redirect('appointments')
+        except ValidationError as e:
+            messages.error(request, str(e))
+        except Exception as e:
+            messages.error(request, f"Error archiving appointment: {str(e)}")
+    
+    return render(request, 'archive/confirm_archive_appointment.html', {
+        'appointment': appointment,
+        'is_dependent': True
+    })
+
+
+@login_required
+def bulk_archive_appointments(request):
+    """Bulk archive old appointments"""
+    if request.user.role not in ['staff', 'manager']:
+        messages.error(request, "Access denied")
+        return redirect('home')
+    
+    if request.method == 'POST':
+        days = int(request.POST.get('days', 90))
+        
+        try:
+            count = ArchiveService.bulk_archive_old_appointments(days, request.user)
+            messages.success(request, f"Successfully archived {count} appointments older than {days} days")
+            return redirect('appointments')
+        except Exception as e:
+            messages.error(request, f"Error during bulk archive: {str(e)}")
+    
+    return render(request, 'archive/bulk_archive_appointments.html')
+
+
+@login_required
+def restore_archived_appointment(request, pk):
+    """Restore an archived appointment"""
+    if request.user.role not in ['staff', 'manager']:
+        messages.error(request, "Access denied")
+        return redirect('home')
+    
+    if request.method == 'POST':
+        try:
+            restored = ArchiveService.restore_appointment(pk)
+            messages.success(request, "Appointment restored successfully")
+            return redirect('archived_appointments')
+        except ValidationError as e:
+            messages.error(request, str(e))
+        except Exception as e:
+            messages.error(request, f"Error restoring appointment: {str(e)}")
+        
+        return redirect('archived_appointments')
+    
+    # GET request - show confirmation
+    from website.archive_models import ArchivedAppointment
+    archived = get_object_or_404(ArchivedAppointment, pk=pk)
+    
+    return render(request, 'archive/confirm_restore_appointment.html', {
+        'archived': archived
+    })
+
+
+# ==================== UPDATE YOUR archived_appointments_list VIEW ====================
+
+@login_required
+def archived_appointments_list(request):
+    """View archived appointments - UPDATED"""
+    from website.archive_models import ArchivedAppointment
+    
+    # Permission check
+    if request.user.role == 'patient':
+        # Patients see their own archived appointments
+        patient_name = request.user.get_full_name()
+        archived_appointments = ArchivedAppointment.objects.filter(
+            patient_name__icontains=patient_name
+        )
+    elif request.user.role == 'doctor':
+        # Doctors see their archived appointments
+        doctor_name = request.user.get_full_name()
+        archived_appointments = ArchivedAppointment.objects.filter(
+            doctor_name__icontains=doctor_name
+        )
+    elif request.user.role in ['staff', 'manager']:
+        # Staff/Manager see all archived appointments
+        archived_appointments = ArchivedAppointment.objects.all()
+    else:
+        messages.error(request, "Access denied")
+        return redirect('home')
+    
+    # Search functionality
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        from django.db.models import Q
+        archived_appointments = archived_appointments.filter(
+            Q(patient_name__icontains=search_query) |
+            Q(doctor_name__icontains=search_query) |
+            Q(doctor_specialization__icontains=search_query)
+        )
+    
+    # Filter by status
+    status_filter = request.GET.get('status', '').strip()
+    if status_filter:
+        archived_appointments = archived_appointments.filter(status=status_filter)
+    
+    # Filter by appointment type
+    type_filter = request.GET.get('type', '').strip()
+    if type_filter:
+        archived_appointments = archived_appointments.filter(appointment_type=type_filter)
+    
+    return render(request, 'archive/archived_appointments.html', {
+        'archived_appointments': archived_appointments,
+        'search_query': search_query,
+        'status_filter': status_filter,
+        'type_filter': type_filter
+    })

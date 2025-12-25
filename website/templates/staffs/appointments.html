@@ -4,6 +4,7 @@
 
 {% block content %}
     <link rel="stylesheet" href="{% static 'css/appointments.css' %}">
+    <link rel="stylesheet" href="{% static 'css/schedule.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/bootstrap-icons.min.css">
 
 
@@ -11,9 +12,14 @@
         {% include "components/sidebar/staff.html" %}
 
         <div class="main-content">
-            <div class="mb-3">
-                <h2 class="heading-title">Appointments</h2>
-                <p class="subtitle">Manage all patient appointments</p>
+            <div class="schedule-header mb-4">
+                <div>
+                    <h2 class="heading-title">Appointments</h2>
+                    <p class="subtitle">Manage all patient appointments</p>
+                </div>
+                <a href="{% url 'archived_appointments' %}" class="archived-btn mt-2">
+                    Archived Appointments
+                </a>
             </div>
 
             <div class="row g-3 mb-4">
@@ -141,6 +147,14 @@
                                         <a href="{% url 'reschedule_appointment' a.id %}" class="btn-action reschedule-btn" title="Reschedule">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
+                                    {% elif a.status in 'completed,rejected,no_show' %}
+                                        <a href="{% url 'archive_appointment' a.id %}" 
+                                        class="btn-action"
+                                        style="color: var(--warning); border-color: var(--warning);"
+                                        title="Archive"
+                                        onclick="return confirm('Archive this appointment?');">
+                                            <i class="bi bi-archive"></i>
+                                        </a>
                                     {% endif %}
                                 </div>
                             </td>
@@ -184,6 +198,14 @@
                                         </button>
                                         <a href="{% url 'reschedule_appointment' a.id %}" class="btn-action reschedule-btn" title="Reschedule">
                                             <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                    {% elif da.status in 'completed,rejected,no_show' %}
+                                        <a href="{% url 'archive_dependent_appointment' da.id %}" 
+                                        class="btn-action"
+                                        style="color: var(--warning); border-color: var(--warning);"
+                                        title="Archive"
+                                        onclick="return confirm('Archive this appointment?');">
+                                            <i class="bi bi-archive"></i>
                                         </a>
                                     {% endif %}
                                 </div>

@@ -4,13 +4,20 @@
 
 {% block content %}
     <link rel="stylesheet" href="{% static 'css/medrecords.css' %}">
+    <link rel="stylesheet" href="{% static 'css/schedule.css' %}">
+
     {% if user.is_authenticated %}
             {% include "components/sidebar/staff.html" %}
             <div class="main-content">
-                <h2 class="heading-title">Patients</h2>
-                <p class="subtitle">
-                    View and manage patient medical records
-                </p>
+                <div class="schedule-header mb-4">
+                    <div>
+                        <h2 class="heading-title">Patients</h2>
+                        <p class="subtitle"> View and manage patient medical records</p>
+                    </div>
+                    <a href="{% url 'archived_patients' %}" class="archived-btn mt-2">
+                        Archived Patients
+                    </a>
+                </div>
                 <div class="dashboard">
                     <aside class="patient-list-panel">
                         <input

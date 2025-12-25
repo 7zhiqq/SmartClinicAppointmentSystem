@@ -31,6 +31,31 @@
     font-weight: var(--font-weight-normal);
 }
 
+
+.archived-btn {
+    padding: 10px 20px;
+    background: var(--white);
+    color: var(--primary);
+    text-decoration: none;
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-md);
+    font-weight: var(--font-weight-semibold);
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.archived-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
+}
+
 /* ==================== PATIENT LIST PANEL ==================== */
 .patient-list-panel {
     background: var(--bg-card);

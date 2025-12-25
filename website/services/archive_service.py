@@ -4,6 +4,8 @@ Service layer for archiving and deleting records
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from datetime import timedelta
+
 import json
 
 from website.models import (
@@ -139,30 +141,6 @@ class ArchiveService:
         return archived_dependent
     
     @staticmethod
-    def _archive_appointment(appointment, user, reason, appt_type):
-        """Helper to archive an appointment"""
-        if appt_type == 'self':
-            patient_name = appointment.patient.get_full_name()
-        else:
-            patient_name = appointment.dependent_patient.full_name
-        
-        doctor_name = appointment.doctor.user.get_full_name()
-        doctor_spec = appointment.doctor.specialization.name if appointment.doctor.specialization else ""
-        
-        return ArchivedAppointment.objects.create(
-            original_appointment_id=appointment.id,
-            appointment_type=appt_type,
-            patient_name=patient_name,
-            doctor_name=doctor_name,
-            doctor_specialization=doctor_spec,
-            start_time=appointment.start_time,
-            end_time=appointment.end_time,
-            status=appointment.status,
-            archived_by=user,
-            archive_reason=reason
-        )
-    
-    @staticmethod
     def _archive_medical_record(record, user, reason):
         """Helper to archive a medical record"""
         # Get patient name
@@ -252,6 +230,203 @@ class ArchiveService:
         
         return archived_doctor
 
+    @staticmethod
+    @transaction.atomic
+    def archive_appointment(appointment_id, user=None, reason=''):
+        """
+        Archive a regular appointment
+        """
+        from website.models import Appointment
+        
+        appointment = Appointment.objects.select_for_update().get(pk=appointment_id)
+        
+        # Only archive completed, rejected, or no_show appointments
+        if appointment.status not in ['completed', 'rejected', 'no_show']:
+            raise ValidationError("Only completed, rejected, or no-show appointments can be archived")
+        
+        # Create archived record
+        archived = ArchivedAppointment.objects.create(
+            original_appointment_id=appointment.id,
+            appointment_type='self',
+            patient_name=appointment.patient.get_full_name(),
+            doctor_name=appointment.doctor.user.get_full_name(),
+            doctor_specialization=appointment.doctor.specialization.name if appointment.doctor.specialization else None,
+            start_time=appointment.start_time,
+            end_time=appointment.end_time,
+            status=appointment.status,
+            archived_by=user,
+            archive_reason=reason or 'Manual archive',
+            additional_data={
+                'patient_id': appointment.patient.id,
+                'doctor_id': appointment.doctor.id,
+                'created_by_id': appointment.created_by.id if appointment.created_by else None
+            }
+        )
+        
+        # Log activity
+        ActivityLog.objects.create(
+            user=user,
+            action_type='delete',
+            model_name='Appointment',
+            object_id=str(appointment.id),
+            related_object_repr=str(appointment),
+            description=f'Archived appointment (reason: {reason or "Manual archive"})'
+        )
+        
+        # Delete original
+        appointment.delete()
+        
+        return archived
+    
+    @staticmethod
+    @transaction.atomic
+    def archive_dependent_appointment(appointment_id, user=None, reason=''):
+        """
+        Archive a dependent appointment
+        """
+        from website.models import DependentAppointment
+        
+        appointment = DependentAppointment.objects.select_for_update().get(pk=appointment_id)
+        
+        # Only archive completed, rejected, or no_show appointments
+        if appointment.status not in ['completed', 'rejected', 'no_show']:
+            raise ValidationError("Only completed, rejected, or no-show appointments can be archived")
+        
+        # Create archived record
+        archived = ArchivedAppointment.objects.create(
+            original_appointment_id=appointment.id,
+            appointment_type='dependent',
+            patient_name=appointment.dependent_patient.full_name,
+            doctor_name=appointment.doctor.user.get_full_name(),
+            doctor_specialization=appointment.doctor.specialization.name if appointment.doctor.specialization else None,
+            start_time=appointment.start_time,
+            end_time=appointment.end_time,
+            status=appointment.status,
+            archived_by=user,
+            archive_reason=reason or 'Manual archive',
+            additional_data={
+                'dependent_patient_id': appointment.dependent_patient.patient_id,
+                'guardian_id': appointment.dependent_patient.guardian.id,
+                'doctor_id': appointment.doctor.id,
+                'created_by_id': appointment.created_by.id if appointment.created_by else None
+            }
+        )
+        
+        # Log activity
+        ActivityLog.objects.create(
+            user=user,
+            action_type='delete',
+            model_name='DependentAppointment',
+            object_id=str(appointment.id),
+            related_object_repr=str(appointment),
+            description=f'Archived dependent appointment (reason: {reason or "Manual archive"})'
+        )
+        
+        # Delete original
+        appointment.delete()
+        
+        return archived
+    
+    @staticmethod
+    def bulk_archive_old_appointments(days=90, user=None):
+        """
+        Auto-archive appointments older than specified days
+        Returns count of archived appointments
+        """
+        from django.db.models import Q
+        
+        cutoff_date = timezone.now() - timedelta(days=days)
+        count = 0
+        
+        # Archive regular appointments
+        old_appointments = Appointment.objects.filter(
+            Q(status='completed') | Q(status='rejected') | Q(status='no_show'),
+            start_time__lt=cutoff_date
+        )
+        
+        for appointment in old_appointments:
+            try:
+                ArchiveService.archive_appointment(
+                    appointment.id, 
+                    user=user, 
+                    reason=f'Auto-archived (older than {days} days)'
+                )
+                count += 1
+            except Exception as e:
+                print(f"Error archiving appointment {appointment.id}: {e}")
+        
+        # Archive dependent appointments
+        old_dependent = DependentAppointment.objects.filter(
+            Q(status='completed') | Q(status='rejected') | Q(status='no_show'),
+            start_time__lt=cutoff_date
+        )
+        
+        for appointment in old_dependent:
+            try:
+                ArchiveService.archive_dependent_appointment(
+                    appointment.id,
+                    user=user,
+                    reason=f'Auto-archived (older than {days} days)'
+                )
+                count += 1
+            except Exception as e:
+                print(f"Error archiving dependent appointment {appointment.id}: {e}")
+        
+        return count
+    
+    @staticmethod
+    @transaction.atomic
+    def restore_appointment(archived_id):
+        """
+        Restore an archived appointment back to active
+        Returns the restored appointment
+        """
+        archived = ArchivedAppointment.objects.get(pk=archived_id)
+        
+        # Check if it was a regular or dependent appointment
+        if archived.appointment_type == 'self':
+            # Get patient and doctor from additional_data
+            patient_id = archived.additional_data.get('patient_id')
+            doctor_id = archived.additional_data.get('doctor_id')
+            
+            if not patient_id or not doctor_id:
+                raise ValidationError("Cannot restore: missing patient or doctor information")
+            
+            from accounts.models import User
+            patient = User.objects.get(pk=patient_id)
+            doctor = DoctorInfo.objects.get(pk=doctor_id)
+            
+            # Restore appointment
+            restored = Appointment.objects.create(
+                patient=patient,
+                doctor=doctor,
+                start_time=archived.start_time,
+                end_time=archived.end_time,
+                status=archived.status
+            )
+            
+        else:  # dependent
+            dependent_patient_id = archived.additional_data.get('dependent_patient_id')
+            doctor_id = archived.additional_data.get('doctor_id')
+            
+            if not dependent_patient_id or not doctor_id:
+                raise ValidationError("Cannot restore: missing patient or doctor information")
+            
+            dependent = DependentPatient.objects.get(patient_id=dependent_patient_id)
+            doctor = DoctorInfo.objects.get(pk=doctor_id)
+            
+            restored = DependentAppointment.objects.create(
+                dependent_patient=dependent,
+                doctor=doctor,
+                start_time=archived.start_time,
+                end_time=archived.end_time,
+                status=archived.status
+            )
+        
+        # Delete archived record
+        archived.delete()
+        
+        return restored
 
 class DeleteService:
     """Service for permanent deletion with audit trail"""
