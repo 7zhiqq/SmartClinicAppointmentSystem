@@ -25,11 +25,29 @@ urlpatterns = [
     path('archived/appointments/', views_archive.archived_appointments_list, name='archived_appointments'),
     path('deleted/records/', views_archive.deleted_records_list, name='deleted_records'),
     
-    # NEW: Doctor Details
+    # Doctor Details
     path('archived/doctor/<int:pk>/details/', views_archive.deleted_doctor_details, name='deleted_doctor_details'),
     
     # AJAX
     path('ajax/archived-patient/<int:pk>/', views_archive.archived_patient_details_ajax, name='archived_patient_details_ajax'),
     path('ajax/archived-doctor/<int:pk>/', views_archive.archived_doctor_details_ajax, name='archived_doctor_details_ajax'),
     path('ajax/deleted-record/<int:pk>/', views_archive.deleted_record_snapshot_ajax, name='deleted_record_snapshot_ajax'),
+
+    path('archived/patient/<int:pk>/records/<str:patient_type>/', 
+        views_archive.archived_patient_detailed_records, 
+        name='archived_patient_records'),
+    path('archived/patient/<int:pk>/records/', 
+        views_archive.archived_patient_detailed_records, 
+        {'patient_type': 'self'}, 
+        name='archived_patient_records_self'),
+
+    path('archived/patient/<int:pk>/restore/confirm/<str:patient_type>/', 
+        views_archive.confirm_restore_patient, 
+        name='confirm_restore_patient'),
+    path('archived/patient/<int:pk>/restore/', 
+        views_archive.restore_patient, 
+        name='restore_patient'),
+    path('archived/patient/<int:pk>/restore/<str:patient_type>/', 
+        views_archive.restore_patient, 
+        name='restore_patient_type'),
 ]

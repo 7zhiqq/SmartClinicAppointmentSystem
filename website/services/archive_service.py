@@ -23,7 +23,6 @@ class ArchiveService:
     """Service for archiving records"""
     
     @staticmethod
-    @transaction.atomic
     def archive_patient(patient_id, user, reason=""):
         """Archive a patient and all related data"""
         try:
@@ -38,6 +37,35 @@ class ArchiveService:
             phone_number = phone.number
         except Phone.DoesNotExist:
             pass
+        
+        # Collect allergies
+        allergies_data = []
+        for allergy in patient.allergies.all():
+            allergies_data.append({
+                'allergy_name': allergy.allergy_name
+            })
+        
+        # Collect medications
+        medications_data = []
+        for medication in patient.medications.all():
+            medications_data.append({
+                'medication_name': medication.medication_name,
+                'dosage': medication.dosage,
+                'frequency': medication.frequency,
+                'prescribed_at': medication.prescribed_at.isoformat()
+            })
+        
+        # Get latest vitals
+        latest_vitals_obj = patient.vitals.last()
+        latest_vitals_data = None
+        if latest_vitals_obj:
+            latest_vitals_data = {
+                'blood_pressure': latest_vitals_obj.blood_pressure,
+                'heart_rate': latest_vitals_obj.heart_rate,
+                'height_cm': latest_vitals_obj.height_cm,
+                'weight_kg': latest_vitals_obj.weight_kg,
+                'recorded_at': latest_vitals_obj.recorded_at.isoformat() if latest_vitals_obj.recorded_at else None
+            }
         
         # Archive patient info
         archived_patient = ArchivedPatientInfo.objects.create(
@@ -57,6 +85,9 @@ class ArchiveService:
                 'vitals_count': patient.vitals.count(),
                 'allergies_count': patient.allergies.count(),
                 'medications_count': patient.medications.count(),
+                'allergies': allergies_data,
+                'medications': medications_data,
+                'latest_vitals': latest_vitals_data,
             }
         )
         
@@ -84,15 +115,44 @@ class ArchiveService:
         patient.delete()
         
         return archived_patient
-    
+
+
     @staticmethod
-    @transaction.atomic
     def archive_dependent(dependent_id, user, reason=""):
         """Archive a dependent patient and related data"""
         try:
             dependent = DependentPatient.objects.get(pk=dependent_id)
         except DependentPatient.DoesNotExist:
             raise ValidationError("Dependent patient not found")
+        
+        # Collect allergies
+        allergies_data = []
+        for allergy in dependent.allergies.all():
+            allergies_data.append({
+                'allergy_name': allergy.allergy_name
+            })
+        
+        # Collect medications
+        medications_data = []
+        for medication in dependent.medications.all():
+            medications_data.append({
+                'medication_name': medication.medication_name,
+                'dosage': medication.dosage,
+                'frequency': medication.frequency,
+                'prescribed_at': medication.prescribed_at.isoformat()
+            })
+        
+        # Get latest vitals
+        latest_vitals_obj = dependent.vitals.last()
+        latest_vitals_data = None
+        if latest_vitals_obj:
+            latest_vitals_data = {
+                'blood_pressure': latest_vitals_obj.blood_pressure,
+                'heart_rate': latest_vitals_obj.heart_rate,
+                'height_cm': latest_vitals_obj.height_cm,
+                'weight_kg': latest_vitals_obj.weight_kg,
+                'recorded_at': latest_vitals_obj.recorded_at.isoformat() if latest_vitals_obj.recorded_at else None
+            }
         
         # Archive dependent info
         archived_dependent = ArchivedDependentPatient.objects.create(
@@ -112,13 +172,16 @@ class ArchiveService:
                 'vitals_count': dependent.vitals.count(),
                 'allergies_count': dependent.allergies.count(),
                 'medications_count': dependent.medications.count(),
+                'allergies': allergies_data,
+                'medications': medications_data,
+                'latest_vitals': latest_vitals_data,
             }
         )
         
         # Archive related appointments
         appointments = DependentAppointment.objects.filter(dependent_patient=dependent)
         for appt in appointments:
-            ArchiveService._archive_appointment(appt, user, reason, 'dependent')
+            ArchiveService._archive_dependent_appointment(appt, user, reason)
         
         # Archive related medical records
         medical_records = MedicalRecord.objects.filter(dependent_patient=dependent)
@@ -139,6 +202,51 @@ class ArchiveService:
         dependent.delete()
         
         return archived_dependent
+        
+    @staticmethod
+    def _archive_appointment(appointment, user, reason, appointment_type):
+        """Helper to archive a regular appointment"""
+        archived = ArchivedAppointment.objects.create(
+            original_appointment_id=appointment.id,
+            appointment_type=appointment_type,
+            patient_name=appointment.patient.get_full_name() if appointment.patient else "Unknown",
+            doctor_name=appointment.doctor.user.get_full_name() if appointment.doctor else "Unknown",
+            doctor_specialization=appointment.doctor.specialization.name if appointment.doctor and appointment.doctor.specialization else None,
+            start_time=appointment.start_time,
+            end_time=appointment.end_time,
+            status=appointment.status,
+            archived_by=user,
+            archive_reason=reason,
+            additional_data={
+                'patient_id': appointment.patient.id if appointment.patient else None,
+                'doctor_id': appointment.doctor.id if appointment.doctor else None,
+                'created_by_id': appointment.created_by.id if appointment.created_by else None
+            }
+        )
+        return archived
+    
+    @staticmethod
+    def _archive_dependent_appointment(appointment, user, reason):
+        """Helper to archive a dependent appointment"""
+        archived = ArchivedAppointment.objects.create(
+            original_appointment_id=appointment.id,
+            appointment_type='dependent',
+            patient_name=appointment.dependent_patient.full_name if appointment.dependent_patient else "Unknown",
+            doctor_name=appointment.doctor.user.get_full_name() if appointment.doctor else "Unknown",
+            doctor_specialization=appointment.doctor.specialization.name if appointment.doctor and appointment.doctor.specialization else None,
+            start_time=appointment.start_time,
+            end_time=appointment.end_time,
+            status=appointment.status,
+            archived_by=user,
+            archive_reason=reason,
+            additional_data={
+                'dependent_patient_id': appointment.dependent_patient.patient_id if appointment.dependent_patient else None,
+                'guardian_id': appointment.dependent_patient.guardian.id if appointment.dependent_patient else None,
+                'doctor_id': appointment.doctor.id if appointment.doctor else None,
+                'created_by_id': appointment.created_by.id if appointment.created_by else None
+            }
+        )
+        return archived
     
     @staticmethod
     def _archive_medical_record(record, user, reason):
@@ -213,7 +321,7 @@ class ArchiveService:
         
         dependent_appointments = DependentAppointment.objects.filter(doctor=doctor)
         for appt in dependent_appointments:
-            ArchiveService._archive_appointment(appt, user, reason, 'dependent')
+            ArchiveService._archive_dependent_appointment(appt, user, reason)
         
         # Log activity
         ActivityLog.objects.create(
@@ -233,11 +341,7 @@ class ArchiveService:
     @staticmethod
     @transaction.atomic
     def archive_appointment(appointment_id, user=None, reason=''):
-        """
-        Archive a regular appointment
-        """
-        from website.models import Appointment
-        
+        """Archive a regular appointment"""
         appointment = Appointment.objects.select_for_update().get(pk=appointment_id)
         
         # Only archive completed, rejected, or no_show appointments
@@ -281,11 +385,7 @@ class ArchiveService:
     @staticmethod
     @transaction.atomic
     def archive_dependent_appointment(appointment_id, user=None, reason=''):
-        """
-        Archive a dependent appointment
-        """
-        from website.models import DependentAppointment
-        
+        """Archive a dependent appointment"""
         appointment = DependentAppointment.objects.select_for_update().get(pk=appointment_id)
         
         # Only archive completed, rejected, or no_show appointments
@@ -329,10 +429,7 @@ class ArchiveService:
     
     @staticmethod
     def bulk_archive_old_appointments(days=90, user=None):
-        """
-        Auto-archive appointments older than specified days
-        Returns count of archived appointments
-        """
+        """Auto-archive appointments older than specified days"""
         from django.db.models import Q
         
         cutoff_date = timezone.now() - timedelta(days=days)
@@ -377,10 +474,7 @@ class ArchiveService:
     @staticmethod
     @transaction.atomic
     def restore_appointment(archived_id):
-        """
-        Restore an archived appointment back to active
-        Returns the restored appointment
-        """
+        """Restore an archived appointment back to active"""
         archived = ArchivedAppointment.objects.get(pk=archived_id)
         
         # Check if it was a regular or dependent appointment

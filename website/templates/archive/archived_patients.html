@@ -78,6 +78,7 @@
                             data-patient-id="{{ patient.pk }}"
                             data-patient-type="{{ patient.patient_type }}"
                             onclick="loadArchivedPatient('{{ patient.pk }}', '{{ patient.patient_type }}')">
+                            
                             <div class="avatar">
                                 {% if patient.patient_type == 'self' %}
                                     {{ patient.user_full_name|slice:":1" }}{{ patient.user_full_name|slice:"1:2" }}
@@ -104,6 +105,17 @@
                                 <small class="archived-badge">
                                     <i class="bi bi-archive"></i> Archived {{ patient.archived_at|date:"M d, Y" }}
                                 </small>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="patient-actions">
+                                <a href="{% url 'archived_patient_records' patient.pk patient.patient_type %}" 
+                                class="action-btn view-btn"
+                                title="View Detailed Records"
+                                onclick="event.stopPropagation();">
+                                    <i class="bi bi-eye"></i>
+                                    View
+                                </a>
                             </div>
                         </li>
                     {% empty %}

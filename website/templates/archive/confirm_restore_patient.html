@@ -1,0 +1,331 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/archive.css' %}">
+
+{% if user.is_authenticated and user.role == "staff" %}
+    {% include "components/sidebar/staff.html" %}
+
+    <div class="main-content">
+        <div class="restore-confirm-wrapper">
+            <div class="restore-header">
+                <i class="bi bi-arrow-counterclockwise restore-icon"></i>
+                <h2>Restore Patient</h2>
+                <p class="info-text">
+                    Restore this archived patient and optionally recover their medical records, appointments, medications, and allergies.
+                </p>
+            </div>
+
+            <div class="patient-summary">
+                <h3>Patient Information</h3>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <span class="label">Name:</span>
+                        <span class="value">
+                            {% if patient_type == "self" %}
+                                {{ patient.user_full_name }}
+                            {% else %}
+                                {{ patient.first_name }} {{ patient.last_name }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">ID:</span>
+                        <span class="value">{{ patient.original_patient_id }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Age:</span>
+                        <span class="value">{{ patient.age }} years</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Gender:</span>
+                        <span class="value">
+                            {% if patient.gender == 'M' %}Male{% else %}Female{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="records-summary">
+                <h3>Associated Records</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">
+                    These records will be recovered along with the patient:
+                </p>
+                <div class="records-grid-restore">
+                    <div class="record-count-item">
+                        <span class="count-number">{{ vitals_count }}</span>
+                        <span class="count-label">Vital Records</span>
+                    </div>
+                    <div class="record-count-item">
+                        <span class="count-number">{{ medications_count }}</span>
+                        <span class="count-label">Medications</span>
+                    </div>
+                    <div class="record-count-item">
+                        <span class="count-number">{{ allergies_count }}</span>
+                        <span class="count-label">Allergies</span>
+                    </div>
+                    <div class="record-count-item">
+                        <span class="count-number">{{ medical_records_count }}</span>
+                        <span class="count-label">Medical Records</span>
+                    </div>
+                    <div class="record-count-item">
+                        <span class="count-number">{{ appointments_count }}</span>
+                        <span class="count-label">Appointments</span>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" class="restore-form">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="restore_records" name="restore_records" value="on" checked>
+                        <label for="restore_records">
+                            <strong>Restore all associated records</strong>
+                            <span style="display: block; font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                                Medical records, prescriptions, appointments, medications, allergies, and vital signs will be recovered
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="info-box success-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Note:</strong> The patient will be restored to the active system and all their records will become accessible to staff again.
+                </div>
+
+                <div class="action-buttons">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-arrow-counterclockwise"></i> Restore Patient
+                    </button>
+                    <a href="{% url 'archived_patients' %}" class="btn btn-secondary">
+                        <i class="bi bi-x"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .restore-confirm-wrapper {
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 30px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .restore-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .restore-icon {
+            font-size: 3rem;
+            color: #10b981;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .restore-header h2 {
+            color: var(--text-main);
+            margin-bottom: 10px;
+        }
+
+        .info-text {
+            color: var(--text-muted);
+            font-size: 14px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .patient-summary {
+            background: var(--bg-muted);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .patient-summary h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: var(--text-main);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .summary-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .summary-item .label {
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .summary-item .value {
+            color: var(--text-main);
+        }
+
+        .records-summary {
+            background: rgba(16, 185, 129, 0.05);
+            border: 1px solid #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .records-summary h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: var(--text-main);
+        }
+
+        .records-grid-restore {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 12px;
+        }
+
+        .record-count-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #10b981;
+        }
+
+        .count-number {
+            display: block;
+            font-size: 20px;
+            font-weight: 700;
+            color: #10b981;
+            margin-bottom: 4px;
+        }
+
+        .count-label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .restore-form .form-group {
+            margin-bottom: 20px;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-top: 2px;
+            cursor: pointer;
+        }
+
+        .checkbox-wrapper label {
+            cursor: pointer;
+            color: var(--text-main);
+            flex: 1;
+        }
+
+        .success-info {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: var(--text-main);
+        }
+
+        .success-info i {
+            color: #10b981;
+            margin-right: 8px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .action-buttons .btn {
+            flex: 1;
+            padding: 12px;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+            border: none;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--text-main);
+            border: 1px solid var(--border-light);
+            text-decoration: none;
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-200);
+            border-color: var(--text-muted);
+        }
+
+        @media (max-width: 768px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .restore-confirm-wrapper {
+                margin: 20px;
+                padding: 20px;
+            }
+        }
+    </style>
+
+{% else %}
+    <div class="main-content">
+        <div style="text-align: center; padding: 40px;">
+            <i class="bi bi-lock" style="font-size: 3rem; color: var(--text-muted);"></i>
+            <h3>Access Denied</h3>
+            <p>You don't have permission to restore archived patients.</p>
+            <a href="{% url 'home' %}" class="btn btn-primary">Go to Dashboard</a>
+        </div>
+    </div>
+{% endif %}
+
+{% endblock %}

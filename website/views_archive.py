@@ -4,8 +4,25 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.utils import timezone
 
-from website.models import PatientInfo, DependentPatient, DoctorInfo, Appointment, DependentAppointment
+from accounts.models import User, Phone
+
+from website.models import (PatientInfo,
+    DependentPatient,
+    DoctorInfo,
+    Appointment,
+    DependentAppointment,
+    MedicalRecord,
+    ActivityLog,
+    Prescription,
+    PatientAllergy,
+    DependentPatientAllergy,
+    DependentPatientMedication,
+    PatientMedication,
+    PatientVitals,
+    DependentPatientVitals
+)
 from website.archive_models import (
     ArchivedPatientInfo, ArchivedDependentPatient, ArchivedDoctorInfo,
     ArchivedAppointment, ArchivedMedicalRecord, DeletedRecord
@@ -605,3 +622,393 @@ def archived_doctor_details_ajax(request, pk):
     except Exception as e:
         return JsonResponse({'html': f'<p class="muted">Error: {str(e)}</p>'})
     
+
+@login_required
+def archived_patient_detailed_records(request, pk, patient_type='self'):
+    """View detailed records for an archived patient"""
+    if request.user.role != 'staff':
+        messages.error(request, "Access denied.")
+        return redirect('home')
+    
+    try:
+        # Get the archived patient
+        if patient_type == 'self':
+            patient = ArchivedPatientInfo.objects.get(pk=pk)
+            patient.patient_type = 'self'
+        else:
+            patient = ArchivedDependentPatient.objects.get(pk=pk)
+            patient.patient_type = 'dependent'
+        
+        # Get archived medical records
+        medical_records = ArchivedMedicalRecord.objects.filter(
+            patient_id_str=patient.original_patient_id
+        ).order_by('-created_at')
+        
+        # Get archived appointments
+        appointments = ArchivedAppointment.objects.filter(
+            patient_name=patient.user_full_name if patient_type == 'self' else f"{patient.first_name} {patient.last_name}"
+        ).order_by('-start_time')
+        
+        # Parse additional data
+        additional_data = patient.additional_data or {}
+        
+        # Get counts
+        vitals_count = additional_data.get('vitals_count', 0)
+        allergies_count = additional_data.get('allergies_count', 0)
+        medications_count = additional_data.get('medications_count', 0)
+        medical_records_count = medical_records.count()
+        appointments_count = appointments.count()
+        
+        # Extract latest vitals
+        latest_vitals = None
+        if additional_data.get('latest_vitals'):
+            class LatestVitals:
+                pass
+            vitals_data = additional_data['latest_vitals']
+            latest_vitals = LatestVitals()
+            latest_vitals.blood_pressure = vitals_data.get('blood_pressure', 'N/A')
+            latest_vitals.heart_rate = vitals_data.get('heart_rate', 'N/A')
+            latest_vitals.height_cm = vitals_data.get('height_cm', 'N/A')
+            latest_vitals.weight_kg = vitals_data.get('weight_kg', 'N/A')
+            latest_vitals.recorded_at = vitals_data.get('recorded_at', '')
+        
+        # Extract allergies
+        allergies = []
+        if additional_data.get('allergies'):
+            for allergy_data in additional_data['allergies']:
+                class Allergy:
+                    pass
+                allergy = Allergy()
+                allergy.allergy_name = allergy_data.get('allergy_name', 'Unknown')
+                allergies.append(allergy)
+        
+        # Extract medications
+        medications = []
+        if additional_data.get('medications'):
+            for med_data in additional_data['medications']:
+                class Medication:
+                    pass
+                medication = Medication()
+                medication.medication_name = med_data.get('medication_name', 'Unknown')
+                medication.dosage = med_data.get('dosage', 'N/A')
+                medication.frequency = med_data.get('frequency', 'N/A')
+                medication.prescribed_at = med_data.get('prescribed_at', '')
+                medications.append(medication)
+        
+        context = {
+            'patient': patient,
+            'medical_records': medical_records,
+            'appointments': appointments,
+            'allergies': allergies,
+            'medications': medications,
+            'latest_vitals': latest_vitals,
+            'vitals_count': vitals_count,
+            'allergies_count': allergies_count,
+            'medications_count': medications_count,
+            'medical_records_count': medical_records_count,
+            'appointments_count': appointments_count,
+        }
+        
+        return render(request, 'archive/archived_patient_records.html', context)
+    
+    except (ArchivedPatientInfo.DoesNotExist, ArchivedDependentPatient.DoesNotExist):
+        messages.error(request, "Archived patient not found.")
+        return redirect('archived_patients')
+    
+    except Exception as e:
+        print(f"Error in archived_patient_detailed_records: {e}")
+        import traceback
+        traceback.print_exc()
+        messages.error(request, f"Error loading patient records: {str(e)}")
+        return redirect('archived_patients')
+    
+
+@login_required
+def confirm_restore_patient(request, pk, patient_type='self'):
+    """Show confirmation page for restoring an archived patient"""
+    if request.user.role != 'staff':
+        messages.error(request, "Access denied.")
+        return redirect('home')
+    
+    try:
+        if patient_type == 'self':
+            patient = ArchivedPatientInfo.objects.get(pk=pk)
+        else:
+            patient = ArchivedDependentPatient.objects.get(pk=pk)
+        
+        # Count related archived records
+        if patient_type == 'self':
+            medical_records_count = ArchivedMedicalRecord.objects.filter(
+                patient_id_str=patient.original_patient_id
+            ).count()
+        else:
+            medical_records_count = ArchivedMedicalRecord.objects.filter(
+                patient_id_str=patient.original_patient_id
+            ).count()
+        
+        appointments_count = ArchivedAppointment.objects.filter(
+            patient_name=patient.user_full_name if patient_type == 'self' else f"{patient.first_name} {patient.last_name}"
+        ).count()
+        
+        additional_data = patient.additional_data or {}
+        vitals_count = additional_data.get('vitals_count', 0)
+        allergies_count = additional_data.get('allergies_count', 0)
+        medications_count = additional_data.get('medications_count', 0)
+        
+        context = {
+            'patient': patient,
+            'patient_type': patient_type,
+            'medical_records_count': medical_records_count,
+            'appointments_count': appointments_count,
+            'vitals_count': vitals_count,
+            'allergies_count': allergies_count,
+            'medications_count': medications_count,
+        }
+        
+        return render(request, 'archive/confirm_restore_patient.html', context)
+    
+    except (ArchivedPatientInfo.DoesNotExist, ArchivedDependentPatient.DoesNotExist):
+        messages.error(request, "Archived patient not found.")
+        return redirect('archived_patients')
+    
+    except Exception as e:
+        messages.error(request, f"Error: {str(e)}")
+        return redirect('archived_patients')
+
+
+@login_required
+def restore_patient(request, pk, patient_type='self'):
+    """Restore an archived patient and optionally their records"""
+    if request.user.role != 'staff':
+        messages.error(request, "Access denied.")
+        return redirect('home')
+    
+    if request.method != 'POST':
+        messages.error(request, "Invalid request method.")
+        return redirect('archived_patients')
+    
+    try:
+        restore_records = request.POST.get('restore_records', 'on') == 'on'
+        
+        if patient_type == 'self':
+            archived_patient = ArchivedPatientInfo.objects.get(pk=pk)
+            
+            # Get or create user (user should still exist)
+            try:
+                user = User.objects.get(id=archived_patient.user_id)
+            except User.DoesNotExist:
+                messages.error(request, "Cannot restore: Original user account no longer exists.")
+                return redirect('archived_patients')
+            
+            # Restore PatientInfo
+            restored_patient = PatientInfo.objects.create(
+                patient_id=archived_patient.original_patient_id,
+                user=user,
+                gender=archived_patient.gender,
+                birthdate=archived_patient.birthdate,
+                age=archived_patient.age,
+                blood_type=archived_patient.blood_type or None,
+            )
+            
+            # Restore phone if available
+            if archived_patient.phone_number:
+                Phone.objects.update_or_create(
+                    user=user,
+                    defaults={'number': archived_patient.phone_number}
+                )
+            
+            patient_name = user.get_full_name()
+            
+        else:  # dependent
+            archived_patient = ArchivedDependentPatient.objects.get(pk=pk)
+            
+            # Get guardian
+            try:
+                guardian = User.objects.get(id=archived_patient.guardian_id)
+            except User.DoesNotExist:
+                messages.error(request, "Cannot restore: Guardian account no longer exists.")
+                return redirect('archived_patients')
+            
+            # Restore DependentPatient
+            restored_patient = DependentPatient.objects.create(
+                patient_id=archived_patient.original_patient_id,
+                guardian=guardian,
+                first_name=archived_patient.first_name,
+                last_name=archived_patient.last_name,
+                gender=archived_patient.gender,
+                phone=archived_patient.phone or None,
+                birthdate=archived_patient.birthdate,
+                age=archived_patient.age,
+                blood_type=archived_patient.blood_type or None,
+            )
+            
+            patient_name = f"{archived_patient.first_name} {archived_patient.last_name}"
+        
+        # Restore related records if option is checked
+        if restore_records:
+            # Restore medical records
+            archived_medical_records = ArchivedMedicalRecord.objects.filter(
+                patient_id_str=archived_patient.original_patient_id
+            )
+            
+            for archived_record in archived_medical_records:
+                # Restore medical record
+                if patient_type == 'self':
+                    medical_record = MedicalRecord.objects.create(
+                        patient=restored_patient,
+                        patient_id_str=archived_record.patient_id_str,
+                        reason_for_visit=archived_record.reason_for_visit,
+                        symptoms=archived_record.symptoms,
+                        diagnosis=archived_record.diagnosis,
+                        created_at=archived_record.created_at,
+                    )
+                else:
+                    medical_record = MedicalRecord.objects.create(
+                        dependent_patient=restored_patient,
+                        patient_id_str=archived_record.patient_id_str,
+                        reason_for_visit=archived_record.reason_for_visit,
+                        symptoms=archived_record.symptoms,
+                        diagnosis=archived_record.diagnosis,
+                        created_at=archived_record.created_at,
+                    )
+                
+                # Restore prescriptions for this record
+                if archived_record.prescriptions:
+                    for prescription_data in archived_record.prescriptions:
+                        Prescription.objects.create(
+                            medical_record=medical_record,
+                            medication_name=prescription_data.get('medication_name', ''),
+                            dosage=prescription_data.get('dosage', ''),
+                            frequency=prescription_data.get('frequency', ''),
+                            notes=prescription_data.get('notes', ''),
+                            prescribed_at=prescription_data.get('prescribed_at', timezone.now()),
+                        )
+            
+            # Restore appointments
+            archived_appointments = ArchivedAppointment.objects.filter(
+                patient_name=patient_name
+            )
+            
+            for archived_appt in archived_appointments:
+                if patient_type == 'self':
+                    Appointment.objects.create(
+                        patient=restored_patient.user,
+                        doctor_id=archived_appt.additional_data.get('doctor_id'),
+                        start_time=archived_appt.start_time,
+                        end_time=archived_appt.end_time,
+                        status=archived_appt.status,
+                    )
+                else:
+                    DependentAppointment.objects.create(
+                        dependent_patient=restored_patient,
+                        doctor_id=archived_appt.additional_data.get('doctor_id'),
+                        start_time=archived_appt.start_time,
+                        end_time=archived_appt.end_time,
+                        status=archived_appt.status,
+                    )
+        
+        # Restore medications and allergies from additional_data
+        additional_data = archived_patient.additional_data or {}
+        
+        # Restore allergies
+        if additional_data.get('allergies'):
+            for allergy_data in additional_data['allergies']:
+                if patient_type == 'self':
+                    PatientAllergy.objects.create(
+                        patient=restored_patient,
+                        allergy_name=allergy_data.get('allergy_name', ''),
+                    )
+                else:
+                    DependentPatientAllergy.objects.create(
+                        dependent_patient=restored_patient,
+                        allergy_name=allergy_data.get('allergy_name', ''),
+                    )
+        
+        # Restore medications
+        if additional_data.get('medications'):
+            for med_data in additional_data['medications']:
+                prescribed_at = med_data.get('prescribed_at', '')
+                try:
+                    # Parse ISO format datetime string
+                    if prescribed_at:
+                        from dateutil import parser
+                        prescribed_at = parser.isoparse(prescribed_at)
+                    else:
+                        prescribed_at = timezone.now()
+                except:
+                    prescribed_at = timezone.now()
+                
+                if patient_type == 'self':
+                    PatientMedication.objects.create(
+                        patient=restored_patient,
+                        medication_name=med_data.get('medication_name', ''),
+                        dosage=med_data.get('dosage', ''),
+                        frequency=med_data.get('frequency', ''),
+                        prescribed_at=prescribed_at,
+                    )
+                else:
+                    DependentPatientMedication.objects.create(
+                        dependent_patient=restored_patient,
+                        medication_name=med_data.get('medication_name', ''),
+                        dosage=med_data.get('dosage', ''),
+                        frequency=med_data.get('frequency', ''),
+                        prescribed_at=prescribed_at,
+                    )
+        
+        # Restore vitals
+        if additional_data.get('latest_vitals') and restore_records:
+            vitals_data = additional_data['latest_vitals']
+            try:
+                recorded_at = vitals_data.get('recorded_at', '')
+                if recorded_at:
+                    from dateutil import parser
+                    recorded_at = parser.isoparse(recorded_at)
+                else:
+                    recorded_at = timezone.now()
+            except:
+                recorded_at = timezone.now()
+            
+            if patient_type == 'self':
+                PatientVitals.objects.create(
+                    patient=restored_patient,
+                    height_cm=vitals_data.get('height_cm'),
+                    weight_kg=vitals_data.get('weight_kg'),
+                    blood_pressure=vitals_data.get('blood_pressure'),
+                    heart_rate=vitals_data.get('heart_rate'),
+                    recorded_at=recorded_at,
+                )
+            else:
+                DependentPatientVitals.objects.create(
+                    dependent_patient=restored_patient,
+                    height_cm=vitals_data.get('height_cm'),
+                    weight_kg=vitals_data.get('weight_kg'),
+                    blood_pressure=vitals_data.get('blood_pressure'),
+                    heart_rate=vitals_data.get('heart_rate'),
+                    recorded_at=recorded_at,
+                )
+        
+        # Log activity
+        ActivityLog.objects.create(
+            user=request.user,
+            action_type='create',
+            model_name=f"{'PatientInfo' if patient_type == 'self' else 'DependentPatient'} (Restored)",
+            object_id=str(restored_patient.patient_id if hasattr(restored_patient, 'patient_id') else restored_patient.pk),
+            related_object_repr=str(restored_patient),
+            description=f"Restored archived {'patient' if patient_type == 'self' else 'dependent'}"
+        )
+        
+        # Delete archived records
+        archived_patient.delete()
+        
+        messages.success(
+            request, 
+            f"{'Patient' if patient_type == 'self' else 'Dependent'} {patient_name} has been restored successfully."
+        )
+        
+        return redirect('patient_list')
+    
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        messages.error(request, f"Error restoring patient: {str(e)}")
+        return redirect('archived_patients')
