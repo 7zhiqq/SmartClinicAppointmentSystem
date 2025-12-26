@@ -524,3 +524,84 @@ def archived_appointments_list(request):
         'status_filter': status_filter,
         'type_filter': type_filter
     })
+
+
+@login_required
+def deleted_record_snapshot_ajax(request, pk):
+    """AJAX view to fetch deleted record snapshot data"""
+    if request.user.role not in ['staff', 'manager']:
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    
+    try:
+        record = DeletedRecord.objects.get(pk=pk)
+        
+        # Format the deleted_at datetime
+        deleted_at_formatted = record.deleted_at.strftime("%B %d, %Y at %I:%M %p")
+        
+        # Get deleted_by name
+        deleted_by_name = record.deleted_by.get_full_name() if record.deleted_by else "System"
+        
+        # Prepare response data
+        data = {
+            'model_name': record.model_name,
+            'original_id': record.original_id,
+            'object_repr': record.object_repr,
+            'deleted_at': deleted_at_formatted,
+            'deleted_by': deleted_by_name,
+            'deletion_reason': record.deletion_reason or '',
+            'data_snapshot': record.data_snapshot if record.data_snapshot else {}
+        }
+        
+        return JsonResponse(data)
+    
+    except DeletedRecord.DoesNotExist:
+        return JsonResponse({'error': 'Record not found'}, status=404)
+    
+    except Exception as e:
+        return JsonResponse({'error': f'Error loading data: {str(e)}'}, status=500)
+    
+@login_required
+def deleted_doctor_details(request, pk):
+    """View detailed information about a deleted/archived doctor"""
+    if request.user.role not in ['manager', 'staff']:
+        messages.error(request, "Access denied.")
+        return redirect('home')
+    
+    # Try to get archived doctor
+    archived_doctor = get_object_or_404(ArchivedDoctorInfo, pk=pk)
+    
+    # Parse additional_data for extra information
+    additional_data = archived_doctor.additional_data or {}
+    
+    context = {
+        'doctor': archived_doctor,
+        'additional_data': additional_data,
+    }
+    
+    return render(request, 'archive/deleted_doctor_details.html', context)
+
+
+@login_required
+def archived_doctor_details_ajax(request, pk):
+    """AJAX view to fetch archived doctor details"""
+    if request.user.role not in ['manager', 'staff']:
+        return JsonResponse({'html': '<p class="muted">Access denied.</p>'})
+    
+    try:
+        doctor = ArchivedDoctorInfo.objects.get(pk=pk)
+        
+        from django.template.loader import render_to_string
+        html = render_to_string(
+            'archive/partials/archived_doctor_details.html',
+            {'doctor': doctor},
+            request=request
+        )
+        
+        return JsonResponse({'html': html})
+    
+    except ArchivedDoctorInfo.DoesNotExist:
+        return JsonResponse({'html': '<p class="muted">Doctor not found.</p>'})
+    
+    except Exception as e:
+        return JsonResponse({'html': f'<p class="muted">Error: {str(e)}</p>'})
+    

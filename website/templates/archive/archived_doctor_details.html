@@ -1,0 +1,135 @@
+<!-- website/templates/archive/partials/archived_doctor_details.html -->
+
+{% load static %}
+
+<div class="card patient-header">
+    <div class="patient-header-top">
+        <div class="patient-avatar" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+            <i class="bi bi-person-x" style="font-size: 2rem; color: white;"></i>
+        </div>
+
+        <div class="patient-info">
+            <h2 class="patient-name">
+                Dr. {{ doctor.user_full_name }}
+                <span class="badge bg-danger ms-2">Archived</span>
+            </h2>
+            <p class="patient-meta">
+                {{ doctor.specialization|default:"General Practice" }} • 
+                {{ doctor.years_experience }} years experience
+            </p>
+        </div>
+    </div>
+
+    <div class="patient-contacts">
+        <div class="contact-item">
+            <i class="bi bi-envelope-fill"></i>
+            {{ doctor.user_email }}
+        </div>
+        <div class="contact-item">
+            <i class="bi bi-person-badge"></i>
+            License: {{ doctor.license_number }}
+        </div>
+        <div class="contact-item">
+            <i class="bi bi-calendar-check"></i>
+            {% if doctor.was_approved %}
+                <span class="badge bg-success">Was Approved</span>
+            {% else %}
+                <span class="badge bg-warning">Not Approved</span>
+            {% endif %}
+        </div>
+        <div class="contact-item text-end">
+            <a href="{% url 'deleted_doctor_details' doctor.id %}" class="edit-link">
+                View Full Details
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h4>
+        <i class="bi bi-archive"></i>
+        Archive Information
+    </h4>
+    <div class="card-content">
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>Archived On:</strong><br>
+                {{ doctor.archived_at|date:"F d, Y" }} at {{ doctor.archived_at|time:"h:i A" }}</p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Archived By:</strong><br>
+                {% if doctor.archived_by %}
+                    {{ doctor.archived_by.get_full_name }}
+                {% else %}
+                    <span class="text-muted">System</span>
+                {% endif %}
+                </p>
+            </div>
+        </div>
+        {% if doctor.archive_reason %}
+        <p><strong>Reason:</strong><br>
+        {{ doctor.archive_reason }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card-grid">
+    <div class="card">
+        <h4>
+            <i class="bi bi-briefcase"></i>
+            Professional Info
+        </h4>
+        <div class="card-content">
+            <p><strong>Specialization:</strong><br>
+            {% if doctor.specialization %}
+                <span class="badge bg-primary">{{ doctor.specialization }}</span>
+            {% else %}
+                <span class="text-muted">Not specified</span>
+            {% endif %}
+            </p>
+            <p><strong>License:</strong><br>
+            <code>{{ doctor.license_number }}</code></p>
+            <p><strong>Experience:</strong><br>
+            {{ doctor.years_experience }} years</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h4>
+            <i class="bi bi-person-circle"></i>
+            Account Info
+        </h4>
+        <div class="card-content">
+            <p><strong>Username:</strong><br>
+            {{ doctor.user_username }}</p>
+            <p><strong>Full Name:</strong><br>
+            {{ doctor.user_full_name }}</p>
+            <p><strong>Email:</strong><br>
+            {{ doctor.user_email }}</p>
+        </div>
+    </div>
+</div>
+
+{% if doctor.bio %}
+<div class="card">
+    <h4>
+        <i class="bi bi-file-text"></i>
+        Biography
+    </h4>
+    <div class="card-content">
+        <p style="white-space: pre-wrap;">{{ doctor.bio }}</p>
+    </div>
+</div>
+{% endif %}
+
+{% if doctor.qualifications %}
+<div class="card">
+    <h4>
+        <i class="bi bi-award"></i>
+        Qualifications
+    </h4>
+    <div class="card-content">
+        <p style="white-space: pre-wrap;">{{ doctor.qualifications }}</p>
+    </div>
+</div>
+{% endif %}

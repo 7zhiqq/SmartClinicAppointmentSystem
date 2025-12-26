@@ -1,179 +1,323 @@
+<!-- website/templates/archive/deleted_records.html - FIXED -->
+
 {% extends "components/base.html" %}
 {% load static %}
 
 {% block content %}
-<link rel="stylesheet" href="{% static 'css/archive.css' %}">
+    <link rel="stylesheet" href="{% static 'css/appointments.css' %}">
+    
+    {% if user.is_authenticated and user.role in 'staff,manager' %}
+        {% if user.role == "staff" %}
+            {% include "components/sidebar/staff.html" %}
+        {% else %}
+            {% include "components/sidebar/manager.html" %}
+        {% endif %}
 
-{% if user.is_authenticated %}
-    {% if user.role == "manager" %}
-        {% include "components/sidebar/manager.html" %}
-    {% else %}
-        {% include "components/sidebar/staff.html" %}
-    {% endif %}
-
-    <div class="main-content">
-        <div class="schedule-header mb-4">
-            <div>
-                <h2 class="heading-title">
-                    <i class="bi bi-trash"></i> Deleted Records Audit Log
-                </h2>
-                <p class="subtitle">
-                    View permanently deleted records for compliance and audit purposes
-                </p>
+        <div class="main-content">
+            <div class="schedule-header mb-4">
+                <div>
+                    <h2 class="heading-title">
+                        <i class="bi bi-trash"></i> Deleted Records Audit Log
+                    </h2>
+                    <p class="subtitle">
+                        View permanently deleted records for audit purposes
+                    </p>
+                </div>
+                
+                <a href="{% url 'home' %}" class="add-schedule-btn">
+                    ← Back to Dashboard
+                </a>
             </div>
-        </div>
 
-        <!-- Search and Filter -->
-        <div class="d-flex gap-2 mb-4">
-            <form method="get" class="d-flex gap-2 flex-grow-1">
-                <select name="model" class="form-select" style="max-width: 200px;">
-                    <option value="">All Types</option>
-                    {% for model in model_names %}
-                        <option value="{{ model }}" {% if model == model_filter %}selected{% endif %}>
-                            {{ model }}
-                        </option>
-                    {% endfor %}
-                </select>
-
-                <input
-                    type="text"
-                    name="search"
-                    class="form-control"
-                    placeholder="Search records..."
-                    value="{{ search_query }}"
-                >
-
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-search"></i> Search
-                </button>
-
-                {% if search_query or model_filter %}
-                    <a href="{% url 'deleted_records' %}" class="btn btn-secondary">
-                        <i class="bi bi-x"></i> Clear
-                    </a>
-                {% endif %}
-            </form>
-        </div>
-
-        <!-- Stats -->
-        <div class="archive-stats">
-            <div class="archive-stat-card deleted">
-                <div class="archive-stat-number">{{ deleted_records.count }}</div>
-                <div class="archive-stat-label">Total Deleted Records</div>
+            <!-- Filters -->
+            <div class="d-flex gap-2 mb-4">
+                <div class="search-box flex-grow-1">
+                    <i class="fas fa-search"></i>
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="Search records..." 
+                        class="form-control border-0"
+                        value="{{ search_query }}"
+                    >
+                </div>
+                
+                <form method="get" class="d-flex gap-2">
+                    <select name="model" class="form-select" style="width: auto;">
+                        <option value="">All Types</option>
+                        {% for model in model_names %}
+                            <option value="{{ model }}" {% if model_filter == model %}selected{% endif %}>
+                                {{ model }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <a href="{% url 'deleted_records' %}" class="btn btn-secondary">Clear</a>
+                </form>
             </div>
-        </div>
 
-        <!-- Deleted Records Table -->
-        <div class="table-container">
-            {% if deleted_records %}
-                <table class="archive-table">
+            <div class="table-container">
+                <table class="appointments-table">
                     <thead>
                         <tr>
-                            <th>Type</th>
-                            <th>Record ID</th>
-                            <th>Description</th>
-                            <th>Deleted By</th>
-                            <th>Deleted At</th>
-                            <th>Action</th>
+                            <th>TYPE</th>
+                            <th>RECORD ID</th>
+                            <th>DESCRIPTION</th>
+                            <th>DELETED BY</th>
+                            <th>DELETED ON</th>
+                            <th>ACTIONS</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for record in deleted_records %}
-                            <tr>
-                                <td>
-                                    <span class="badge-deleted">
-                                        {{ record.model_name }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <code>{{ record.original_id }}</code>
-                                </td>
-                                <td>{{ record.object_repr }}</td>
-                                <td>
-                                    {% if record.deleted_by %}
-                                        {{ record.deleted_by.get_full_name }}
-                                    {% else %}
-                                        System
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="archive-timeline-date">
-                                        {{ record.deleted_at|date:"M d, Y" }}<br>
-                                        <small>{{ record.deleted_at|time:"h:i A" }}</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-secondary view-snapshot-btn"
-                                        data-snapshot="{{ record.data_snapshot|escapejs }}"
-                                    >
-                                        <i class="bi bi-eye"></i> View Details
-                                    </button>
-                                </td>
-                            </tr>
+                        <tr class="appointment-row">
+                            <td>
+                                <span class="badge bg-secondary">{{ record.model_name }}</span>
+                            </td>
+                            <td>
+                                <code>#{{ record.original_id }}</code>
+                            </td>
+                            <td>
+                                {{ record.object_repr|truncatewords:5 }}
+                                {% if record.deletion_reason %}
+                                    <br><small class="text-muted">Reason: {{ record.deletion_reason|truncatewords:8 }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.deleted_by %}
+                                    {{ record.deleted_by.get_full_name }}
+                                {% else %}
+                                    <span class="text-muted">System</span>
+                                {% endif %}
+                            </td>
+                            <td class="time-cell">
+                                {{ record.deleted_at|date:"M d, Y" }}<br>
+                                <small>{{ record.deleted_at|time:"h:i A" }}</small>
+                            </td>
+                            <td class="actions-cell">
+                                <button 
+                                    class="btn-action view-snapshot-btn" 
+                                    data-record-id="{{ record.id }}"
+                                    title="View Snapshot"
+                                    onclick="viewSnapshot({{ record.id }}, '{{ record.model_name }}', '{{ record.object_repr|escapejs }}')">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                                <p>No deleted records found</p>
+                            </td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
-            {% else %}
-                <div class="archive-empty-state">
-                    <i class="bi bi-inbox"></i>
-                    <h3>No Deleted Records</h3>
-                    <p>No records have been permanently deleted yet.</p>
-                </div>
-            {% endif %}
+            </div>
         </div>
-    </div>
 
-    <!-- Snapshot Modal -->
-    <div class="modal fade" id="snapshotModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi bi-file-code"></i> Record Snapshot
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <pre id="snapshotContent"
-                         style="background:#f8f9fa;padding:16px;border-radius:8px;max-height:500px;overflow-y:auto;">
-                    </pre>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        Close
-                    </button>
+        <!-- Snapshot Modal -->
+        <div class="modal fade" id="snapshotModal" tabindex="-1" aria-labelledby="snapshotModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="snapshotModalLabel">
+                            <i class="bi bi-file-earmark-text"></i> 
+                            Deleted Record Snapshot
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="snapshotContent">
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            // Search functionality
+            document.addEventListener("DOMContentLoaded", function() {
+                const searchInput = document.getElementById("searchInput");
+                const rows = document.querySelectorAll(".appointment-row");
 
-    <!-- Snapshot Viewer Script -->
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            document.querySelectorAll(".view-snapshot-btn").forEach(button => {
-                button.addEventListener("click", function () {
-                    const snapshot = this.dataset.snapshot;
+                if (searchInput) {
+                    searchInput.addEventListener("input", function() {
+                        const searchTerm = this.value.toLowerCase().trim();
 
-                    try {
-                        const data = JSON.parse(snapshot);
-                        document.getElementById("snapshotContent").textContent =
-                            JSON.stringify(data, null, 2);
-
-                        new bootstrap.Modal(
-                            document.getElementById("snapshotModal")
-                        ).show();
-                    } catch (error) {
-                        alert("Error displaying snapshot data");
-                    }
-                });
+                        rows.forEach(row => {
+                            const text = row.textContent.toLowerCase();
+                            row.style.display = text.includes(searchTerm) ? "" : "none";
+                        });
+                    });
+                }
             });
-        });
-    </script>
 
-{% endif %}
+            // View snapshot function
+            function viewSnapshot(recordId, modelName, objectRepr) {
+                const modal = new bootstrap.Modal(document.getElementById('snapshotModal'));
+                const content = document.getElementById('snapshotContent');
+                
+                // Update modal title
+                document.getElementById('snapshotModalLabel').innerHTML = `
+                    <i class="bi bi-file-earmark-text"></i> 
+                    ${modelName} - ${objectRepr}
+                `;
+                
+                // Show loading spinner
+                content.innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                `;
+                
+                // Show modal
+                modal.show();
+                
+                // Fetch snapshot data via AJAX
+                fetch(`/archive/ajax/deleted-record/${recordId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            content.innerHTML = `
+                                <div class="alert alert-danger">
+                                    <i class="bi bi-exclamation-triangle"></i> 
+                                    ${data.error}
+                                </div>
+                            `;
+                        } else {
+                            content.innerHTML = formatSnapshot(data);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        content.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle"></i> 
+                                Error loading snapshot data. Please try again.
+                            </div>
+                        `;
+                    });
+            }
+
+            // Format snapshot data for display
+            function formatSnapshot(data) {
+                let html = '<div class="snapshot-data">';
+                
+                // Basic information
+                html += '<div class="mb-3">';
+                html += `<h6><i class="bi bi-info-circle"></i> Record Information</h6>`;
+                html += '<table class="table table-sm table-bordered">';
+                html += `<tr><th width="30%">Type</th><td><span class="badge bg-secondary">${data.model_name}</span></td></tr>`;
+                html += `<tr><th>Original ID</th><td><code>#${data.original_id}</code></td></tr>`;
+                html += `<tr><th>Description</th><td>${data.object_repr}</td></tr>`;
+                html += `<tr><th>Deleted On</th><td>${data.deleted_at}</td></tr>`;
+                html += `<tr><th>Deleted By</th><td>${data.deleted_by || 'System'}</td></tr>`;
+                if (data.deletion_reason) {
+                    html += `<tr><th>Reason</th><td>${data.deletion_reason}</td></tr>`;
+                }
+                html += '</table>';
+                html += '</div>';
+                
+                // Data snapshot
+                if (data.data_snapshot && Object.keys(data.data_snapshot).length > 0) {
+                    html += '<div class="mb-3">';
+                    html += `<h6><i class="bi bi-database"></i> Deleted Data</h6>`;
+                    html += '<table class="table table-sm table-bordered table-striped">';
+                    html += '<thead><tr><th width="30%">Field</th><th>Value</th></tr></thead>';
+                    html += '<tbody>';
+                    
+                    for (const [key, value] of Object.entries(data.data_snapshot)) {
+                        const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        let formattedValue = value;
+                        
+                        // Handle different value types
+                        if (value === null || value === undefined) {
+                            formattedValue = '<span class="text-muted">None</span>';
+                        } else if (typeof value === 'boolean') {
+                            formattedValue = value ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>';
+                        } else if (typeof value === 'object') {
+                            formattedValue = '<pre class="mb-0" style="max-height: 200px; overflow-y: auto;">' + JSON.stringify(value, null, 2) + '</pre>';
+                        } else if (String(value).length > 100) {
+                            formattedValue = '<div style="max-height: 150px; overflow-y: auto;">' + value + '</div>';
+                        }
+                        
+                        html += `<tr><th>${formattedKey}</th><td>${formattedValue}</td></tr>`;
+                    }
+                    
+                    html += '</tbody></table>';
+                    html += '</div>';
+                } else {
+                    html += '<div class="alert alert-info">';
+                    html += '<i class="bi bi-info-circle"></i> No detailed data snapshot available.';
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+                
+                return html;
+            }
+        </script>
+
+        <style>
+            .snapshot-data {
+                font-size: 14px;
+            }
+            
+            .snapshot-data h6 {
+                color: var(--primary);
+                font-weight: 600;
+                margin-bottom: 12px;
+                padding-bottom: 8px;
+                border-bottom: 2px solid var(--border-light);
+            }
+            
+            .snapshot-data table {
+                margin-bottom: 0;
+            }
+            
+            .snapshot-data th {
+                background-color: var(--bg-muted);
+                font-weight: 600;
+            }
+            
+            .snapshot-data pre {
+                background-color: #f8f9fa;
+                padding: 8px;
+                border-radius: 4px;
+                font-size: 12px;
+            }
+            
+            .btn-action.view-snapshot-btn {
+                color: var(--primary);
+                border-color: var(--primary);
+            }
+            
+            .btn-action.view-snapshot-btn:hover {
+                background: var(--primary);
+                color: white;
+            }
+        </style>
+    {% else %}
+        <div class="main-content">
+            <div style="text-align: center; padding: 40px;">
+                <i class="bi bi-lock" style="font-size: 3rem; color: var(--text-muted);"></i>
+                <h3>Access Denied</h3>
+                <p>You don't have permission to view deleted records.</p>
+                <a href="{% url 'home' %}" class="btn btn-primary">Go to Dashboard</a>
+            </div>
+        </div>
+    {% endif %}
 {% endblock %}

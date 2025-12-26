@@ -1,0 +1,253 @@
+<!-- website/templates/archive/confirm_restore_appointment.html -->
+
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+    <link rel="stylesheet" href="{% static 'css/edit-profile.css' %}">
+    
+    {% if user.is_authenticated and user.role in 'staff,manager' %}
+        {% if user.role == "staff" %}
+            {% include "components/sidebar/staff.html" %}
+        {% else %}
+            {% include "components/sidebar/manager.html" %}
+        {% endif %}
+
+        <div class="main-content">
+            <div class="edit-profile-wrapper">
+                <h2>
+                    <i class="bi bi-arrow-counterclockwise"></i> 
+                    Restore Appointment
+                </h2>
+
+                <div style="background: rgba(16, 185, 129, 0.1); padding: 15px; border-left: 4px solid var(--success); border-radius: 8px; margin-bottom: 20px;">
+                    <p style="margin: 0; color: var(--success);">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Note:</strong> Restoring this appointment will move it back to active appointments. The appointment will return to its original status.
+                    </p>
+                </div>
+
+                <!-- Archived Appointment Details -->
+                <div style="background: var(--bg-muted); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 style="margin-top: 0; color: var(--text-main);">
+                        <i class="bi bi-file-earmark-text"></i> Appointment Details
+                    </h4>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <p style="margin: 10px 0;">
+                                <strong>Patient:</strong><br>
+                                {{ archived.patient_name }}
+                                {% if archived.appointment_type == 'dependent' %}
+                                    <span class="badge bg-info">Dependent</span>
+                                {% else %}
+                                    <span class="badge bg-primary">Regular</span>
+                                {% endif %}
+                            </p>
+                            
+                            <p style="margin: 10px 0;">
+                                <strong>Doctor:</strong><br>
+                                {{ archived.doctor_name }}
+                                {% if archived.doctor_specialization %}
+                                    <br><small class="text-muted">{{ archived.doctor_specialization }}</small>
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <p style="margin: 10px 0;">
+                                <strong>Date & Time:</strong><br>
+                                {{ archived.start_time|date:"F d, Y" }}<br>
+                                {{ archived.start_time|time:"h:i A" }} - {{ archived.end_time|time:"h:i A" }}
+                            </p>
+                            
+                            <p style="margin: 10px 0;">
+                                <strong>Original Status:</strong><br>
+                                <span class="status-badge status-{{ archived.status }}">
+                                    {% if archived.status == 'completed' %}
+                                        Completed
+                                    {% elif archived.status == 'rejected' %}
+                                        Cancelled
+                                    {% elif archived.status == 'no_show' %}
+                                        No Show
+                                    {% elif archived.status == 'approved' %}
+                                        Confirmed
+                                    {% else %}
+                                        {{ archived.status|title }}
+                                    {% endif %}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Archive Information -->
+                <div style="background: var(--gray-100); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h5 style="margin-top: 0; color: var(--text-main);">
+                        <i class="bi bi-clock-history"></i> Archive Information
+                    </h5>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <p style="margin: 5px 0;">
+                                <strong>Archived On:</strong><br>
+                                {{ archived.archived_at|date:"F d, Y" }} at {{ archived.archived_at|time:"h:i A" }}
+                            </p>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <p style="margin: 5px 0;">
+                                <strong>Archived By:</strong><br>
+                                {% if archived.archived_by %}
+                                    {{ archived.archived_by.get_full_name }}
+                                {% else %}
+                                    <span class="text-muted">System</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    {% if archived.archive_reason %}
+                    <p style="margin: 10px 0 5px 0;">
+                        <strong>Archive Reason:</strong><br>
+                        <span class="text-muted">{{ archived.archive_reason }}</span>
+                    </p>
+                    {% endif %}
+                </div>
+
+                <!-- Warning Message -->
+                <div style="background: rgba(245, 158, 11, 0.1); padding: 15px; border-left: 4px solid var(--warning); border-radius: 8px; margin-bottom: 20px;">
+                    <p style="margin: 0; color: var(--warning);">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Important:</strong> Make sure the appointment date hasn't passed and the doctor/patient are still available before restoring.
+                    </p>
+                </div>
+
+                <!-- Restore Form -->
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="form-actions">
+                        <button 
+                            type="submit" 
+                            class="btn btn-success"
+                            onclick="return confirm('Are you sure you want to restore this appointment? It will be moved back to active appointments.');"
+                        >
+                            <i class="bi bi-arrow-counterclockwise"></i> Restore Appointment
+                        </button>
+                        <a href="{% url 'archived_appointments' %}" class="btn btn-secondary">
+                            <i class="bi bi-x"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+
+                <!-- Additional Info -->
+                <div style="margin-top: 30px; padding: 15px; background: var(--bg-muted); border-radius: 8px;">
+                    <h5 style="margin-top: 0;">
+                        <i class="bi bi-info-circle"></i> What Happens When You Restore?
+                    </h5>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        <li>The appointment will be moved back to active appointments</li>
+                        <li>It will retain its original status ({{ archived.status }})</li>
+                        <li>The archived record will be removed</li>
+                        <li>An activity log will be created for audit purposes</li>
+                        <li>The doctor and patient will be able to see it in their schedules</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            .status-badge {
+                display: inline-block;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+            }
+
+            .status-badge.status-completed {
+                background: var(--success-bg, #d1fae5);
+                color: var(--success, #10b981);
+            }
+
+            .status-badge.status-approved {
+                background: var(--primary-lighter, #e0e7ff);
+                color: var(--primary, #4f46e5);
+            }
+
+            .status-badge.status-rejected {
+                background: rgba(239, 68, 68, 0.1);
+                color: #ef4444;
+            }
+
+            .status-badge.status-no_show {
+                background: rgba(23, 162, 184, 0.1);
+                color: #17a2b8;
+            }
+
+            .status-badge.status-pending {
+                background: rgba(245, 158, 11, 0.1);
+                color: #f59e0b;
+            }
+
+            .form-actions {
+                display: flex;
+                gap: 12px;
+                margin-top: 20px;
+            }
+
+            .btn-success {
+                padding: 12px 24px;
+                background: var(--success, #10b981);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 14px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .btn-success:hover {
+                background: #059669;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            }
+
+            .btn-secondary {
+                padding: 12px 24px;
+                background: var(--gray-100, #f3f4f6);
+                color: var(--text-main);
+                border: 2px solid var(--border-light, #e5e7eb);
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 14px;
+                text-decoration: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                transition: all 0.2s ease;
+            }
+
+            .btn-secondary:hover {
+                background: var(--gray-200, #e5e7eb);
+                border-color: var(--text-muted);
+                transform: translateY(-2px);
+            }
+        </style>
+    {% else %}
+        <div class="main-content">
+            <div style="text-align: center; padding: 40px;">
+                <i class="bi bi-lock" style="font-size: 3rem; color: var(--text-muted);"></i>
+                <h3>Access Denied</h3>
+                <p>You don't have permission to restore appointments.</p>
+                <a href="{% url 'home' %}" class="btn btn-primary">Go to Dashboard</a>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

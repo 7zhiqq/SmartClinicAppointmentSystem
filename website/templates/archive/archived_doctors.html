@@ -2,195 +2,161 @@
 {% load static %}
 
 {% block content %}
-<link rel="stylesheet" href="{% static 'css/medrecords.css' %}">
-<link rel="stylesheet" href="{% static 'css/archive.css' %}">
-
-{% if user.is_authenticated and user.role == "manager" %}
-    {% include "components/sidebar/manager.html" %}
+    <link rel="stylesheet" href="{% static 'css/users.css' %}">
     
-    <div class="main-content">
-        <div class="schedule-header mb-4">
-            <div>
-                <h2 class="heading-title">
-                    <i class="bi bi-archive"></i> Archived Doctors
-                </h2>
-                <p class="subtitle">View archived doctor records</p>
-            </div>
-            <div class="d-flex gap-2">
-                <a href="{% url 'manager_users' %}" class="add-schedule-btn">
-                    <i class="bi bi-arrow-left"></i> Back to Doctors
-                </a>
-            </div>
-        </div>
-
-        <!-- Search Bar -->
-        <div class="search-box mb-4">
-            <form method="get" class="d-flex gap-2">
-                <input 
-                    type="text" 
-                    name="search" 
-                    class="form-control" 
-                    placeholder="Search by name, license, or email..."
-                    value="{{ search_query }}"
-                >
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-search"></i> Search
-                </button>
-                {% if search_query %}
-                <a href="{% url 'archived_doctors' %}" class="btn btn-secondary">
-                    <i class="bi bi-x"></i> Clear
-                </a>
-                {% endif %}
-            </form>
-        </div>
-
-        <!-- Stats -->
-        <div class="row g-3 mb-4">
-            <div class="col-md-12">
-                <div class="stat-card total">
-                    <div class="stat-content">
-                        <div class="stat-header">
-                            <div>
-                                <div class="stat-number">{{ archived_doctors.count }}</div>
-                                <div class="stat-label">Archived Doctors</div>
-                            </div>
-                        </div>
-                    </div>
+    {% if user.is_authenticated and user.role == "manager" %}
+        {% include 'components/sidebar/manager.html' %}
+        
+        <div class="main-content">
+            <div class="users-header">
+                <div>
+                    <h2 class="users-title">
+                        <i class="bi bi-archive"></i> Archived Doctors
+                    </h2>
+                    <p class="users-subtitle">
+                        View archived doctor records
+                    </p>
                 </div>
-            </div>
-        </div>
 
-        <!-- Archived Doctors Table -->
-        <div class="table-container">
-            {% if archived_doctors %}
-                <table class="archive-table">
+                <a href="{% url 'manager_users' %}" class="btn btn-primary">
+                    <i class="bi bi-arrow-left"></i>
+                    Back to Doctors
+                </a>
+            </div>
+
+            <!-- Search Box -->
+            <div class="mb-4">
+                <form method="get" class="d-flex gap-2">
+                    <div class="search-box flex-grow-1">
+                        <i class="bi bi-search"></i>
+                        <input 
+                            type="text" 
+                            name="search" 
+                            placeholder="Search by name, email, or license number..." 
+                            class="form-control border-0"
+                            value="{{ search_query }}"
+                        >
+                    </div>
+                    <button type="submit" class="btn btn-primary">Search</button>
+                    {% if search_query %}
+                        <a href="{% url 'archived_doctors' %}" class="btn btn-secondary">Clear</a>
+                    {% endif %}
+                </form>
+            </div>
+
+            <div class="users-table-wrapper">
+                <table class="users-table">
                     <thead>
                         <tr>
                             <th>Name</th>
                             <th>Specialization</th>
                             <th>License Number</th>
-                            <th>Experience</th>
-                            <th>Was Approved</th>
-                            <th>Archived At</th>
-                            <th>Archived By</th>
+                            <th>Archived On</th>
+                            <th style="text-align:right;">Actions</th>
                         </tr>
                     </thead>
+
                     <tbody>
-                        {% for doctor in archived_doctors %}
-                            <tr class="archived-doctor-row">
-                                <td>
-                                    <div class="doctor-info">
-                                        <div class="avatar-small">
+                    {% for doctor in archived_doctors %}
+                        <tr>
+                            <td>
+                                <div class="user-cell">
+                                    <div class="user-avatar" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                                        <span class="avatar-fallback">
                                             {{ doctor.user_full_name|slice:":1" }}{{ doctor.user_full_name|slice:"1:2" }}
-                                        </div>
-                                        <div>
-                                            <strong>{{ doctor.user_full_name }}</strong>
-                                            <small class="d-block text-muted">{{ doctor.user_email }}</small>
-                                        </div>
+                                        </span>
                                     </div>
-                                </td>
-                                <td>{{ doctor.specialization|default:"General" }}</td>
-                                <td><code>{{ doctor.license_number }}</code></td>
-                                <td>{{ doctor.years_experience }} years</td>
-                                <td>
-                                    {% if doctor.was_approved %}
-                                        <span class="badge bg-success">Yes</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">No</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="archive-timeline-date">
-                                        {{ doctor.archived_at|date:"M d, Y" }}<br>
-                                        <small>{{ doctor.archived_at|time:"h:i A" }}</small>
+                                    <div>
+                                        <strong>{{ doctor.user_full_name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ doctor.user_email }}</small>
                                     </div>
-                                </td>
-                                <td>
-                                    {% if doctor.archived_by %}
-                                        {{ doctor.archived_by.get_full_name }}
-                                    {% else %}
-                                        System
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% if doctor.archive_reason %}
-                            <tr class="reason-row">
-                                <td colspan="7" class="reason-cell">
-                                    <i class="bi bi-info-circle"></i>
-                                    <strong>Reason:</strong> {{ doctor.archive_reason }}
-                                </td>
-                            </tr>
-                            {% endif %}
-                        {% endfor %}
+                                </div>
+                            </td>
+
+                            <td>
+                                {% if doctor.specialization %}
+                                    <span class="badge bg-primary">{{ doctor.specialization }}</span>
+                                {% else %}
+                                    <span class="text-muted">Not specified</span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <code>{{ doctor.license_number }}</code>
+                            </td>
+
+                            <td>
+                                {{ doctor.archived_at|date:"M d, Y" }}<br>
+                                <small class="text-muted">{{ doctor.archived_at|time:"h:i A" }}</small>
+                            </td>
+
+                            <td style="text-align:right;">
+                                <a href="{% url 'deleted_doctor_details' doctor.id %}" 
+                                   class="action-btn action-view"
+                                   title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                    View Details
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="users-empty">
+                                <i class="bi bi-inbox" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                                <p>No archived doctors found.</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
                     </tbody>
                 </table>
-            {% else %}
-                <div class="archive-empty-state">
-                    <i class="bi bi-inbox"></i>
-                    <h3>No Archived Doctors</h3>
-                    <p>No doctors have been archived yet.</p>
-                </div>
-            {% endif %}
+            </div>
         </div>
-    </div>
 
-    <style>
-    .doctor-info {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
+        <style>
+            .action-btn.action-view {
+                background-color: var(--primary);
+                color: white;
+                padding: 6px 12px;
+                border-radius: 6px;
+                text-decoration: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 13px;
+                transition: all 0.2s ease;
+            }
 
-    .avatar-small {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #214994 0%, #326edd 100%);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-        font-size: 14px;
-        flex-shrink: 0;
-    }
+            .action-btn.action-view:hover {
+                background-color: var(--primary-hover);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            }
 
-    .reason-row {
-        background: rgba(245, 158, 11, 0.05);
-    }
+            .search-box {
+                position: relative;
+                display: flex;
+                align-items: center;
+            }
 
-    .reason-cell {
-        padding: 12px 16px !important;
-        font-size: 13px;
-        color: var(--text-muted);
-        border-top: none !important;
-    }
+            .search-box i {
+                position: absolute;
+                left: 12px;
+                color: var(--text-muted);
+            }
 
-    .reason-cell i {
-        color: #f59e0b;
-        margin-right: 6px;
-    }
+            .search-box .form-control {
+                padding-left: 40px;
+            }
 
-    .archived-doctor-row:hover {
-        background: var(--bg-muted);
-    }
-
-    .badge {
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 11px;
-        font-weight: 600;
-    }
-
-    .bg-success {
-        background: #10b981 !important;
-        color: white;
-    }
-
-    .bg-secondary {
-        background: #6c757d !important;
-        color: white;
-    }
-    </style>
-{% endif %}
+            code {
+                background: #f8f9fa;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-family: monospace;
+                font-size: 0.9em;
+                color: #e83e8c;
+            }
+        </style>
+    {% endif %}
 {% endblock %}
