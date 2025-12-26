@@ -76,7 +76,8 @@
                 </div>
             </div>
 
-            <form method="post" class="restore-form">
+            <!-- FIX: POST to restore_patient view with correct URL pattern -->
+            <form method="post" action="{% url 'restore_patient_type' patient.pk patient_type %}">
                 {% csrf_token %}
                 
                 <div class="form-group">
@@ -222,7 +223,7 @@
             font-weight: 600;
         }
 
-        .restore-form .form-group {
+        .form-group {
             margin-bottom: 20px;
         }
 
@@ -281,6 +282,8 @@
             background: #10b981;
             color: white;
             border: none;
+            text-decoration: none;
+            cursor: pointer;
         }
 
         .btn-success:hover {
