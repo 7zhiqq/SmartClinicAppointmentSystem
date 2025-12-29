@@ -1039,7 +1039,109 @@ def delete_custom_availability(request, pk):
     return redirect("doctor_custom_schedule")
 
 @login_required
+def doctor_available_days(request):
+    """Return available days for a doctor in a given month (excluding past dates)"""
+    doctor_id = request.GET.get("doctor_id")
+    year = int(request.GET.get("year"))
+    month = int(request.GET.get("month"))
+
+    if not doctor_id:
+        return JsonResponse([], safe=False)
+
+    doctor = get_object_or_404(DoctorInfo, id=doctor_id)
+    days_in_month = monthrange(year, month)[1]
+    available_days = []
+    
+    # Get today's date for comparison
+    today = date.today()
+
+    for day in range(1, days_in_month + 1):
+        d = date(year, month, day)
+        
+        # Skip past dates
+        if d < today:
+            continue
+            
+        weekday = d.weekday()
+
+        # Check for custom availability first
+        custom_avail = doctor.custom_availabilities.filter(date=d)
+        if custom_avail.exists():
+            availabilities = custom_avail
+        else:
+            # Use weekly availability
+            availabilities = doctor.availabilities.filter(weekday=weekday)
+
+        if not availabilities.exists():
+            continue  # No availability this day
+
+        # Approved appointments on this day (BOTH self and dependent)
+        appointments = Appointment.objects.filter(
+            doctor=doctor,
+            start_time__date=d,
+            status="approved"
+        )
+        
+        dependent_appointments = DependentAppointment.objects.filter(
+            doctor=doctor,
+            start_time__date=d,
+            status="approved"
+        )
+        
+        # Combine booked times from both
+        booked_times = []
+        for a in appointments:
+            booked_times.append((a.start_time.time(), a.end_time.time()))
+        for da in dependent_appointments:
+            booked_times.append((da.start_time.time(), da.end_time.time()))
+
+        SLOT_MINUTES = 30
+        day_has_free_slot = False
+
+        for a in availabilities:
+            current = datetime.combine(d, a.start_time)
+            end = datetime.combine(d, a.end_time)
+            
+            # For today, skip past time slots
+            now = timezone.now()
+            if d == today:
+                # Only show slots that are at least 1 hour in the future
+                min_start_time = (now + timedelta(hours=1)).time()
+                if a.start_time < min_start_time:
+                    continue
+
+            while current + timedelta(minutes=SLOT_MINUTES) <= end:
+                slot_end = current + timedelta(minutes=SLOT_MINUTES)
+                
+                # For today, skip time slots that have already passed
+                if d == today and current.time() < (now + timedelta(hours=1)).time():
+                    current = slot_end
+                    continue
+
+                # Check if slot overlaps with any booked appointment (self or dependent)
+                is_booked = any(
+                    current.time() >= b_start and current.time() < b_end
+                    for b_start, b_end in booked_times
+                )
+
+                if not is_booked:
+                    day_has_free_slot = True
+                    break
+
+                current = slot_end
+
+            if day_has_free_slot:
+                break
+
+        if day_has_free_slot:
+            available_days.append(d.isoformat())
+
+    return JsonResponse(available_days, safe=False)
+
+
+@login_required
 def doctor_daily_availability(request):
+    """Return available time slots for a doctor on a specific date (excluding past times)"""
     doctor_id = request.GET.get("doctor_id")
     date_str = request.GET.get("date")  # YYYY-MM-DD
 
@@ -1050,6 +1152,10 @@ def doctor_daily_availability(request):
         date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
     except ValueError:
         return JsonResponse({"error": "Invalid date format"}, status=400)
+
+    # Don't allow booking on past dates
+    if date_obj < date.today():
+        return JsonResponse([], safe=False)
 
     weekday = date_obj.weekday()
     doctor = get_object_or_404(DoctorInfo, id=doctor_id)
@@ -1093,6 +1199,8 @@ def doctor_daily_availability(request):
 
     slots = []
     SLOT_MINUTES = 30
+    now = timezone.now()
+    is_today = date_obj == date.today()
 
     for a in availabilities:
         start_time = getattr(a, "start_time", None)
@@ -1107,6 +1215,13 @@ def doctor_daily_availability(request):
         while current + timedelta(minutes=SLOT_MINUTES) <= end:
             slot_end = current + timedelta(minutes=SLOT_MINUTES)
             slot_time = current.time()
+
+            # For today, only show slots at least 1 hour in the future
+            if is_today:
+                min_booking_time = (now + timedelta(hours=1)).time()
+                if slot_time < min_booking_time:
+                    current = slot_end
+                    continue
 
             # Check if slot overlaps with ANY booked appointment (self or dependent)
             is_booked = False
@@ -1142,9 +1257,17 @@ def doctor_available_days(request):
     doctor = get_object_or_404(DoctorInfo, id=doctor_id)
     days_in_month = monthrange(year, month)[1]
     available_days = []
+    
+    # Get today's date for comparison
+    today = date.today()
 
     for day in range(1, days_in_month + 1):
         d = date(year, month, day)
+        
+        # Skip past dates
+        if d < today:
+            continue
+            
         weekday = d.weekday()
 
         # Check for custom availability first
@@ -1184,9 +1307,22 @@ def doctor_available_days(request):
         for a in availabilities:
             current = datetime.combine(d, a.start_time)
             end = datetime.combine(d, a.end_time)
+            
+            # For today, skip past time slots
+            now = timezone.now()
+            if d == today:
+                # Only show slots that are at least 1 hour in the future
+                min_start_time = (now + timedelta(hours=1)).time()
+                if a.start_time < min_start_time:
+                    continue
 
             while current + timedelta(minutes=SLOT_MINUTES) <= end:
                 slot_end = current + timedelta(minutes=SLOT_MINUTES)
+                
+                # For today, skip time slots that have already passed
+                if d == today and current.time() < (now + timedelta(hours=1)).time():
+                    current = slot_end
+                    continue
 
                 # Check if slot overlaps with any booked appointment (self or dependent)
                 is_booked = any(

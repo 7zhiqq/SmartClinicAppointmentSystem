@@ -1,0 +1,336 @@
+/* ==================== RATE DOCTOR PAGE ==================== */
+.main-content h2 {
+    margin-bottom: var(--space-sm);
+}
+
+.subtitle {
+    margin-bottom: var(--space-2xl);
+}
+
+/* ==================== FORM CONTAINER ==================== */
+form {
+    background: var(--bg-card);
+    padding: var(--space-2xl);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    margin-bottom: var(--space-2xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xl);
+    animation: slideUp 0.5s var(--ease-out);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==================== RATING STARS SECTION ==================== */
+.rating-stars {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.rating-stars label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-main);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--space-sm);
+}
+
+.stars {
+    display: flex;
+    gap: var(--space-md);
+    align-items: center;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    width: fit-content;
+}
+
+.stars input[type="radio"] {
+    display: none;
+}
+
+.stars label {
+    font-size: 2.5rem;
+    color: var(--gray-300);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin: 0;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+/* Hover effect - light up this star and all stars to the right */
+.stars label:hover,
+.stars label:hover ~ label {
+    color: #fbbf24;
+    text-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+    transform: scale(1.1);
+}
+
+/* Checked state - light up checked star and all stars to the right */
+.stars input[type="radio"]:checked ~ label,
+.stars input[type="radio"]:checked ~ label ~ label,
+.stars input[type="radio"]:checked ~ label ~ label ~ label,
+.stars input[type="radio"]:checked ~ label ~ label ~ label ~ label {
+    color: #fbbf24;
+    text-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+}
+
+/* ==================== RATING COMMENT SECTION ==================== */
+.rating-comment {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.rating-comment label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-main);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.rating-comment textarea {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-md);
+    font-family: var(--font-main);
+    color: var(--text-main);
+    background: var(--white);
+    resize: vertical;
+    min-height: 120px;
+    transition: all var(--transition-fast);
+    box-sizing: border-box;
+    line-height: var(--line-height-normal);
+}
+
+.rating-comment textarea::placeholder {
+    color: var(--text-light);
+}
+
+.rating-comment textarea:hover {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08);
+}
+
+.rating-comment textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+    background: rgba(79, 70, 229, 0.02);
+}
+
+/* ==================== SUBMIT BUTTON ==================== */
+.submit-btn {
+    width: 100%;
+    padding: 14px 24px;
+    background: var(--primary);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    box-shadow: var(--shadow-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: var(--font-main);
+    margin-top: var(--space-lg);
+    min-height: 50px;
+}
+
+.submit-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35);
+}
+
+.submit-btn:active {
+    transform: translateY(0);
+}
+
+.submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* ==================== MESSAGES ==================== */
+.messages {
+    margin-bottom: var(--space-2xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.messages p {
+    padding: var(--space-lg);
+    border-radius: var(--radius-lg);
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    animation: slideDown 0.4s var(--ease-out);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.messages p.success {
+    background: var(--success-bg);
+    color: var(--success);
+    border-left: 4px solid var(--success);
+}
+
+.messages p.error {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border-left: 4px solid var(--danger);
+}
+
+.messages p.warning {
+    background: var(--warning-bg);
+    color: var(--warning);
+    border-left: 4px solid var(--warning);
+}
+
+.messages p.info {
+    background: var(--info-bg);
+    color: var(--info);
+    border-left: 4px solid var(--info);
+}
+
+/* ==================== BACK LINK ==================== */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-sm);
+    padding: 10px 16px;
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-fast);
+    background: var(--primary-lighter);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.back-link:hover {
+    color: var(--primary-light);
+    background: rgba(79, 70, 229, 0.2);
+    transform: translateX(-4px);
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 1024px) {
+    form {
+        padding: var(--space-xl);
+    }
+}
+
+@media (max-width: 768px) {
+    form {
+        padding: var(--space-xl);
+        gap: var(--space-lg);
+    }
+
+    .stars label {
+        font-size: 2rem;
+    }
+
+    .rating-comment textarea {
+        min-height: 100px;
+        padding: 12px 14px;
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+
+    .submit-btn {
+        padding: 12px 20px;
+        font-size: var(--font-size-sm);
+        min-height: 44px;
+    }
+
+    .back-link {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-content h2 {
+        font-size: var(--font-size-xl);
+        margin-bottom: var(--space-sm);
+    }
+
+    .subtitle {
+        font-size: var(--font-size-sm);
+        margin-bottom: var(--space-xl);
+    }
+
+    form {
+        padding: var(--space-lg);
+        gap: var(--space-lg);
+    }
+
+    .rating-stars label,
+    .rating-comment label {
+        font-size: var(--font-size-xs);
+        margin-bottom: var(--space-sm);
+    }
+
+    .stars {
+        gap: var(--space-sm);
+    }
+
+    .stars label {
+        font-size: 1.75rem;
+    }
+
+    .stars label:hover,
+    .stars label:hover ~ label {
+        transform: scale(1.05);
+    }
+
+    .rating-comment textarea {
+        min-height: 90px;
+        padding: 12px 12px;
+        font-size: 16px;
+    }
+
+    .submit-btn {
+        padding: 12px 16px;
+        font-size: var(--font-size-sm);
+        min-height: 44px;
+    }
+
+    .back-link {
+        width: 100%;
+        padding: 10px 12px;
+        font-size: var(--font-size-xs);
+    }
+}

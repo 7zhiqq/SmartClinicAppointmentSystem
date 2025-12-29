@@ -146,6 +146,21 @@
     margin-left: 6px;
 }
 
+.rate-doctor-btn {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 3px;
+    color: var(--primary);
+    border-radius: 6px;
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.rate-doctor-btn:hover {
+    background: var(--primary);
+    color: var(--white);
+}
+
 
 /* ==================== RESPONSIVE STAR SIZE ==================== */
 @media (max-width: 768px) {

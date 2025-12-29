@@ -11,16 +11,29 @@
         <h2 class="heading-title">Rate Dr. {{ doctor.user.get_full_name }}</h2>
         <p class="subtitle">Your feedback helps improve our service.</p>
 
+        
+
         <form method="post" action="{% url 'submit_doctor_rating' doctor.id %}">
             {% csrf_token %}
 
             <div class="rating-stars">
                 <label>Rate:</label>
                 <div class="stars">
-                    {% for i in "12345"|make_list %}
-                        <input type="radio" name="rating" id="star{{ i }}" value="{{ i }}">
-                        <label for="star{{ i }}">★</label>
-                    {% endfor %}
+                    <!-- REVERSED ORDER: 5, 4, 3, 2, 1 -->
+                    <input type="radio" name="rating" id="star5" value="5">
+                    <label for="star5">★</label>
+
+                    <input type="radio" name="rating" id="star4" value="4">
+                    <label for="star4">★</label>
+
+                    <input type="radio" name="rating" id="star3" value="3">
+                    <label for="star3">★</label>
+
+                    <input type="radio" name="rating" id="star2" value="2">
+                    <label for="star2">★</label>
+
+                    <input type="radio" name="rating" id="star1" value="1">
+                    <label for="star1">★</label>
                 </div>
             </div>
 
@@ -32,13 +45,7 @@
             <button type="submit" class="submit-btn">Submit Rating</button>
         </form>
 
-        {% if messages %}
-            <div class="messages">
-                {% for message in messages %}
-                    <p class="{{ message.tags }}">{{ message }}</p>
-                {% endfor %}
-            </div>
-        {% endif %}
+        
 
         <a href="{% url 'view_doctors' %}" class="back-link">← Back to Doctors</a>
     </div>
