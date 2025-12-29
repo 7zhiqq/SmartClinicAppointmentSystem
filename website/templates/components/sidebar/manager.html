@@ -19,8 +19,8 @@
                 Report
             </span>
         </div>
-        <a href="{% url 'manager_users' %}">
-            <div class="menu-item {% if request.resolver_match.url_name == 'manager_users' %}active{% endif %}" data-section="manager_users">
+        <a href="{% url 'manager_users_list' %}">
+            <div class="menu-item {% if request.resolver_match.url_name == 'manager_users_list' %}active{% endif %}" data-section="manager_users_list">
                 <span class="text">
                     <i class="bi bi-person-add"></i>
                     Users

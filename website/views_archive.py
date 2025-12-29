@@ -136,7 +136,7 @@ def archive_doctor(request, doctor_id):
         try:
             ArchiveService.archive_doctor(doctor_id, request.user, reason)
             messages.success(request, f"Doctor {doctor.user.get_full_name()} has been archived successfully.")
-            return redirect('manager_users')
+            return redirect('manager_users_list')
         except ValidationError as e:
             messages.error(request, str(e))
         except Exception as e:

@@ -30,6 +30,12 @@ urlpatterns = [
     path("manager/doctors/approve/<int:doctor_id>/", views.manager_approve_doctor, name="manager_approve_doctor"),
     path("manager/doctor/<int:doctor_id>/reject/", views.manager_reject_doctor, name="manager_reject_doctor"),
 
+    path("manager/users/", views.manager_users_list, name="manager_users_list"),
+    path("manager/user/<int:user_id>/", views.manager_user_details, name="manager_user_details"),
+    path("manager/user/<int:user_id>/deactivate/", views.manager_deactivate_user, name="manager_deactivate_user"),
+    path("manager/user/<int:user_id>/activate/", views.manager_activate_user, name="manager_activate_user"),
+    path("manager/user/<int:user_id>/change-role/", views.manager_change_user_role, name="manager_change_user_role"),
+    
     path('doctors/', views.view_doctors, name='view_doctors'),
     path("doctor/schedule/", views.doctor_schedule, name="doctor_schedule"),
     path("doctor/schedule/delete/<int:pk>/", views.delete_availability, name="delete_availability"),

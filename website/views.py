@@ -20,8 +20,7 @@ from django import forms
 from itertools import chain
 from django.core.exceptions import ValidationError
 
-from accounts.models import Phone
-
+from accounts.models import Phone, User
 
 from .models import (
     PatientInfo,
@@ -740,7 +739,7 @@ def manager_approve_doctor(request, doctor_id):
 
         messages.success(request, f"{doctor.user.get_full_name()} has been approved.")
 
-    return redirect("manager_users")
+    return redirect("manager_users_list")
 
 @login_required
 def manager_reject_doctor(request, doctor_id):
@@ -775,7 +774,7 @@ def manager_reject_doctor(request, doctor_id):
 
         messages.success(request, f"{doctor.user.get_full_name()} has been rejected.")
 
-    return redirect("manager_users")
+    return redirect("manager_users_list")
 
 
 @login_required
@@ -799,7 +798,7 @@ def manager_add_specialization(request):
             )
 
             messages.success(request, "Specialization added successfully.")
-            return redirect("manager_users")
+            return redirect("manager_users_list")
     else:
         form = SpecializationForm()
 
@@ -2481,4 +2480,272 @@ def delete_medical_record(request, pk):
         'patient_type': patient_type,
         'patient': patient
     })
+
+@login_required
+def manager_users_list(request):
+    """View and manage all users (manager only)"""
+    if request.user.role != "manager":
+        messages.error(request, "Access denied.")
+        return redirect("home")
     
+    # Get filter parameters
+    role_filter = request.GET.get('role', 'all')
+    search_query = request.GET.get('search', '').strip()
+    status_filter = request.GET.get('status', 'all')
+    
+    # Base queryset - exclude patients
+    users = User.objects.exclude(role='patient').select_related(
+        'doctor_info', 'doctorprofile', 'staffprofile', 'managerprofile'
+    ).order_by('-date_joined')
+    
+    # Apply role filter
+    if role_filter != 'all':
+        users = users.filter(role=role_filter)
+    
+    # Apply search
+    if search_query:
+        users = users.filter(
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query)
+        )
+    
+    # Apply status filter for doctors
+    if status_filter != 'all' and role_filter in ['doctor', 'all']:
+        if status_filter == 'pending':
+            users = users.filter(role='doctor', doctor_info__is_approved=False, doctor_info__is_rejected=False)
+        elif status_filter == 'approved':
+            users = users.filter(role='doctor', doctor_info__is_approved=True)
+        elif status_filter == 'rejected':
+            users = users.filter(role='doctor', doctor_info__is_rejected=True)
+    
+    # Get counts for statistics
+    total_doctors = User.objects.filter(role='doctor').count()
+    total_staff = User.objects.filter(role='staff').count()
+    total_managers = User.objects.filter(role='manager').count()
+    pending_doctors = User.objects.filter(
+        role='doctor',
+        doctor_info__is_approved=False,
+        doctor_info__is_rejected=False
+    ).count()
+    
+    # Prepare user data with additional info
+    user_list = []
+    for user in users:
+        user_data = {
+            'user': user,
+            'profile': None,
+            'status': None,
+            'additional_info': {}
+        }
+        
+        if user.role == 'doctor':
+            user_data['profile'] = getattr(user, 'doctor_info', None)
+            if user_data['profile']:
+                if user_data['profile'].is_approved:
+                    user_data['status'] = 'approved'
+                elif user_data['profile'].is_rejected:
+                    user_data['status'] = 'rejected'
+                else:
+                    user_data['status'] = 'pending'
+                user_data['additional_info']['specialization'] = user_data['profile'].specialization
+                user_data['additional_info']['license'] = user_data['profile'].license_number
+        elif user.role == 'staff':
+            user_data['profile'] = getattr(user, 'staffprofile', None)
+            user_data['status'] = 'active'
+            if user_data['profile']:
+                user_data['additional_info']['staff_id'] = user_data['profile'].staff_id
+        elif user.role == 'manager':
+            user_data['profile'] = getattr(user, 'managerprofile', None)
+            user_data['status'] = 'active'
+            if user_data['profile']:
+                user_data['additional_info']['manager_id'] = user_data['profile'].manager_id
+        
+        user_list.append(user_data)
+    
+    context = {
+        'user_list': user_list,
+        'role_filter': role_filter,
+        'search_query': search_query,
+        'status_filter': status_filter,
+        'total_doctors': total_doctors,
+        'total_staff': total_staff,
+        'total_managers': total_managers,
+        'pending_doctors': pending_doctors,
+    }
+    
+    return render(request, "managers/users_list.html", context)
+
+
+@login_required
+def manager_user_details(request, user_id):
+    """View detailed information about a user"""
+    if request.user.role != "manager":
+        messages.error(request, "Access denied.")
+        return redirect("home")
+    
+    user = get_object_or_404(User, id=user_id)
+    
+    # Get role-specific profile
+    profile = None
+    additional_data = {}
+    
+    if user.role == 'doctor':
+        profile = getattr(user, 'doctor_info', None)
+        if profile:
+            additional_data = {
+                'specialization': profile.specialization,
+                'license_number': profile.license_number,
+                'years_experience': profile.years_experience,
+                'bio': profile.bio,
+                'qualifications': profile.qualifications,
+                'is_approved': profile.is_approved,
+                'is_rejected': profile.is_rejected,
+                'approved_at': profile.approved_at,
+            }
+    elif user.role == 'staff':
+        profile = getattr(user, 'staffprofile', None)
+        if profile:
+            additional_data = {
+                'staff_id': profile.staff_id,
+                'first_name': profile.first_name,
+                'last_name': profile.last_name,
+            }
+    elif user.role == 'manager':
+        profile = getattr(user, 'managerprofile', None)
+        if profile:
+            additional_data = {
+                'manager_id': profile.manager_id,
+                'first_name': profile.first_name,
+                'last_name': profile.last_name,
+            }
+    
+    # Get activity logs for this user
+    recent_activities = ActivityLog.objects.filter(user=user).order_by('-timestamp')[:10]
+    
+    context = {
+        'viewed_user': user,
+        'profile': profile,
+        'additional_data': additional_data,
+        'recent_activities': recent_activities,
+    }
+    
+    return render(request, 'managers/user_details.html', context)
+
+
+@login_required
+def manager_deactivate_user(request, user_id):
+    """Deactivate a user account (manager only)"""
+    if request.user.role != "manager":
+        messages.error(request, "Access denied.")
+        return redirect("home")
+    
+    user = get_object_or_404(User, id=user_id)
+    
+    # Prevent self-deactivation
+    if user == request.user:
+        messages.error(request, "You cannot deactivate your own account.")
+        return redirect('manager_users_list')
+    
+    # Prevent deactivating patients
+    if user.role == 'patient':
+        messages.error(request, "Patient accounts cannot be deactivated from this interface.")
+        return redirect('manager_users_list')
+    
+    if request.method == 'POST':
+        reason = request.POST.get('reason', '').strip()
+        
+        user.is_active = False
+        user.save()
+        
+        # Log activity
+        ActivityLog.objects.create(
+            user=request.user,
+            action_type='update',
+            model_name='User',
+            object_id=str(user.id),
+            related_object_repr=user.get_full_name() or user.username,
+            description=f"Deactivated user account. Reason: {reason}"
+        )
+        
+        messages.success(request, f"User {user.get_full_name() or user.username} has been deactivated.")
+        return redirect('manager_users_list')
+    
+    return render(request, 'managers/confirm_deactivate_user.html', {'viewed_user': user})
+
+
+@login_required
+def manager_activate_user(request, user_id):
+    """Reactivate a user account (manager only)"""
+    if request.user.role != "manager":
+        messages.error(request, "Access denied.")
+        return redirect("home")
+    
+    user = get_object_or_404(User, id=user_id)
+    
+    if user.is_active:
+        messages.info(request, "User is already active.")
+        return redirect('manager_users_list')
+    
+    user.is_active = True
+    user.save()
+    
+    # Log activity
+    ActivityLog.objects.create(
+        user=request.user,
+        action_type='update',
+        model_name='User',
+        object_id=str(user.id),
+        related_object_repr=user.get_full_name() or user.username,
+        description="Reactivated user account"
+    )
+    
+    messages.success(request, f"User {user.get_full_name() or user.username} has been reactivated.")
+    return redirect('manager_users_list')
+
+
+@login_required
+def manager_change_user_role(request, user_id):
+    """Change a user's role (manager only)"""
+    if request.user.role != "manager":
+        messages.error(request, "Access denied.")
+        return redirect("home")
+    
+    user = get_object_or_404(User, id=user_id)
+    
+    # Prevent changing own role
+    if user == request.user:
+        messages.error(request, "You cannot change your own role.")
+        return redirect('manager_users_list')
+    
+    # Prevent changing patient roles
+    if user.role == 'patient':
+        messages.error(request, "Patient roles cannot be changed from this interface.")
+        return redirect('manager_users_list')
+    
+    if request.method == 'POST':
+        new_role = request.POST.get('role')
+        
+        if new_role not in ['doctor', 'staff', 'manager']:
+            messages.error(request, "Invalid role selected.")
+            return redirect('manager_users_list')
+        
+        old_role = user.role
+        user.role = new_role
+        user.save()
+        
+        # Log activity
+        ActivityLog.objects.create(
+            user=request.user,
+            action_type='update',
+            model_name='User',
+            object_id=str(user.id),
+            related_object_repr=user.get_full_name() or user.username,
+            description=f"Changed role from {old_role} to {new_role}"
+        )
+        
+        messages.success(request, f"User role changed from {old_role} to {new_role}.")
+        return redirect('manager_users_list')
+    
+    return render(request, 'managers/change_user_role.html', {'viewed_user': user})
