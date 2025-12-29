@@ -182,21 +182,21 @@
                             </td>
                             <td class="actions-cell">
                                 <div class="action-buttons" id="actions-{{ a.id }}">
-                                    {% if a.status == 'pending' %}
-                                        <button class="btn-action approve-btn" data-id="{{ a.id }}" data-type="self" title="Approve">
+                                    {% if da.status == 'pending' %}
+                                        <button class="btn-action approve-btn" data-id="{{ da.id }}" data-type="self" title="Approve">
                                             <i class="bi bi-check-lg"></i>
                                         </button>
-                                        <button class="btn-action reject-btn" data-id="{{ a.id }}" data-type="self" title="Reject">
+                                        <button class="btn-action reject-btn" data-id="{{ da.id }}" data-type="self" title="Reject">
                                             <i class="bi bi-x"></i>
                                         </button>
-                                    {% elif a.status == 'approved' %}
-                                        <button class="btn-action complete-btn" data-id="{{ a.id }}" data-type="self" title="Mark Complete">
+                                    {% elif da.status == 'approved' %}
+                                        <button class="btn-action complete-btn" data-id="{{ da.id }}" data-type="self" title="Mark Complete">
                                             <i class="bi bi-check-circle-fill"></i>
                                         </button>
-                                        <button class="btn-action no-show-btn" data-id="{{ a.id }}" data-type="self" title="Mark No Show">
+                                        <button class="btn-action no-show-btn" data-id="{{ da.id }}" data-type="self" title="Mark No Show">
                                             <i class="bi bi-x-circle"></i>
                                         </button>
-                                        <a href="{% url 'reschedule_appointment' a.id %}" class="btn-action reschedule-btn" title="Reschedule">
+                                        <a href="{% url 'reschedule_appointment' da.id %}" class="btn-action reschedule-btn" title="Reschedule">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
                                     {% elif da.status in 'completed,rejected,no_show' %}

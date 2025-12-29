@@ -89,7 +89,7 @@ WSGI_APPLICATION = 'westPoint.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME':'westpoint_database',
+        'NAME':'westpoint_db',
         'USER': 'root',
         'PASSWORD': 'sevenzhiq',
         'HOST': 'localhost',

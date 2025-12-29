@@ -5,7 +5,6 @@ from django.http import JsonResponse
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.utils import timezone
-
 from accounts.models import User, Phone
 
 from website.models import (PatientInfo,
