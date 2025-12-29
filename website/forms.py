@@ -208,6 +208,8 @@ class DependentPatientForm(forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
+        # Store the guardian (logged-in user) for phone validation
+        self.guardian = kwargs.pop('guardian', None)
         super().__init__(*args, **kwargs)
         birthdate = self.initial.get("birthdate") or getattr(self.instance, "birthdate", None)
         if birthdate:
@@ -228,18 +230,36 @@ class DependentPatientForm(forms.ModelForm):
             raise ValidationError("Invalid phone number format. Please enter a valid Philippine phone number.")
         
         # Check if this phone number is already registered to another dependent
+        # EXCLUDE: current instance (if editing) and dependents under the SAME guardian
         qs = DependentPatient.objects.filter(phone=normalized)
         
         # Exclude the current instance if editing
         if self.instance and self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
         
-        if qs.exists():
-            raise ValidationError("This phone number is already registered to another dependent patient.")
+        # Exclude dependents under the same guardian (allow same phone for guardian's dependents)
+        if self.guardian:
+            qs = qs.exclude(guardian=self.guardian)
         
-        # Also check if it's registered to a regular patient
-        from accounts.models import Phone as PhoneModel
-        if PhoneModel.objects.filter(number=normalized).exists():
+        if qs.exists():
+            raise ValidationError("This phone number is already registered to another dependent patient from a different guardian.")
+        
+        # Check if it's registered to a regular patient (Phone model)
+        # ALLOW if it belongs to the guardian
+        guardian_phone = None
+        if self.guardian:
+            try:
+                guardian_phone_obj = Phone.objects.get(user=self.guardian)
+                guardian_phone = guardian_phone_obj.number
+            except Phone.DoesNotExist:
+                pass
+        
+        # If the phone number matches the guardian's phone, allow it
+        if guardian_phone and normalized == guardian_phone:
+            return normalized
+        
+        # Otherwise, check if it's registered to any other user
+        if Phone.objects.filter(number=normalized).exists():
             raise ValidationError("This phone number is already registered in the system.")
         
         return normalized

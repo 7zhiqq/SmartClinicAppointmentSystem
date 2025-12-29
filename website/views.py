@@ -386,7 +386,8 @@ def edit_my_patient_info(request):
 @login_required
 def add_dependent(request):
     if request.method == "POST":
-        form = DependentPatientForm(request.POST)
+        # Pass the guardian to the form
+        form = DependentPatientForm(request.POST, guardian=request.user)
         if form.is_valid():
             dependent = form.save(commit=False)
             dependent.guardian = request.user
@@ -404,9 +405,12 @@ def add_dependent(request):
             messages.success(request, "Dependent patient added successfully.")
             return redirect("medical_records")
     else:
-        form = DependentPatientForm()
+        # Pass the guardian to the form
+        form = DependentPatientForm(guardian=request.user)
 
     return render(request, "patients/add_dependent.html", {"form": form})
+
+
 
 
 @login_required
@@ -418,7 +422,8 @@ def edit_dependent(request, pk):
     )
 
     if request.method == "POST":
-        form = DependentPatientForm(request.POST, instance=dependent)
+        # Pass the guardian to the form
+        form = DependentPatientForm(request.POST, instance=dependent, guardian=request.user)
         if form.is_valid():
             dependent = form.save()
 
@@ -434,7 +439,8 @@ def edit_dependent(request, pk):
             messages.success(request, "Dependent patient updated.")
             return redirect("medical_records")
     else:
-        form = DependentPatientForm(instance=dependent)
+        # Pass the guardian to the form
+        form = DependentPatientForm(instance=dependent, guardian=request.user)
 
     return render(request, "patients/edit_dependent.html", {"form": form})
 
