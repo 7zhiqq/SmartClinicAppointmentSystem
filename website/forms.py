@@ -301,34 +301,34 @@ class DependentPatientForm(forms.ModelForm):
 class PatientVitalsForm(forms.ModelForm):
     class Meta:
         model = PatientVitals
-        exclude = ("patient",)
+        exclude = ("patient", "created_by")
 
 class DependentPatientVitalsForm(forms.ModelForm):
     class Meta:
         model = DependentPatientVitals
-        exclude = ("dependent_patient",)
+        exclude = ("dependent_patient", "created_by")
 
 # Allergies
 class PatientAllergyForm(forms.ModelForm):
     class Meta:
         model = PatientAllergy
-        exclude = ("patient",)
+        exclude = ("patient", "created_by")
 
 class DependentPatientAllergyForm(forms.ModelForm):
     class Meta:
         model = DependentPatientAllergy
-        exclude = ("dependent_patient",)
+        exclude = ("dependent_patient", "created_by")
 
 # Medications
 class PatientMedicationForm(forms.ModelForm):
     class Meta:
         model = PatientMedication
-        exclude = ("patient",)
+        exclude = ("patient", "created_by")
 
 class DependentPatientMedicationForm(forms.ModelForm):
     class Meta:
         model = DependentPatientMedication
-        exclude = ("dependent_patient",)
+        exclude = ("dependent_patient", "created_by")
 
 # Doctor Info Form
 class DoctorInfoForm(forms.ModelForm):
@@ -365,7 +365,7 @@ class SpecializationForm(forms.ModelForm):
 class DoctorAvailabilityForm(forms.ModelForm):
     class Meta:
         model = DoctorAvailability
-        fields = ["weekday", "start_time", "end_time"]
+        fields = ["weekday", "start_time", "end_time"]  
         widgets = {
             "start_time": forms.TimeInput(attrs={"type": "time"}),
             "end_time": forms.TimeInput(attrs={"type": "time"}),
@@ -401,13 +401,12 @@ class AppointmentForm(forms.ModelForm):
 class CustomDoctorAvailabilityForm(forms.ModelForm):
     class Meta:
         model = CustomDoctorAvailability
-        fields = ['date', 'start_time', 'end_time']
+        fields = ['date', 'start_time', 'end_time']  
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date'}),
             'start_time': forms.TimeInput(attrs={'type': 'time'}),
             'end_time': forms.TimeInput(attrs={'type': 'time'}),
         }
-
 
 class MedicalRecordForm(forms.ModelForm):
     class Meta:

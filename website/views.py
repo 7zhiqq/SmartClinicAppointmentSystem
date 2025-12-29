@@ -470,6 +470,9 @@ def add_patient_vitals(request, patient_type, pk):
         form = form_class(request.POST)
         if form.is_valid():
             vitals = form.save(commit=False)
+            # AUTO-ASSIGN LOGGED-IN USER
+            vitals.created_by = request.user
+            
             if patient_type == "self":
                 vitals.patient = patient
             else:
@@ -547,6 +550,9 @@ def add_patient_allergy(request, patient_type, pk):
         form = form_class(request.POST)
         if form.is_valid():
             allergy = form.save(commit=False)
+            # AUTO-ASSIGN LOGGED-IN USER
+            allergy.created_by = request.user
+            
             # Assign the correct patient
             if patient_type == "self":
                 allergy.patient = patient
@@ -554,7 +560,6 @@ def add_patient_allergy(request, patient_type, pk):
                 allergy.dependent_patient = patient
             allergy.save()
 
-            # Create ActivityLog
             ActivityLog.objects.create(
                 user=request.user,
                 action_type='create',
@@ -590,13 +595,15 @@ def add_patient_medication(request, patient_type, pk):
         form = form_class(request.POST)
         if form.is_valid():
             medication = form.save(commit=False)
+            # AUTO-ASSIGN LOGGED-IN USER
+            medication.created_by = request.user
+            
             if patient_type == "self":
                 medication.patient = patient
             else:
                 medication.dependent_patient = patient
             medication.save()
 
-            # Activity log
             ActivityLog.objects.create(
                 user=request.user,
                 action_type='create',
@@ -611,6 +618,7 @@ def add_patient_medication(request, patient_type, pk):
         form = form_class()
 
     return render(request, "patients/add_medication.html", {"form": form, "patient": patient})
+
 
 @login_required
 def medication_history(request, patient_type, pk):
@@ -928,6 +936,8 @@ def doctor_schedule(request):
         if form.is_valid():
             availability = form.save(commit=False)
             availability.doctor = doctor
+            # AUTO-ASSIGN LOGGED-IN USER
+            availability.created_by = request.user
             availability.save()
             
             ActivityLog.objects.create(
@@ -983,6 +993,8 @@ def doctor_custom_schedule(request):
         if form.is_valid():
             custom_avail = form.save(commit=False)
             custom_avail.doctor = doctor
+            # AUTO-ASSIGN LOGGED-IN USER
+            custom_avail.created_by = request.user
             custom_avail.save()
             
             ActivityLog.objects.create(
@@ -1002,6 +1014,7 @@ def doctor_custom_schedule(request):
         "form": form,
         "custom_schedules": custom_schedules
     })
+
 
 
 @login_required
@@ -1905,6 +1918,9 @@ def add_medical_record(request, patient_type, pk):
         if record_form.is_valid() and prescription_formset.is_valid():
             # Save medical record
             record = record_form.save(commit=False)
+            # AUTO-ASSIGN LOGGED-IN USER
+            record.created_by = request.user
+            
             if patient_type == 'self':
                 record.patient = patient
             else:
@@ -1913,7 +1929,10 @@ def add_medical_record(request, patient_type, pk):
 
             # Save prescriptions
             prescription_formset.instance = record
-            prescription_formset.save()
+            for prescription in prescription_formset.save(commit=False):
+                # AUTO-ASSIGN LOGGED-IN USER
+                prescription.created_by = request.user
+                prescription.save()
 
             # Log activity for medical record
             ActivityLog.objects.create(
@@ -1975,7 +1994,12 @@ def edit_medical_record(request, pk):
 
         if record_form.is_valid() and prescription_formset.is_valid():
             record_form.save()
-            prescription_formset.save()
+            
+            # Save prescriptions and assign created_by if new
+            for prescription in prescription_formset.save(commit=False):
+                if not prescription.created_by:
+                    prescription.created_by = request.user
+                prescription.save()
 
             # Log activity for update
             ActivityLog.objects.create(
@@ -2163,8 +2187,6 @@ def delete_patient_vitals(request, pk, patient_type='self'):
         'patient': patient
     })
 
-
-# ==================== DELETE ALLERGY ====================
 @login_required
 def delete_patient_allergy(request, pk, patient_type='self'):
     """Delete patient allergy record"""
@@ -2216,7 +2238,6 @@ def delete_patient_allergy(request, pk, patient_type='self'):
     })
 
 
-# ==================== DELETE MEDICATION ====================
 @login_required
 def delete_patient_medication(request, pk, patient_type='self'):
     """Delete patient medication record"""
@@ -2265,7 +2286,6 @@ def delete_patient_medication(request, pk, patient_type='self'):
     })
 
 
-# ==================== DELETE MEDICAL RECORD ====================
 @login_required
 def delete_medical_record(request, pk):
     """Delete a complete medical record"""
@@ -2325,3 +2345,4 @@ def delete_medical_record(request, pk):
         'patient_type': patient_type,
         'patient': patient
     })
+    
