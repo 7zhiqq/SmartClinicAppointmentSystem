@@ -92,4 +92,10 @@ urlpatterns = [
     
     # AJAX
     path('ajax/archived-patient/<int:pk>/', views_archive.archived_patient_details_ajax, name='archived_patient_details_ajax'),
+
+    # Delete small records
+    path("vitals/<str:patient_type>/<int:pk>/delete/", views.delete_patient_vitals, name="delete_patient_vitals"),
+    path("allergy/<str:patient_type>/<int:pk>/delete/", views.delete_patient_allergy, name="delete_patient_allergy"),
+    path("medication/<str:patient_type>/<int:pk>/delete/", views.delete_patient_medication, name="delete_patient_medication"),
+    path("medical-record/<int:pk>/delete/", views.delete_medical_record, name="delete_medical_record"),
 ]

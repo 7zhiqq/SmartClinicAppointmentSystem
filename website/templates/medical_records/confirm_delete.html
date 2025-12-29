@@ -1,0 +1,273 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/archive.css' %}">
+
+{% if user.is_authenticated %}
+    {% if user.role == "staff" %}
+        {% include "components/sidebar/staff.html" %}
+    {% elif user.role == "patient" %}
+        {% include "components/sidebar/patient.html" %}
+    {% elif user.role == "doctor" %}
+        {% include "components/sidebar/doctor.html" %}
+    {% endif %}
+
+    <div class="main-content">
+        <div class="delete-confirm-wrapper">
+            <div class="delete-header">
+                <i class="bi bi-trash danger-icon"></i>
+                <h2>Delete {{ record_type }}</h2>
+                <p class="danger-text">
+                    <strong>⚠️ Warning: This action is permanent!</strong><br>
+                    This will permanently delete this record from the database.
+                </p>
+            </div>
+
+            <div class="patient-summary danger">
+                <h3>Record Information</h3>
+                <div class="summary-grid">
+                    {% if record_type == "Vitals" %}
+                        <div class="summary-item">
+                            <span class="label">Blood Pressure:</span>
+                            <span class="value">{{ record.blood_pressure|default:"N/A" }} mmHg</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Heart Rate:</span>
+                            <span class="value">{{ record.heart_rate|default:"N/A" }} bpm</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Height:</span>
+                            <span class="value">{{ record.height_cm|default:"N/A" }} cm</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Weight:</span>
+                            <span class="value">{{ record.weight_kg|default:"N/A" }} kg</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Recorded:</span>
+                            <span class="value">{{ record.recorded_at|date:"M d, Y H:i" }}</span>
+                        </div>
+                    
+                    {% elif record_type == "Allergy" %}
+                        <div class="summary-item">
+                            <span class="label">Allergy:</span>
+                            <span class="value">{{ record.allergy_name }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Patient:</span>
+                            <span class="value">
+                                {% if patient.user %}
+                                    {{ patient.user.get_full_name }}
+                                {% else %}
+                                    {{ patient.full_name }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    
+                    {% elif record_type == "Medication" %}
+                        <div class="summary-item">
+                            <span class="label">Medication:</span>
+                            <span class="value">{{ record.medication_name }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Dosage:</span>
+                            <span class="value">{{ record.dosage }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Frequency:</span>
+                            <span class="value">{{ record.frequency }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Prescribed:</span>
+                            <span class="value">{{ record.prescribed_at|date:"M d, Y" }}</span>
+                        </div>
+                    
+                    {% elif record_type == "Medical Record" %}
+                        <div class="summary-item">
+                            <span class="label">Reason for Visit:</span>
+                            <span class="value">{{ record.reason_for_visit }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Date:</span>
+                            <span class="value">{{ record.created_at|date:"M d, Y H:i" }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Diagnosis:</span>
+                            <span class="value">{{ record.diagnosis|truncatewords:5 }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Prescriptions:</span>
+                            <span class="value">{{ record.prescriptions.count }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="affected-records danger">
+                <h3>Important Information:</h3>
+                <ul>
+                    <li><i class="bi bi-x-circle"></i> This record will be permanently deleted</li>
+                    <li><i class="bi bi-x-circle"></i> This action cannot be undone</li>
+                    <li><i class="bi bi-info-circle" style="color: #3b82f6;"></i> An audit log will be created</li>
+                    {% if record_type == "Medical Record" and record.prescriptions.count > 0 %}
+                        <li><i class="bi bi-x-circle"></i> All {{ record.prescriptions.count }} related prescription(s) will also be deleted</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <form method="post" class="delete-form">
+                {% csrf_token %}
+
+                <div class="confirmation-check">
+                    <input type="checkbox" id="confirm" required>
+                    <label for="confirm">
+                        I understand this action is permanent and cannot be undone
+                    </label>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Delete {{ record_type }}
+                    </button>
+                    <a href="{% if record_type == 'Vitals' %}{% url 'vital_history' patient_type patient.pk %}{% elif record_type == 'Medication' %}{% url 'medication_history' patient_type patient.pk %}{% elif record_type == 'Medical Record' %}{% url 'patient_list' %}{% else %}{% url 'medical_records' %}{% endif %}" 
+                       class="btn btn-secondary">
+                        <i class="bi bi-x"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endif %}
+
+<style>
+.delete-confirm-wrapper {
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 30px;
+    background: var(--bg-card);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    border: 2px solid #ef4444;
+}
+
+.delete-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #ef4444;
+}
+
+.danger-icon {
+    font-size: 3rem;
+    color: #ef4444;
+    margin-bottom: 10px;
+}
+
+.delete-header h2 {
+    color: #ef4444;
+    margin-bottom: 10px;
+}
+
+.danger-text {
+    color: var(--text-main);
+    font-size: 14px;
+    max-width: 500px;
+    margin: 0 auto;
+    background: rgba(239, 68, 68, 0.1);
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.patient-summary.danger {
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid #ef4444;
+}
+
+.affected-records.danger {
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 4px solid #ef4444;
+}
+
+.affected-records.danger li i {
+    color: #ef4444;
+}
+
+.confirmation-check {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(239, 68, 68, 0.05);
+    border-radius: 8px;
+    border: 1px solid #ef4444;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.confirmation-check input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.confirmation-check label {
+    margin: 0;
+    cursor: pointer;
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.btn {
+    flex: 1;
+    padding: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-secondary {
+    background: var(--gray-100);
+    color: var(--text-main);
+    border: 1px solid var(--border-light);
+}
+
+.btn-secondary:hover {
+    background: var(--gray-200);
+    border-color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+    .delete-confirm-wrapper {
+        margin: 20px;
+        padding: 20px;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+}
+</style>
+{% endblock %}

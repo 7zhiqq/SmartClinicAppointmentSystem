@@ -34,7 +34,13 @@ from .models import (
     CustomDoctorAvailability,
     MedicalRecord,
     DoctorRating,
-    ActivityLog
+    ActivityLog,
+    PatientVitals,
+    DependentPatientVitals,
+    PatientAllergy,
+    DependentPatientAllergy,
+    PatientMedication,
+    DependentPatientMedication
 )
 
 from .forms import (
@@ -2107,3 +2113,215 @@ def submit_doctor_rating(request, doctor_id):
     messages.success(request, "Your rating has been submitted successfully!")
     return redirect("view_doctors")
 
+@login_required
+def delete_patient_vitals(request, pk, patient_type='self'):
+    """Delete patient vitals record"""
+    if request.user.role not in ['staff', 'patient']:
+        messages.error(request, "Access denied.")
+        return redirect('home')
+    
+    # Get vitals
+    if patient_type == 'self':
+        vitals = get_object_or_404(PatientVitals, pk=pk)
+        patient = vitals.patient
+        
+        # Permission check
+        if request.user.role == 'patient' and patient.user != request.user:
+            messages.error(request, "Access denied.")
+            return redirect('medical_records')
+    else:
+        vitals = get_object_or_404(DependentPatientVitals, pk=pk)
+        patient = vitals.dependent_patient
+        
+        # Permission check
+        if request.user.role == 'patient' and patient.guardian != request.user:
+            messages.error(request, "Access denied.")
+            return redirect('medical_records')
+    
+    if request.method == 'POST':
+        vitals_id = vitals.id
+        vitals_repr = f"Vitals recorded at {vitals.recorded_at.strftime('%Y-%m-%d %H:%M')}"
+        
+        vitals.delete()
+        
+        # Log activity
+        ActivityLog.objects.create(
+            user=request.user,
+            action_type='delete',
+            model_name=vitals.__class__.__name__,
+            object_id=str(vitals_id),
+            related_object_repr=vitals_repr
+        )
+        
+        messages.success(request, "Vitals record deleted successfully.")
+        return redirect('vital_history', patient_type=patient_type, pk=patient.pk)
+    
+    return render(request, 'medical_records/confirm_delete.html', {
+        'record_type': 'Vitals',
+        'record': vitals,
+        'patient_type': patient_type,
+        'patient': patient
+    })
+
+
+# ==================== DELETE ALLERGY ====================
+@login_required
+def delete_patient_allergy(request, pk, patient_type='self'):
+    """Delete patient allergy record"""
+    if request.user.role not in ['staff', 'patient']:
+        messages.error(request, "Access denied.")
+        return redirect('home')
+    
+    if patient_type == 'self':
+        allergy = get_object_or_404(PatientAllergy, pk=pk)
+        patient = allergy.patient
+        
+        if request.user.role == 'patient' and patient.user != request.user:
+            messages.error(request, "Access denied.")
+            return redirect('medical_records')
+    else:
+        allergy = get_object_or_404(DependentPatientAllergy, pk=pk)
+        patient = allergy.dependent_patient
+        
+        if request.user.role == 'patient' and patient.guardian != request.user:
+            messages.error(request, "Access denied.")
+            return redirect('medical_records')
+    
+    if request.method == 'POST':
+        allergy_name = allergy.allergy_name
+        allergy_id = allergy.id
+        
+        allergy.delete()
+        
+        # Log activity
+        ActivityLog.objects.create(
+            user=request.user,
+            action_type='delete',
+            model_name=allergy.__class__.__name__,
+            object_id=str(allergy_id),
+            related_object_repr=f"Allergy: {allergy_name}"
+        )
+        
+        messages.success(request, "Allergy deleted successfully.")
+        if request.user.role == 'patient':
+            return redirect('medical_records')
+        else:
+            return redirect('patient_list')
+    
+    return render(request, 'medical_records/confirm_delete.html', {
+        'record_type': 'Allergy',
+        'record': allergy,
+        'patient_type': patient_type,
+        'patient': patient
+    })
+
+
+# ==================== DELETE MEDICATION ====================
+@login_required
+def delete_patient_medication(request, pk, patient_type='self'):
+    """Delete patient medication record"""
+    if request.user.role not in ['staff', 'patient']:
+        messages.error(request, "Access denied.")
+        return redirect('home')
+    
+    if patient_type == 'self':
+        medication = get_object_or_404(PatientMedication, pk=pk)
+        patient = medication.patient
+        
+        if request.user.role == 'patient' and patient.user != request.user:
+            messages.error(request, "Access denied.")
+            return redirect('medical_records')
+    else:
+        medication = get_object_or_404(DependentPatientMedication, pk=pk)
+        patient = medication.dependent_patient
+        
+        if request.user.role == 'patient' and patient.guardian != request.user:
+            messages.error(request, "Access denied.")
+            return redirect('medical_records')
+    
+    if request.method == 'POST':
+        med_name = medication.medication_name
+        med_id = medication.id
+        
+        medication.delete()
+        
+        # Log activity
+        ActivityLog.objects.create(
+            user=request.user,
+            action_type='delete',
+            model_name=medication.__class__.__name__,
+            object_id=str(med_id),
+            related_object_repr=f"Medication: {med_name}"
+        )
+        
+        messages.success(request, "Medication deleted successfully.")
+        return redirect('medication_history', patient_type=patient_type, pk=patient.pk)
+    
+    return render(request, 'medical_records/confirm_delete.html', {
+        'record_type': 'Medication',
+        'record': medication,
+        'patient_type': patient_type,
+        'patient': patient
+    })
+
+
+# ==================== DELETE MEDICAL RECORD ====================
+@login_required
+def delete_medical_record(request, pk):
+    """Delete a complete medical record"""
+    if request.user.role not in ['staff', 'doctor']:
+        messages.error(request, "Access denied.")
+        return redirect('home')
+    
+    medical_record = get_object_or_404(MedicalRecord, pk=pk)
+    
+    # Determine patient for redirect
+    if medical_record.patient:
+        patient = medical_record.patient
+        patient_type = 'self'
+    elif medical_record.dependent_patient:
+        patient = medical_record.dependent_patient
+        patient_type = 'dependent'
+    else:
+        messages.error(request, "Medical record has no associated patient.")
+        return redirect('patient_list')
+    
+    if request.method == 'POST':
+        record_id = medical_record.id
+        record_repr = f"Medical Record: {medical_record.reason_for_visit}"
+        
+        # Delete prescriptions first (they cascade)
+        prescriptions = medical_record.prescriptions.all()
+        for prescription in prescriptions:
+            # Log each prescription deletion
+            ActivityLog.objects.create(
+                user=request.user,
+                action_type='delete',
+                model_name='Prescription',
+                object_id=str(prescription.id),
+                related_object_repr=f"Prescription: {prescription.medication_name}"
+            )
+        
+        medical_record.delete()
+        
+        # Log activity for medical record
+        ActivityLog.objects.create(
+            user=request.user,
+            action_type='delete',
+            model_name='MedicalRecord',
+            object_id=str(record_id),
+            related_object_repr=record_repr
+        )
+        
+        messages.success(request, "Medical record deleted successfully.")
+        if request.user.role == 'doctor':
+            return redirect('doctor_patient_list')
+        else:
+            return redirect('patient_list')
+    
+    return render(request, 'medical_records/confirm_delete.html', {
+        'record_type': 'Medical Record',
+        'record': medical_record,
+        'patient_type': patient_type,
+        'patient': patient
+    })
