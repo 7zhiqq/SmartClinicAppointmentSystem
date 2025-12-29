@@ -1,0 +1,265 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/archive.css' %}">
+
+{% if user.is_authenticated and user.role == "manager" %}
+    {% include "components/sidebar/manager.html" %}
+
+    <div class="main-content">
+        <div class="delete-confirm-wrapper">
+            <div class="delete-header">
+                <i class="bi bi-person-x danger-icon"></i>
+                <h2>Deactivate User Account</h2>
+                <p class="danger-text">
+                    <strong>⚠️ Warning: This will deactivate the user account!</strong><br>
+                    The user will not be able to log in until the account is reactivated.
+                </p>
+            </div>
+
+            <div class="patient-summary danger">
+                <h3>User Information</h3>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <span class="label">Name:</span>
+                        <span class="value">{{ viewed_user.get_full_name|default:viewed_user.username }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Username:</span>
+                        <span class="value">{{ viewed_user.username }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Email:</span>
+                        <span class="value">{{ viewed_user.email }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Role:</span>
+                        <span class="value">
+                            <span class="badge bg-primary text-uppercase">{{ viewed_user.role }}</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="affected-records danger">
+                <h3>What will happen:</h3>
+                <ul>
+                    <li><i class="bi bi-x-circle"></i> User will be unable to log in</li>
+                    <li><i class="bi bi-x-circle"></i> User data will be preserved</li>
+                    <li><i class="bi bi-info-circle" style="color: #3b82f6;"></i> Account can be reactivated later</li>
+                    <li><i class="bi bi-info-circle" style="color: #3b82f6;"></i> Activity will be logged for audit</li>
+                </ul>
+            </div>
+
+            <form method="post" class="delete-form">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="reason">
+                        Reason for deactivation 
+                        <span class="optional">(optional)</span>
+                    </label>
+                    <textarea 
+                        name="reason" 
+                        id="reason" 
+                        rows="3" 
+                        class="form-control"
+                        placeholder="Enter reason for deactivating this account..."
+                    ></textarea>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-person-x"></i> Deactivate Account
+                    </button>
+                    <a href="{% url 'manager_user_details' viewed_user.id %}" class="btn btn-secondary">
+                        <i class="bi bi-x"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endif %}
+
+<style>
+.delete-confirm-wrapper {
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 30px;
+    background: var(--bg-card);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    border: 2px solid #ef4444;
+}
+
+.delete-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #ef4444;
+}
+
+.danger-icon {
+    font-size: 3rem;
+    color: #ef4444;
+    margin-bottom: 10px;
+}
+
+.delete-header h2 {
+    color: #ef4444;
+    margin-bottom: 10px;
+}
+
+.danger-text {
+    color: var(--text-main);
+    font-size: 14px;
+    max-width: 500px;
+    margin: 0 auto;
+    background: rgba(239, 68, 68, 0.1);
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.patient-summary.danger {
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid #ef4444;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.patient-summary h3 {
+    font-size: 16px;
+    margin-bottom: 15px;
+    color: var(--text-main);
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.summary-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.summary-item .label {
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.summary-item .value {
+    color: var(--text-main);
+}
+
+.affected-records.danger {
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 4px solid #ef4444;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.affected-records h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    color: var(--text-main);
+}
+
+.affected-records ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.affected-records li {
+    padding: 6px 0;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.affected-records li i {
+    color: #ef4444;
+}
+
+.delete-form .form-group {
+    margin-bottom: 20px;
+}
+
+.delete-form label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.delete-form .optional {
+    font-weight: 400;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.action-buttons .btn {
+    flex: 1;
+    padding: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-secondary {
+    background: var(--gray-100);
+    color: var(--text-main);
+    border: 1px solid var(--border-light);
+}
+
+.btn-secondary:hover {
+    background: var(--gray-200);
+    border-color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+    .delete-confirm-wrapper {
+        margin: 20px;
+        padding: 20px;
+    }
+
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+}
+</style>
+{% endblock %}

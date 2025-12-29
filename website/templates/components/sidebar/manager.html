@@ -27,22 +27,5 @@
                 </span>
             </div>
         </a>
-        <a href="{% url 'archived_doctors' %}">
-            <div class="menu-item {% if request.resolver_match.url_name == 'archived_doctors' %}active{% endif %}" data-section="archived">
-                <span class="text">
-                    <i class="bi bi-archive"></i>
-                    Archived Doctors
-                </span>
-            </div>
-        </a>
-
-        <a href="{% url 'deleted_records' %}">
-            <div class="menu-item {% if request.resolver_match.url_name == 'deleted_records' %}active{% endif %}" data-section="deleted">
-                <span class="text">
-                    <i class="bi bi-trash"></i>
-                    Deleted Records
-                </span>
-            </div>
-        </a>
     </div>
 </div>

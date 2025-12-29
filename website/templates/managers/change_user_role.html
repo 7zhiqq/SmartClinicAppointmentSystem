@@ -1,0 +1,199 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/edit-profile.css' %}">
+
+{% if user.is_authenticated and user.role == "manager" %}
+    {% include "components/sidebar/manager.html" %}
+
+    <div class="main-content">
+        <div class="edit-profile-wrapper">
+            <h2>
+                <i class="bi bi-arrow-left-right"></i> 
+                Change User Role
+            </h2>
+            <p class="subtitle">
+                Update the role for {{ viewed_user.get_full_name|default:viewed_user.username }}
+            </p>
+
+            <!-- User Info Card -->
+            <div style="background: var(--bg-muted); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="margin-top: 0; color: var(--text-main);">Current User Information</h4>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <p style="margin: 10px 0;">
+                            <strong>Username:</strong><br>
+                            {{ viewed_user.username }}
+                        </p>
+                        <p style="margin: 10px 0;">
+                            <strong>Email:</strong><br>
+                            {{ viewed_user.email }}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p style="margin: 10px 0;">
+                            <strong>Full Name:</strong><br>
+                            {{ viewed_user.get_full_name|default:"Not provided" }}
+                        </p>
+                        <p style="margin: 10px 0;">
+                            <strong>Current Role:</strong><br>
+                            <span class="badge bg-primary text-uppercase">{{ viewed_user.role }}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warning Message -->
+            <div style="background: rgba(245, 158, 11, 0.1); padding: 15px; border-left: 4px solid var(--warning); border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; color: var(--warning);">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Important:</strong> Changing a user's role will affect their access permissions and available features.
+                </p>
+            </div>
+
+            <!-- Role Change Form -->
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="role">Select New Role</label>
+                    <select name="role" id="role" class="form-control" required>
+                        <option value="">-- Select a role --</option>
+                        <option value="doctor" {% if viewed_user.role == 'doctor' %}selected disabled{% endif %}>
+                            Doctor
+                        </option>
+                        <option value="staff" {% if viewed_user.role == 'staff' %}selected disabled{% endif %}>
+                            Staff
+                        </option>
+                        <option value="manager" {% if viewed_user.role == 'manager' %}selected disabled{% endif %}>
+                            Manager
+                        </option>
+                    </select>
+                    <small class="form-text text-muted">
+                        <i class="bi bi-info-circle"></i> 
+                        Current role is disabled in the dropdown
+                    </small>
+                </div>
+
+                <!-- Role Descriptions -->
+                <div style="background: var(--bg-muted); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h5 style="margin-top: 0;">Role Descriptions:</h5>
+                    
+                    <div class="role-description">
+                        <strong><i class="bi bi-person-badge"></i> Doctor:</strong>
+                        <p>Can manage appointments, view patient records, and create medical records</p>
+                    </div>
+                    
+                    <div class="role-description">
+                        <strong><i class="bi bi-clipboard2-plus"></i> Staff:</strong>
+                        <p>Can manage appointments, patient records, and assist with administrative tasks</p>
+                    </div>
+                    
+                    <div class="role-description">
+                        <strong><i class="bi bi-shield-check"></i> Manager:</strong>
+                        <p>Full system access including user management, doctor approvals, and system configuration</p>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button 
+                        type="submit" 
+                        class="btn btn-warning"
+                        onclick="return confirm('Are you sure you want to change this user\'s role? This action will take effect immediately.');"
+                    >
+                        <i class="bi bi-arrow-left-right"></i> Change Role
+                    </button>
+                    <a href="{% url 'manager_user_details' viewed_user.id %}" class="btn btn-secondary">
+                        <i class="bi bi-x"></i> Cancel
+                    </a>
+                </div>
+            </form>
+
+            <!-- Additional Info -->
+            <div style="margin-top: 30px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; border-radius: 8px;">
+                <h5 style="margin-top: 0;">
+                    <i class="bi bi-info-circle"></i> What Happens When You Change a Role?
+                </h5>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li>The user's access permissions will be updated immediately</li>
+                    <li>They will see a different dashboard and menu options</li>
+                    <li>Previous role-specific data will be preserved</li>
+                    <li>The change will be logged for audit purposes</li>
+                    <li>The user may need to log out and log back in to see changes</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .role-description {
+            margin-bottom: 12px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+        }
+
+        .role-description strong {
+            color: var(--primary);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .role-description p {
+            margin: 0;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .form-actions .btn {
+            flex: 1;
+            padding: 12px;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+            border: none;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--text-main);
+            border: 1px solid var(--border-light);
+            text-decoration: none;
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-200);
+            border-color: var(--text-muted);
+        }
+
+        @media (max-width: 768px) {
+            .form-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+{% endif %}
+{% endblock %}
