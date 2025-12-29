@@ -1,3 +1,5 @@
+# website/services/archive_service.py - PROPERLY FIXED
+
 """
 Service layer for archiving and deleting records
 """
@@ -23,12 +25,19 @@ class ArchiveService:
     """Service for archiving records"""
     
     @staticmethod
+    @transaction.atomic
     def archive_patient(patient_id, user, reason=""):
         """Archive a patient and all related data"""
         try:
             patient = PatientInfo.objects.get(pk=patient_id)
         except PatientInfo.DoesNotExist:
             raise ValidationError("Patient not found")
+        
+        # ========== CRITICAL: Archive appointments FIRST before any deletion ==========
+        # Archive related appointments
+        appointments = list(Appointment.objects.filter(patient=patient.user))
+        for appt in appointments:
+            ArchiveService._archive_appointment(appt, user, reason, 'self')
         
         # Get phone number
         phone_number = ""
@@ -88,16 +97,12 @@ class ArchiveService:
                 'allergies': allergies_data,
                 'medications': medications_data,
                 'latest_vitals': latest_vitals_data,
+                'appointments_count': len(appointments),  # Store count
             }
         )
         
-        # Archive related appointments
-        appointments = Appointment.objects.filter(patient=patient.user)
-        for appt in appointments:
-            ArchiveService._archive_appointment(appt, user, reason, 'self')
-        
         # Archive related medical records
-        medical_records = MedicalRecord.objects.filter(patient=patient)
+        medical_records = list(MedicalRecord.objects.filter(patient=patient))
         for record in medical_records:
             ArchiveService._archive_medical_record(record, user, reason)
         
@@ -111,19 +116,26 @@ class ArchiveService:
             description=f"Archived patient: {reason}"
         )
         
-        # Delete the original patient (cascade will handle related records)
+        # NOW delete the patient (CASCADE will clean up the rest)
         patient.delete()
         
         return archived_patient
 
 
     @staticmethod
+    @transaction.atomic
     def archive_dependent(dependent_id, user, reason=""):
         """Archive a dependent patient and related data"""
         try:
             dependent = DependentPatient.objects.get(pk=dependent_id)
         except DependentPatient.DoesNotExist:
             raise ValidationError("Dependent patient not found")
+        
+        # ========== CRITICAL: Archive appointments FIRST before any deletion ==========
+        # Archive related appointments
+        appointments = list(DependentAppointment.objects.filter(dependent_patient=dependent))
+        for appt in appointments:
+            ArchiveService._archive_dependent_appointment(appt, user, reason)
         
         # Collect allergies
         allergies_data = []
@@ -175,16 +187,12 @@ class ArchiveService:
                 'allergies': allergies_data,
                 'medications': medications_data,
                 'latest_vitals': latest_vitals_data,
+                'appointments_count': len(appointments),  # Store count
             }
         )
         
-        # Archive related appointments
-        appointments = DependentAppointment.objects.filter(dependent_patient=dependent)
-        for appt in appointments:
-            ArchiveService._archive_dependent_appointment(appt, user, reason)
-        
         # Archive related medical records
-        medical_records = MedicalRecord.objects.filter(dependent_patient=dependent)
+        medical_records = list(MedicalRecord.objects.filter(dependent_patient=dependent))
         for record in medical_records:
             ArchiveService._archive_medical_record(record, user, reason)
         
@@ -198,14 +206,14 @@ class ArchiveService:
             description=f"Archived dependent: {reason}"
         )
         
-        # Delete the original dependent
+        # NOW delete the dependent (CASCADE will clean up the rest)
         dependent.delete()
         
         return archived_dependent
         
     @staticmethod
     def _archive_appointment(appointment, user, reason, appointment_type):
-        """Helper to archive a regular appointment"""
+        """Helper to archive a regular appointment - DO NOT DELETE"""
         archived = ArchivedAppointment.objects.create(
             original_appointment_id=appointment.id,
             appointment_type=appointment_type,
@@ -223,11 +231,14 @@ class ArchiveService:
                 'created_by_id': appointment.created_by.id if appointment.created_by else None
             }
         )
+        
+        # IMPORTANT: Delete the original appointment to prevent cascade issues
+        appointment.delete()
         return archived
     
     @staticmethod
     def _archive_dependent_appointment(appointment, user, reason):
-        """Helper to archive a dependent appointment"""
+        """Helper to archive a dependent appointment - DO NOT DELETE"""
         archived = ArchivedAppointment.objects.create(
             original_appointment_id=appointment.id,
             appointment_type='dependent',
@@ -246,6 +257,9 @@ class ArchiveService:
                 'created_by_id': appointment.created_by.id if appointment.created_by else None
             }
         )
+        
+        # IMPORTANT: Delete the original appointment to prevent cascade issues
+        appointment.delete()
         return archived
     
     @staticmethod
@@ -292,6 +306,15 @@ class ArchiveService:
         except DoctorInfo.DoesNotExist:
             raise ValidationError("Doctor not found")
         
+        # Archive appointments FIRST
+        self_appointments = list(Appointment.objects.filter(doctor=doctor))
+        for appt in self_appointments:
+            ArchiveService._archive_appointment(appt, user, reason, 'self')
+        
+        dependent_appointments = list(DependentAppointment.objects.filter(doctor=doctor))
+        for appt in dependent_appointments:
+            ArchiveService._archive_dependent_appointment(appt, user, reason)
+        
         # Archive doctor info
         archived_doctor = ArchivedDoctorInfo.objects.create(
             original_doctor_id=doctor.id,
@@ -311,17 +334,9 @@ class ArchiveService:
             additional_data={
                 'availabilities_count': doctor.availabilities.count(),
                 'custom_availabilities_count': doctor.custom_availabilities.count(),
+                'appointments_archived': len(self_appointments) + len(dependent_appointments),
             }
         )
-        
-        # Archive appointments
-        self_appointments = Appointment.objects.filter(doctor=doctor)
-        for appt in self_appointments:
-            ArchiveService._archive_appointment(appt, user, reason, 'self')
-        
-        dependent_appointments = DependentAppointment.objects.filter(doctor=doctor)
-        for appt in dependent_appointments:
-            ArchiveService._archive_dependent_appointment(appt, user, reason)
         
         # Log activity
         ActivityLog.objects.create(
@@ -521,6 +536,7 @@ class ArchiveService:
         archived.delete()
         
         return restored
+
 
 class DeleteService:
     """Service for permanent deletion with audit trail"""

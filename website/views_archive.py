@@ -845,6 +845,52 @@ def restore_patient(request, pk, patient_type='self'):
         
         # Restore related records if option is checked
         if restore_records:
+            # ========== RESTORE ARCHIVED APPOINTMENTS ==========
+            # Get archived appointments for this patient
+            archived_appointments = ArchivedAppointment.objects.filter(
+                patient_name=patient_name
+            )
+            
+            for archived_appt in archived_appointments:
+                doctor_id = archived_appt.additional_data.get('doctor_id')
+                
+                # Skip if doctor doesn't exist
+                if not doctor_id:
+                    continue
+                
+                try:
+                    doctor = DoctorInfo.objects.get(pk=doctor_id)
+                except DoctorInfo.DoesNotExist:
+                    print(f"Doctor {doctor_id} not found for appointment {archived_appt.id}")
+                    continue
+                
+                # Restore the appointment
+                try:
+                    if patient_type == 'self':
+                        Appointment.objects.create(
+                            patient=restored_patient.user,
+                            doctor=doctor,
+                            start_time=archived_appt.start_time,
+                            end_time=archived_appt.end_time,
+                            status=archived_appt.status,
+                        )
+                    else:  # dependent
+                        DependentAppointment.objects.create(
+                            dependent_patient=restored_patient,
+                            doctor=doctor,
+                            start_time=archived_appt.start_time,
+                            end_time=archived_appt.end_time,
+                            status=archived_appt.status,
+                        )
+                    
+                    # DELETE the archived appointment after successful restoration
+                    archived_appt.delete()
+                    
+                except Exception as e:
+                    print(f"Error restoring appointment: {e}")
+                    continue
+            
+            # ========== RESTORE MEDICAL RECORDS ==========
             # Restore medical records
             archived_medical_records = ArchivedMedicalRecord.objects.filter(
                 patient_id_str=archived_patient.original_patient_id
@@ -882,29 +928,6 @@ def restore_patient(request, pk, patient_type='self'):
                             notes=prescription_data.get('notes', ''),
                             prescribed_at=prescription_data.get('prescribed_at', timezone.now()),
                         )
-            
-            # Restore appointments
-            archived_appointments = ArchivedAppointment.objects.filter(
-                patient_name=patient_name
-            )
-            
-            for archived_appt in archived_appointments:
-                if patient_type == 'self':
-                    Appointment.objects.create(
-                        patient=restored_patient.user,
-                        doctor_id=archived_appt.additional_data.get('doctor_id'),
-                        start_time=archived_appt.start_time,
-                        end_time=archived_appt.end_time,
-                        status=archived_appt.status,
-                    )
-                else:
-                    DependentAppointment.objects.create(
-                        dependent_patient=restored_patient,
-                        doctor_id=archived_appt.additional_data.get('doctor_id'),
-                        start_time=archived_appt.start_time,
-                        end_time=archived_appt.end_time,
-                        status=archived_appt.status,
-                    )
         
         # Restore medications and allergies from additional_data
         additional_data = archived_patient.additional_data or {}
@@ -996,7 +1019,7 @@ def restore_patient(request, pk, patient_type='self'):
             description=f"Restored archived {'patient' if patient_type == 'self' else 'dependent'}"
         )
         
-        # Delete archived records
+        # Delete archived patient record
         archived_patient.delete()
         
         messages.success(

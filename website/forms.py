@@ -192,7 +192,9 @@ class PatientInfoForm(forms.ModelForm):
         return instance
     
 class DependentPatientForm(forms.ModelForm):
+    """Form for dependent patient with phone validation"""
     age = forms.IntegerField(required=False, disabled=True, widget=forms.NumberInput(attrs={"class": "form-control"}))
+    
     class Meta:
         model = DependentPatient
         fields = ["first_name", "last_name", "gender", "phone", "birthdate", "blood_type"]
@@ -204,12 +206,77 @@ class DependentPatientForm(forms.ModelForm):
             "birthdate": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
             "blood_type": forms.Select(attrs={"class": "form-select"}),
         }
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         birthdate = self.initial.get("birthdate") or getattr(self.instance, "birthdate", None)
         if birthdate:
             today = date.today()
             self.fields["age"].initial = today.year - birthdate.year - ((today.month, today.day) < (birthdate.month, birthdate.day))
+    
+    def clean_phone(self):
+        """Validate phone number format and uniqueness"""
+        phone = self.cleaned_data.get("phone", "").strip()
+        
+        # If phone is empty, that's okay (optional field)
+        if not phone:
+            return ""
+        
+        # Normalize the phone number
+        normalized = normalize_ph_phone_number(phone)
+        if not normalized:
+            raise ValidationError("Invalid phone number format. Please enter a valid Philippine phone number.")
+        
+        # Check if this phone number is already registered to another dependent
+        qs = DependentPatient.objects.filter(phone=normalized)
+        
+        # Exclude the current instance if editing
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        
+        if qs.exists():
+            raise ValidationError("This phone number is already registered to another dependent patient.")
+        
+        # Also check if it's registered to a regular patient
+        from accounts.models import Phone as PhoneModel
+        if PhoneModel.objects.filter(number=normalized).exists():
+            raise ValidationError("This phone number is already registered in the system.")
+        
+        return normalized
+    
+    def clean(self):
+        """Additional validation for dependent patient"""
+        cleaned_data = super().clean()
+        birthdate = cleaned_data.get('birthdate')
+        first_name = cleaned_data.get('first_name')
+        last_name = cleaned_data.get('last_name')
+        
+        # Validate that required fields are present
+        if not first_name or not first_name.strip():
+            raise ValidationError("First name is required.")
+        
+        if not last_name or not last_name.strip():
+            raise ValidationError("Last name is required.")
+        
+        if not birthdate:
+            raise ValidationError("Birthdate is required.")
+        
+        # Validate birthdate is not in the future
+        if birthdate > date.today():
+            raise ValidationError("Birthdate cannot be in the future.")
+        
+        # Validate birthdate is reasonable (not more than 150 years ago)
+        age_today = date.today().year - birthdate.year
+        if age_today > 150:
+            raise ValidationError("Please enter a valid birthdate.")
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        """Save dependent patient"""
+        instance = super().save(commit=commit)
+        return instance
+    
 # Vitals
 class PatientVitalsForm(forms.ModelForm):
     class Meta:
