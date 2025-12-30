@@ -40,7 +40,8 @@ from .models import (
     PatientAllergy,
     DependentPatientAllergy,
     PatientMedication,
-    DependentPatientMedication
+    DependentPatientMedication,
+    Specialization
 )
 
 from .forms import (
@@ -76,6 +77,8 @@ def home(request):
         )
         if user:
             login(request, user)
+            if user.role == "manager":
+                return redirect("manager_dashboard")
             return redirect("home")
         messages.error(request, "Invalid username or password. Please try again...")
 
@@ -2820,3 +2823,445 @@ def appointment_recommendations(request):
     
     return render(request, 'calendar/appointment_recommendations.html', context)
 
+@login_required
+def manager_dashboard(request):
+    """Manager dashboard with comprehensive analytics"""
+    if request.user.role != "manager":
+        messages.error(request, "Access denied.")
+        return redirect("home")
+    
+    today = timezone.now().date()
+    thirty_days_ago = today - timedelta(days=30)
+    ninety_days_ago = today - timedelta(days=90)
+    
+    # === OVERVIEW METRICS ===
+    # Users
+    total_doctors = User.objects.filter(role='doctor').count()
+    active_doctors = DoctorInfo.objects.filter(is_approved=True).count()
+    pending_doctors = DoctorInfo.objects.filter(is_approved=False, is_rejected=False).count()
+    total_staff = User.objects.filter(role='staff').count()
+    total_patients = User.objects.filter(role='patient').count()
+    total_dependents = DependentPatient.objects.count()
+    
+    # Appointments
+    total_appointments = Appointment.objects.count() + DependentAppointment.objects.count()
+    pending_appointments = (
+        Appointment.objects.filter(status='pending').count() +
+        DependentAppointment.objects.filter(status='pending').count()
+    )
+    completed_appointments = (
+        Appointment.objects.filter(status='completed').count() +
+        DependentAppointment.objects.filter(status='completed').count()
+    )
+    
+    # Today's appointments
+    today_appointments = (
+        Appointment.objects.filter(start_time__date=today).count() +
+        DependentAppointment.objects.filter(start_time__date=today).count()
+    )
+    
+    # Medical records
+    total_medical_records = MedicalRecord.objects.count()
+    records_this_month = MedicalRecord.objects.filter(
+        created_at__gte=today.replace(day=1)
+    ).count()
+    
+    # === APPOINTMENT TRENDS (Last 30 days) ===
+    appointment_trends = []
+    for i in range(30, -1, -1):
+        date = today - timedelta(days=i)
+        count = (
+            Appointment.objects.filter(start_time__date=date).count() +
+            DependentAppointment.objects.filter(start_time__date=date).count()
+        )
+        appointment_trends.append({
+            'date': date.strftime('%b %d'),
+            'count': count
+        })
+    
+    # === APPOINTMENT STATUS BREAKDOWN ===
+    status_data = {}
+    for status in ['pending', 'approved', 'completed', 'rejected', 'no_show']:
+        count = (
+            Appointment.objects.filter(status=status).count() +
+            DependentAppointment.objects.filter(status=status).count()
+        )
+        status_data[status] = count
+    
+    # === DOCTOR PERFORMANCE ===
+    doctor_performance = []
+    doctors = DoctorInfo.objects.filter(is_approved=True).select_related('user', 'specialization')
+    
+    for doctor in doctors[:10]:  # Top 10
+        appt_count = (
+            Appointment.objects.filter(doctor=doctor).count() +
+            DependentAppointment.objects.filter(doctor=doctor).count()
+        )
+        completed = (
+            Appointment.objects.filter(doctor=doctor, status='completed').count() +
+            DependentAppointment.objects.filter(doctor=doctor, status='completed').count()
+        )
+        avg_rating = DoctorRating.objects.filter(doctor=doctor).aggregate(
+            avg=Avg('rating')
+        )['avg'] or 0
+        
+        doctor_performance.append({
+            'name': doctor.user.get_full_name(),
+            'specialization': doctor.specialization.name if doctor.specialization else 'General',
+            'appointments': appt_count,
+            'completed': completed,
+            'rating': round(avg_rating, 1)
+        })
+    
+    # Sort by appointments
+    doctor_performance.sort(key=lambda x: x['appointments'], reverse=True)
+    
+    # === SPECIALIZATION DISTRIBUTION ===
+    specialization_data = []
+    specializations = Specialization.objects.annotate(
+        doctor_count=Count('doctors', filter=Q(doctors__is_approved=True))
+    ).filter(doctor_count__gt=0)
+    
+    for spec in specializations:
+        specialization_data.append({
+            'name': spec.name,
+            'count': spec.doctor_count
+        })
+    
+    # === PATIENT GROWTH (Last 6 months) ===
+    patient_growth = []
+    for i in range(6, 0, -1):
+        month = today - timedelta(days=30*i)
+        month_start = month.replace(day=1)
+        month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        
+        count = User.objects.filter(
+            role='patient',
+            date_joined__gte=month_start,
+            date_joined__lte=month_end
+        ).count()
+        
+        patient_growth.append({
+            'month': month.strftime('%b'),
+            'count': count
+        })
+    
+    # === RECENT ACTIVITY ===
+    recent_activities = ActivityLog.objects.select_related('user').order_by('-timestamp')[:15]
+    
+    # === TOP RATED DOCTORS ===
+    top_rated_doctors = []
+    doctors_with_ratings = DoctorInfo.objects.filter(
+        is_approved=True,
+        ratings__isnull=False
+    ).annotate(
+        avg_rating=Avg('ratings__rating'),
+        rating_count=Count('ratings')
+    ).filter(rating_count__gte=3).order_by('-avg_rating')[:5]
+    
+    for doctor in doctors_with_ratings:
+        top_rated_doctors.append({
+            'name': doctor.user.get_full_name(),
+            'specialization': doctor.specialization.name if doctor.specialization else 'General',
+            'rating': round(doctor.avg_rating, 1),
+            'count': doctor.rating_count
+        })
+    
+    # === BUSIEST HOURS ===
+    busiest_hours = []
+    for hour in range(8, 18):  # 8 AM to 6 PM
+        count = (
+            Appointment.objects.filter(
+                start_time__hour=hour,
+                start_time__gte=thirty_days_ago
+            ).count() +
+            DependentAppointment.objects.filter(
+                start_time__hour=hour,
+                start_time__gte=thirty_days_ago
+            ).count()
+        )
+        busiest_hours.append({
+            'hour': f"{hour % 12 or 12} {'AM' if hour < 12 else 'PM'}",
+            'count': count
+        })
+    
+    # === APPOINTMENT COMPLETION RATE ===
+    total_past_appointments = (
+        Appointment.objects.filter(start_time__lt=timezone.now()).count() +
+        DependentAppointment.objects.filter(start_time__lt=timezone.now()).count()
+    )
+    
+    completion_rate = 0
+    if total_past_appointments > 0:
+        completion_rate = round((completed_appointments / total_past_appointments) * 100, 1)
+    
+    context = {
+        # Overview
+        'total_doctors': total_doctors,
+        'active_doctors': active_doctors,
+        'pending_doctors': pending_doctors,
+        'total_staff': total_staff,
+        'total_patients': total_patients,
+        'total_dependents': total_dependents,
+        'total_appointments': total_appointments,
+        'pending_appointments': pending_appointments,
+        'completed_appointments': completed_appointments,
+        'today_appointments': today_appointments,
+        'total_medical_records': total_medical_records,
+        'records_this_month': records_this_month,
+        'completion_rate': completion_rate,
+        
+        # Charts data
+        'appointment_trends': json.dumps(appointment_trends),
+        'status_data': json.dumps(status_data),
+        'specialization_data': json.dumps(specialization_data),
+        'patient_growth': json.dumps(patient_growth),
+        'busiest_hours': json.dumps(busiest_hours),
+        
+        # Tables
+        'doctor_performance': doctor_performance,
+        'top_rated_doctors': top_rated_doctors,
+        'recent_activities': recent_activities,
+    }
+    
+    return render(request, 'managers/dashboard.html', context)
+
+
+@login_required
+def manager_reports(request):
+    """Comprehensive reporting system"""
+    if request.user.role != "manager":
+        messages.error(request, "Access denied.")
+        return redirect("home")
+    
+    # Get filter parameters
+    report_type = request.GET.get('type', 'appointments')
+    date_range = request.GET.get('range', '30')  # days
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    
+    # Calculate date range
+    today = timezone.now().date()
+    if start_date and end_date:
+        try:
+            start = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end = datetime.strptime(end_date, '%Y-%m-%d').date()
+        except ValueError:
+            start = today - timedelta(days=int(date_range))
+            end = today
+    else:
+        start = today - timedelta(days=int(date_range))
+        end = today
+    
+    report_data = {}
+    
+    if report_type == 'appointments':
+        report_data = generate_appointments_report(start, end)
+    elif report_type == 'doctors':
+        report_data = generate_doctors_report(start, end)
+    elif report_type == 'patients':
+        report_data = generate_patients_report(start, end)
+    elif report_type == 'revenue':
+        report_data = generate_revenue_report(start, end)
+    
+    context = {
+        'report_type': report_type,
+        'date_range': date_range,
+        'start_date': start.strftime('%Y-%m-%d'),
+        'end_date': end.strftime('%Y-%m-%d'),
+        'report_data': report_data,
+    }
+    
+    return render(request, 'managers/reports.html', context)
+
+
+def generate_appointments_report(start_date, end_date):
+    """Generate detailed appointments report"""
+    appointments = Appointment.objects.filter(
+        start_time__date__gte=start_date,
+        start_time__date__lte=end_date
+    )
+    dependent_appointments = DependentAppointment.objects.filter(
+        start_time__date__gte=start_date,
+        start_time__date__lte=end_date
+    )
+    
+    total = appointments.count() + dependent_appointments.count()
+    
+    # Status breakdown
+    status_breakdown = {
+        'pending': appointments.filter(status='pending').count() + 
+                   dependent_appointments.filter(status='pending').count(),
+        'approved': appointments.filter(status='approved').count() + 
+                    dependent_appointments.filter(status='approved').count(),
+        'completed': appointments.filter(status='completed').count() + 
+                     dependent_appointments.filter(status='completed').count(),
+        'rejected': appointments.filter(status='rejected').count() + 
+                    dependent_appointments.filter(status='rejected').count(),
+        'no_show': appointments.filter(status='no_show').count() + 
+                   dependent_appointments.filter(status='no_show').count(),
+    }
+    
+    # Daily breakdown
+    daily_breakdown = []
+    current = start_date
+    while current <= end_date:
+        count = (
+            appointments.filter(start_time__date=current).count() +
+            dependent_appointments.filter(start_time__date=current).count()
+        )
+        daily_breakdown.append({
+            'date': current.strftime('%Y-%m-%d'),
+            'count': count
+        })
+        current += timedelta(days=1)
+    
+    # Top doctors by appointments
+    top_doctors = []
+    doctors = DoctorInfo.objects.filter(is_approved=True)
+    for doctor in doctors:
+        count = (
+            appointments.filter(doctor=doctor).count() +
+            dependent_appointments.filter(doctor=doctor).count()
+        )
+        if count > 0:
+            top_doctors.append({
+                'name': doctor.user.get_full_name(),
+                'count': count
+            })
+    top_doctors.sort(key=lambda x: x['count'], reverse=True)
+    top_doctors = top_doctors[:10]
+    
+    return {
+        'total': total,
+        'status_breakdown': status_breakdown,
+        'daily_breakdown': daily_breakdown,
+        'top_doctors': top_doctors,
+    }
+
+
+def generate_doctors_report(start_date, end_date):
+    """Generate doctors performance report"""
+    doctors = DoctorInfo.objects.filter(is_approved=True).select_related('user', 'specialization')
+    
+    doctor_stats = []
+    for doctor in doctors:
+        appointments = Appointment.objects.filter(
+            doctor=doctor,
+            start_time__date__gte=start_date,
+            start_time__date__lte=end_date
+        ).count() + DependentAppointment.objects.filter(
+            doctor=doctor,
+            start_time__date__gte=start_date,
+            start_time__date__lte=end_date
+        ).count()
+        
+        completed = Appointment.objects.filter(
+            doctor=doctor,
+            status='completed',
+            start_time__date__gte=start_date,
+            start_time__date__lte=end_date
+        ).count() + DependentAppointment.objects.filter(
+            doctor=doctor,
+            status='completed',
+            start_time__date__gte=start_date,
+            start_time__date__lte=end_date
+        ).count()
+        
+        avg_rating = DoctorRating.objects.filter(doctor=doctor).aggregate(
+            avg=Avg('rating')
+        )['avg'] or 0
+        
+        doctor_stats.append({
+            'name': doctor.user.get_full_name(),
+            'specialization': doctor.specialization.name if doctor.specialization else 'General',
+            'appointments': appointments,
+            'completed': completed,
+            'rating': round(avg_rating, 1),
+            'completion_rate': round((completed / appointments * 100) if appointments > 0 else 0, 1)
+        })
+    
+    doctor_stats.sort(key=lambda x: x['appointments'], reverse=True)
+    
+    return {
+        'total_doctors': len(doctor_stats),
+        'doctor_stats': doctor_stats,
+    }
+
+
+def generate_patients_report(start_date, end_date):
+    """Generate patients statistics report"""
+
+    new_patients = User.objects.filter(
+        role='patient',
+        date_joined__date__gte=start_date,
+        date_joined__date__lte=end_date
+    ).count()
+
+    total_patients = User.objects.filter(role='patient').count()
+    total_dependents = DependentPatient.objects.count()
+
+    # ✅ SAFE age distribution keys
+    age_groups = {
+        'age_0_18': 0,
+        'age_19_35': 0,
+        'age_36_50': 0,
+        'age_51_65': 0,
+        'age_65_plus': 0
+    }
+
+    patients = PatientInfo.objects.all()
+    for patient in patients:
+        age = patient.age or 0
+
+        if age <= 18:
+            age_groups['age_0_18'] += 1
+        elif age <= 35:
+            age_groups['age_19_35'] += 1
+        elif age <= 50:
+            age_groups['age_36_50'] += 1
+        elif age <= 65:
+            age_groups['age_51_65'] += 1
+        else:
+            age_groups['age_65_plus'] += 1
+
+    gender_dist = {
+        'male': PatientInfo.objects.filter(gender='M').count() +
+                DependentPatient.objects.filter(gender='M').count(),
+        'female': PatientInfo.objects.filter(gender='F').count() +
+                  DependentPatient.objects.filter(gender='F').count(),
+    }
+
+    return {
+        'new_patients': new_patients,
+        'total_patients': total_patients,
+        'total_dependents': total_dependents,
+        'age_distribution': age_groups,
+        'gender_distribution': gender_dist,
+    }
+
+
+def generate_revenue_report(start_date, end_date):
+    """Generate revenue projections (placeholder for future implementation)"""
+    # This is a placeholder for future revenue tracking
+    completed_appointments = (
+        Appointment.objects.filter(
+            status='completed',
+            start_time__date__gte=start_date,
+            start_time__date__lte=end_date
+        ).count() +
+        DependentAppointment.objects.filter(
+            status='completed',
+            start_time__date__gte=start_date,
+            start_time__date__lte=end_date
+        ).count()
+    )
+    
+    # Assuming $50 per appointment (this should come from a pricing model)
+    estimated_revenue = completed_appointments * 50
+    
+    return {
+        'completed_appointments': completed_appointments,
+        'estimated_revenue': estimated_revenue,
+        'note': 'Revenue tracking is a placeholder. Implement actual pricing model.'
+    }

@@ -5,20 +5,23 @@
     </div>
 
     <div class="sidebar-content">
-        <a href="{% url 'home' %}">
-            <div class="menu-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}" data-section="home">
-            <span class="text">
-                <i class="bi bi-columns-gap"></i>
-                Dashboard
-            </span>
-        </div>
+        <a href="{% url 'manager_dashboard' %}">
+            <div class="menu-item {% if request.resolver_match.url_name == 'manager_dashboard' %}active{% endif %}" data-section="manager_dashboard">
+                <span class="text">
+                    <i class="bi bi-columns-gap"></i>
+                    Dashboard
+                </span>
+            </div>
         </a>
-        <div class="menu-item" data-section="report">
-            <span class="text">
-                <i class="bi bi-pie-chart"></i>
-                Report
-            </span>
-        </div>
+        <a href="{% url 'manager_reports' %}">
+            <div class="menu-item {% if request.resolver_match.url_name == 'manager_reports' %}active{% endif %}" data-section="manager_reports">
+                <span class="text">
+                    <i class="bi bi-pie-chart"></i>
+                    Report
+                </span>
+            </div>
+        </a>
+        
         <a href="{% url 'manager_users_list' %}">
             <div class="menu-item {% if request.resolver_match.url_name == 'manager_users_list' %}active{% endif %}" data-section="manager_users_list">
                 <span class="text">

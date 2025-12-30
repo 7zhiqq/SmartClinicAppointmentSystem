@@ -1,0 +1,331 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/manager-dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/reports.css' %}">
+
+{% if user.is_authenticated and user.role == "manager" %}
+    {% include 'components/sidebar/manager.html' %}
+    
+    <div class="main-content">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div>
+                <h2 class="heading-title">
+                    <i class="bi bi-file-earmark-bar-graph"></i> Reports & Analytics
+                </h2>
+                <p class="subtitle">Generate detailed reports and export data</p>
+            </div>
+            <a href="{% url 'manager_dashboard' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Filters Card -->
+        <div class="filters-card">
+            <form method="GET" class="filters-form">
+                <div class="filter-group">
+                    <label for="report-type">Report Type</label>
+                    <select name="type" id="report-type" class="form-select">
+                        <option value="appointments" {% if report_type == 'appointments' %}selected{% endif %}>Appointments Report</option>
+                        <option value="doctors" {% if report_type == 'doctors' %}selected{% endif %}>Doctors Performance</option>
+                        <option value="patients" {% if report_type == 'patients' %}selected{% endif %}>Patients Statistics</option>
+                        <option value="revenue" {% if report_type == 'revenue' %}selected{% endif %}>Revenue Report</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="date-range">Quick Range</label>
+                    <select name="range" id="date-range" class="form-select">
+                        <option value="7" {% if date_range == '7' %}selected{% endif %}>Last 7 Days</option>
+                        <option value="30" {% if date_range == '30' %}selected{% endif %}>Last 30 Days</option>
+                        <option value="90" {% if date_range == '90' %}selected{% endif %}>Last 90 Days</option>
+                        <option value="365" {% if date_range == '365' %}selected{% endif %}>Last Year</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="start-date">Start Date</label>
+                    <input type="date" name="start_date" id="start-date" class="form-control" value="{{ start_date }}">
+                </div>
+
+                <div class="filter-group">
+                    <label for="end-date">End Date</label>
+                    <input type="date" name="end_date" id="end-date" class="form-control" value="{{ end_date }}">
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Generate Report
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="exportReport()">
+                        <i class="bi bi-download"></i> Export
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Report Content -->
+        {% if report_data %}
+            {% if report_type == 'appointments' %}
+                <!-- Appointments Report -->
+                <div class="report-section">
+                    <h3 class="report-title">
+                        <i class="bi bi-calendar-check"></i> Appointments Report
+                        <span class="report-subtitle">{{ start_date }} to {{ end_date }}</span>
+                    </h3>
+
+                    <!-- Summary Cards -->
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <div class="summary-label">Total Appointments</div>
+                            <div class="summary-value">{{ report_data.total }}</div>
+                        </div>
+                        <div class="summary-card success">
+                            <div class="summary-label">Completed</div>
+                            <div class="summary-value">{{ report_data.status_breakdown.completed }}</div>
+                        </div>
+                        <div class="summary-card warning">
+                            <div class="summary-label">Pending</div>
+                            <div class="summary-value">{{ report_data.status_breakdown.pending }}</div>
+                        </div>
+                        <div class="summary-card danger">
+                            <div class="summary-label">Rejected/No Show</div>
+                            <div class="summary-value">{{ report_data.status_breakdown.rejected|add:report_data.status_breakdown.no_show }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Top Doctors -->
+                    <div class="report-table-wrapper">
+                        <h4><i class="bi bi-trophy"></i> Top Doctors by Appointments</h4>
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Doctor Name</th>
+                                    <th>Total Appointments</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doctor in report_data.top_doctors %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ doctor.name }}</td>
+                                    <td>{{ doctor.count }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">No data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            {% elif report_type == 'doctors' %}
+                <!-- Doctors Performance Report -->
+                <div class="report-section">
+                    <h3 class="report-title">
+                        <i class="bi bi-person-badge"></i> Doctors Performance Report
+                        <span class="report-subtitle">{{ start_date }} to {{ end_date }}</span>
+                    </h3>
+
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <div class="summary-label">Total Doctors</div>
+                            <div class="summary-value">{{ report_data.total_doctors }}</div>
+                        </div>
+                    </div>
+
+                    <div class="report-table-wrapper">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Doctor Name</th>
+                                    <th>Specialization</th>
+                                    <th>Appointments</th>
+                                    <th>Completed</th>
+                                    <th>Completion Rate</th>
+                                    <th>Rating</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doctor in report_data.doctor_stats %}
+                                <tr>
+                                    <td>{{ doctor.name }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ doctor.specialization }}</span>
+                                    </td>
+                                    <td>{{ doctor.appointments }}</td>
+                                    <td>{{ doctor.completed }}</td>
+                                    <td>
+                                        <div class="progress-inline">
+                                            <div class="progress-bar-inline" style="width: {{ doctor.completion_rate }}%;"></div>
+                                            <span class="progress-text">{{ doctor.completion_rate }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="rating-badge">
+                                            <i class="bi bi-star-fill"></i> {{ doctor.rating }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center">No data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            {% elif report_type == 'patients' %}
+                <!-- Patients Statistics Report -->
+                <div class="report-section">
+                    <h3 class="report-title">
+                        <i class="bi bi-people"></i> Patients Statistics
+                        <span class="report-subtitle">{{ start_date }} to {{ end_date }}</span>
+                    </h3>
+
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <div class="summary-label">Total Patients</div>
+                            <div class="summary-value">{{ report_data.total_patients }}</div>
+                        </div>
+                        <div class="summary-card info">
+                            <div class="summary-label">Dependents</div>
+                            <div class="summary-value">{{ report_data.total_dependents }}</div>
+                        </div>
+                        <div class="summary-card success">
+                            <div class="summary-label">New Patients</div>
+                            <div class="summary-value">{{ report_data.new_patients }}</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-3">
+                        <div class="col-lg-6">
+                            <div class="chart-card">
+                                <div class="chart-header">
+                                    <h4>Age Distribution</h4>
+                                </div>
+                                <canvas id="ageChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="chart-card">
+                                <div class="chart-header">
+                                    <h4>Gender Distribution</h4>
+                                </div>
+                                <canvas id="genderChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            {% elif report_type == 'revenue' %}
+                <!-- Revenue Report -->
+                <div class="report-section">
+                    <h3 class="report-title">
+                        <i class="bi bi-currency-dollar"></i> Revenue Report
+                        <span class="report-subtitle">{{ start_date }} to {{ end_date }}</span>
+                    </h3>
+
+                    <div class="summary-grid">
+                        <div class="summary-card success">
+                            <div class="summary-label">Completed Appointments</div>
+                            <div class="summary-value">{{ report_data.completed_appointments }}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Estimated Revenue</div>
+                            <div class="summary-value">${{ report_data.estimated_revenue }}</div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mt-3">
+                        <i class="bi bi-info-circle"></i>
+                        {{ report_data.note }}
+                    </div>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Date range toggle
+        document.getElementById('date-range').addEventListener('change', function() {
+            const customInputs = document.querySelectorAll('#start-date, #end-date');
+            if (this.value === 'custom') {
+                customInputs.forEach(input => input.disabled = false);
+            } else {
+                customInputs.forEach(input => input.disabled = true);
+            }
+        });
+
+        // Export function
+        function exportReport() {
+            // Get current form data
+            const form = document.querySelector('.filters-form');
+            const formData = new FormData(form);
+            const params = new URLSearchParams(formData);
+            
+            alert('Export functionality would download the report as CSV/PDF. Implementation pending.');
+            // In production, this would trigger a download
+        }
+
+        // Render charts for patient report
+        {% if report_type == 'patients' and report_data %}
+            // Age Distribution Chart
+            new Chart(document.getElementById('ageChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['0-18', '19-35', '36-50', '51-65', '65+'],
+                    datasets: [{
+                        label: 'Patients',
+                        data: [
+                            {{ report_data.age_distribution.age_0_18 }},
+                            {{ report_data.age_distribution.age_19_35 }},
+                            {{ report_data.age_distribution.age_36_50 }},
+                            {{ report_data.age_distribution.age_51_65 }},
+                            {{ report_data.age_distribution.age_65_plus }}
+                        ],
+
+                        backgroundColor: '#214994',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            // Gender Distribution Chart
+            new Chart(document.getElementById('genderChart'), {
+                type: 'pie',
+                data: {
+                    labels: ['Male', 'Female'],
+                    datasets: [{
+                        data: [
+                            {{ report_data.gender_distribution.male }},
+                            {{ report_data.gender_distribution.female }}
+                        ],
+                        backgroundColor: ['#3b82f6', '#ec4899']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        {% endif %}
+    </script>
+{% endif %}
+{% endblock %}

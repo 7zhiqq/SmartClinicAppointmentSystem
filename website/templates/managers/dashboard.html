@@ -1,0 +1,387 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/manager-dashboard.css' %}">
+
+{% if user.is_authenticated and user.role == "manager" %}
+    {% include 'components/sidebar/manager.html' %}
+    
+    <div class="main-content">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div>
+                <h2 class="heading-title">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </h2>
+                <p class="subtitle">Comprehensive overview of clinic operations</p>
+            </div>
+            <a href="{% url 'manager_reports' %}" class="btn btn-primary">
+                <i class="bi bi-file-earmark-bar-graph"></i> View Reports
+            </a>
+        </div>
+
+        <!-- Key Metrics Grid -->
+        <div class="metrics-grid">
+            <div class="metric-card primary">
+                <div class="metric-icon">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-label">Total Patients</div>
+                    <div class="metric-value">{{ total_patients|add:total_dependents }}</div>
+                    <div class="metric-detail">{{ total_patients }} direct + {{ total_dependents }} dependents</div>
+                </div>
+            </div>
+
+            <div class="metric-card success">
+                <div class="metric-icon">
+                    <i class="bi bi-clipboard-check"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-label">Appointments Today</div>
+                    <div class="metric-value">{{ today_appointments }}</div>
+                    <div class="metric-detail">{{ pending_appointments }} pending approval</div>
+                </div>
+            </div>
+
+            <div class="metric-card warning">
+                <div class="metric-icon">
+                    <i class="bi bi-person-badge"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-label">Active Doctors</div>
+                    <div class="metric-value">{{ active_doctors }}/{{ total_doctors }}</div>
+                    <div class="metric-detail">{{ pending_doctors }} pending approval</div>
+                </div>
+            </div>
+
+            <div class="metric-card info">
+                <div class="metric-icon">
+                    <i class="bi bi-file-medical"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-label">Medical Records</div>
+                    <div class="metric-value">{{ total_medical_records }}</div>
+                    <div class="metric-detail">{{ records_this_month }} this month</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="performance-card">
+                    <div class="perf-label">Completion Rate</div>
+                    <div class="perf-value">{{ completion_rate }}%</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ completion_rate }}%;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="performance-card">
+                    <div class="perf-label">Staff Members</div>
+                    <div class="perf-value">{{ total_staff }}</div>
+                    <div class="perf-detail">Active staff</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="performance-card">
+                    <div class="perf-label">Total Appointments</div>
+                    <div class="perf-value">{{ total_appointments }}</div>
+                    <div class="perf-detail">{{ completed_appointments }} completed</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="performance-card">
+                    <div class="perf-label">Pending Doctors</div>
+                    <div class="perf-value">{{ pending_doctors }}</div>
+                    <div class="perf-detail">Awaiting approval</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row g-3 mb-4">
+            <!-- Appointment Trends -->
+            <div class="col-lg-8">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h4><i class="bi bi-graph-up"></i> Appointment Trends (30 Days)</h4>
+                    </div>
+                    <canvas id="appointmentTrendsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Status Breakdown -->
+            <div class="col-lg-4">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h4><i class="bi bi-pie-chart"></i> Status Breakdown</h4>
+                    </div>
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 2 -->
+        <div class="row g-3 mb-4">
+            <!-- Patient Growth -->
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h4><i class="bi bi-people"></i> Patient Growth (6 Months)</h4>
+                    </div>
+                    <canvas id="patientGrowthChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Busiest Hours -->
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h4><i class="bi bi-clock-history"></i> Busiest Hours (30 Days)</h4>
+                    </div>
+                    <canvas id="busiestHoursChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tables Row -->
+        <div class="row g-3 mb-4">
+            <!-- Doctor Performance -->
+            <div class="col-lg-6">
+                <div class="table-card">
+                    <div class="table-header">
+                        <h4><i class="bi bi-award"></i> Top Performing Doctors</h4>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Doctor</th>
+                                    <th>Specialization</th>
+                                    <th>Appointments</th>
+                                    <th>Rating</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doctor in doctor_performance|slice:":10" %}
+                                <tr>
+                                    <td>{{ doctor.name }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ doctor.specialization }}</span>
+                                    </td>
+                                    <td>{{ doctor.appointments }}</td>
+                                    <td>
+                                        <span class="rating-badge">
+                                            <i class="bi bi-star-fill"></i> {{ doctor.rating }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">No data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="col-lg-6">
+                <div class="table-card">
+                    <div class="table-header">
+                        <h4><i class="bi bi-activity"></i> Recent Activity</h4>
+                    </div>
+                    <div class="activity-list">
+                        {% for activity in recent_activities %}
+                        <div class="activity-item">
+                            <div class="activity-icon {{ activity.action_type }}">
+                                {% if activity.action_type == 'create' %}
+                                    <i class="bi bi-plus-circle"></i>
+                                {% elif activity.action_type == 'update' %}
+                                    <i class="bi bi-pencil"></i>
+                                {% elif activity.action_type == 'delete' %}
+                                    <i class="bi bi-trash"></i>
+                                {% endif %}
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-text">
+                                    <strong>{{ activity.user.get_full_name }}</strong>
+                                    {{ activity.get_action_type_display|lower }} {{ activity.model_name }}
+                                </div>
+                                <div class="activity-time">
+                                    {{ activity.timestamp|timesince }} ago
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-center text-muted">No recent activity</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Specialization Distribution -->
+        <div class="row g-3 mb-4">
+            <div class="col-lg-12">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h4><i class="bi bi-diagram-3"></i> Doctor Specialization Distribution</h4>
+                    </div>
+                    <canvas id="specializationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Parse data from Django
+        const appointmentTrends = {{ appointment_trends|safe }};
+        const statusData = {{ status_data|safe }};
+        const specializationData = {{ specialization_data|safe }};
+        const patientGrowth = {{ patient_growth|safe }};
+        const busiestHours = {{ busiest_hours|safe }};
+
+        // Chart configurations
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#6b7280';
+
+        // Appointment Trends Chart
+        new Chart(document.getElementById('appointmentTrendsChart'), {
+            type: 'line',
+            data: {
+                labels: appointmentTrends.map(d => d.date),
+                datasets: [{
+                    label: 'Appointments',
+                    data: appointmentTrends.map(d => d.count),
+                    borderColor: '#214994',
+                    backgroundColor: 'rgba(33, 73, 148, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        // Status Breakdown Chart
+        new Chart(document.getElementById('statusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Pending', 'Approved', 'Completed', 'Rejected', 'No Show'],
+                datasets: [{
+                    data: [
+                        statusData.pending,
+                        statusData.approved,
+                        statusData.completed,
+                        statusData.rejected,
+                        statusData.no_show
+                    ],
+                    backgroundColor: [
+                        '#ffc107',
+                        '#28a745',
+                        '#6c757d',
+                        '#dc3545',
+                        '#17a2b8'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // Patient Growth Chart
+        new Chart(document.getElementById('patientGrowthChart'), {
+            type: 'bar',
+            data: {
+                labels: patientGrowth.map(d => d.month),
+                datasets: [{
+                    label: 'New Patients',
+                    data: patientGrowth.map(d => d.count),
+                    backgroundColor: '#10b981',
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        // Busiest Hours Chart
+        new Chart(document.getElementById('busiestHoursChart'), {
+            type: 'bar',
+            data: {
+                labels: busiestHours.map(d => d.hour),
+                datasets: [{
+                    label: 'Appointments',
+                    data: busiestHours.map(d => d.count),
+                    backgroundColor: '#f59e0b',
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        // Specialization Chart
+        new Chart(document.getElementById('specializationChart'), {
+            type: 'bar',
+            data: {
+                labels: specializationData.map(d => d.name),
+                datasets: [{
+                    label: 'Number of Doctors',
+                    data: specializationData.map(d => d.count),
+                    backgroundColor: '#214994',
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { beginAtZero: true }
+                }
+            }
+        });
+    </script>
+{% endif %}
+{% endblock %}

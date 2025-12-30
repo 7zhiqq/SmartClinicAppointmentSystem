@@ -106,4 +106,8 @@ urlpatterns = [
     path("medical-record/<int:pk>/delete/", views.delete_medical_record, name="delete_medical_record"),
 
     path('appointment-recommendations/', views.appointment_recommendations, name='appointment_recommendations'),
+
+    path('manager/dashboard/', views.manager_dashboard, name='manager_dashboard'),
+    path('manager/reports/', views.manager_reports, name='manager_reports'),
 ]
+
