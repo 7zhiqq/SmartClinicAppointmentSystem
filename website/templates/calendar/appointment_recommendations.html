@@ -1,0 +1,426 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/calendar.css' %}">
+
+<style>
+.recommendations-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.urgency-banner {
+    background: linear-gradient(
+        135deg,
+        var(--urgency-color)15 0%,
+        var(--urgency-color)05 100%
+    );
+    border-left: 4px solid var(--urgency-color);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.urgency-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.urgency-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--urgency-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.urgency-details h3 {
+    margin: 0 0 5px 0;
+    color: var(--urgency-color);
+    font-size: 18px;
+}
+
+.urgency-details p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.doctor-info-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.doctor-info-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.doctor-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary) 0%, #326edd 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.reasoning-section {
+    background: var(--bg-muted);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.reasoning-section h3 {
+    margin: 0 0 15px 0;
+    color: var(--text-main);
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.reasoning-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.reasoning-list li {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: var(--text-main);
+}
+
+.reasoning-list li:last-child {
+    border-bottom: none;
+}
+
+.reasoning-list li i {
+    color: var(--primary);
+    margin-top: 3px;
+}
+
+.recommended-slots {
+    display: grid;
+    gap: 15px;
+}
+
+.slot-card {
+    background: var(--bg-card);
+    border: 2px solid var(--border-light);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.slot-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.slot-card.top-pick {
+    border-color: var(--primary);
+    background: linear-gradient(135deg, var(--primary-lighter) 0%, transparent 100%);
+}
+
+.slot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.slot-datetime {
+    flex: 1;
+}
+
+.slot-date {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin: 0 0 5px 0;
+}
+
+.slot-time {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 0;
+}
+
+.slot-badge {
+    background: var(--primary);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.slot-badge.top {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.slot-reasons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.reason-tag {
+    background: var(--bg-muted);
+    color: var(--text-main);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.reason-tag i {
+    color: var(--primary);
+    font-size: 10px;
+}
+
+.book-button {
+    width: 100%;
+    padding: 12px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.book-button:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 14px;
+    margin-bottom: 20px;
+    transition: color 0.2s ease;
+}
+
+.back-link:hover {
+    color: var(--primary);
+}
+
+.section-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0 0 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+}
+
+.empty-state i {
+    font-size: 48px;
+    opacity: 0.3;
+    margin-bottom: 15px;
+}
+
+@media (max-width: 768px) {
+    .recommendations-container {
+        padding: 15px;
+    }
+
+    .urgency-content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .doctor-info-content {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+</style>
+{% if user.is_authenticated and user.role == "patient" %}
+    {% include "components/sidebar/patient.html" %}
+        <div class="main-content">
+            <div class="recommendations-container">
+
+            <a href="{% url 'patient_calendar' %}" class="back-link">
+                <i class="bi bi-arrow-left"></i>
+                Back to Calendar
+            </a>
+
+            <h2 class="section-title">
+                <i class="bi bi-stars"></i>
+                Recommended Appointment Times
+            </h2>
+
+            <div class="urgency-banner" style="--urgency-color: {{ urgency_color }};">
+                <div class="urgency-content">
+                    <div class="urgency-icon">
+                        {% if urgency_level == 'high' %}
+                            <i class="bi bi-exclamation-triangle"></i>
+                        {% elif urgency_level == 'medium' %}
+                            <i class="bi bi-clock"></i>
+                        {% else %}
+                            <i class="bi bi-check-circle"></i>
+                        {% endif %}
+                    </div>
+                    <div class="urgency-details">
+                        <h3>{{ urgency_label }} ({{ urgency_score }}/100)</h3>
+                        <p>
+                            {% if urgency_level == 'high' %}
+                                We recommend scheduling your appointment as soon as possible.
+                            {% elif urgency_level == 'medium' %}
+                                Consider booking an appointment within the next few weeks.
+                            {% else %}
+                                You're up to date! Schedule when it's convenient for you.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Doctor Info -->
+            <div class="doctor-info-card">
+                <div class="doctor-info-content">
+                    <div class="doctor-avatar">
+                        {{ doctor.user.first_name|slice:":1" }}{{ doctor.user.last_name|slice:":1" }}
+                    </div>
+                    <div>
+                        <h3 style="margin: 0 0 5px 0;">Dr. {{ doctor.user.get_full_name }}</h3>
+                        <p style="margin: 0; color: var(--text-muted);">{{ doctor.specialization.name }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reasoning Section -->
+            {% if reasoning %}
+            <div class="reasoning-section">
+                <h3>
+                    <i class="bi bi-lightbulb"></i>
+                    Why These Times?
+                </h3>
+                <ul class="reasoning-list">
+                    {% for reason in reasoning %}
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>{{ reason }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Recommended Slots -->
+            <h3 class="section-title">
+                <i class="bi bi-calendar-check"></i>
+                Best Available Times
+            </h3>
+
+            {% if recommendations %}
+            <div class="recommended-slots">
+                {% for slot in recommendations %}
+                <div class="slot-card {% if forloop.first %}top-pick{% endif %}">
+                    <div class="slot-header">
+                        <div class="slot-datetime">
+                            <p class="slot-date">{{ slot.date }}</p>
+                            <p class="slot-time">{{ slot.time }}</p>
+                        </div>
+                        {% if forloop.first %}
+                        <span class="slot-badge top">
+                            <i class="bi bi-star-fill"></i> Top Pick
+                        </span>
+                        {% else %}
+                        <span class="slot-badge">Recommended</span>
+                        {% endif %}
+                    </div>
+
+                    {% if slot.reasons %}
+                    <div class="slot-reasons">
+                        {% for reason in slot.reasons %}
+                        <span class="reason-tag">
+                            <i class="bi bi-circle-fill"></i>
+                            {{ reason }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <form method="GET" action="{% url 'book_schedule' %}" style="margin: 0;">
+                        <input type="hidden" name="doctor" value="{{ doctor.id }}">
+                        <input type="hidden" name="start" value="{{ slot.start_iso }}">
+                        <input type="hidden" name="end" value="{{ slot.end_iso }}">
+                        <button type="submit" class="book-button">
+                            <i class="bi bi-calendar-plus"></i>
+                            Book This Time
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-calendar-x"></i>
+                <p>No available time slots found for this doctor in the next 7 days.</p>
+                <a href="{% url 'patient_calendar' %}" class="btn btn-primary" style="margin-top: 15px;">
+                    Try Another Doctor
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Additional Actions -->
+            <div style="margin-top: 30px; text-align: center;">
+                <a href="{% url 'patient_calendar' %}" class="btn btn-secondary">
+                    <i class="bi bi-calendar"></i>
+                    View Full Calendar
+                </a>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

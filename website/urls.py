@@ -104,4 +104,6 @@ urlpatterns = [
     path("allergy/<str:patient_type>/<int:pk>/delete/", views.delete_patient_allergy, name="delete_patient_allergy"),
     path("medication/<str:patient_type>/<int:pk>/delete/", views.delete_patient_medication, name="delete_patient_medication"),
     path("medical-record/<int:pk>/delete/", views.delete_medical_record, name="delete_medical_record"),
+
+    path('appointment-recommendations/', views.appointment_recommendations, name='appointment_recommendations'),
 ]

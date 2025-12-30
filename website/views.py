@@ -19,6 +19,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django import forms
 from itertools import chain
 from django.core.exceptions import ValidationError
+from website.services.appointment_recommender import get_appointment_recommendations
 
 from accounts.models import Phone, User
 
@@ -2749,3 +2750,73 @@ def manager_change_user_role(request, user_id):
         return redirect('manager_users_list')
     
     return render(request, 'managers/change_user_role.html', {'viewed_user': user})
+
+@login_required
+def appointment_recommendations(request):
+    """Show intelligent appointment recommendations for patient"""
+    if request.user.role != "patient":
+        messages.error(request, "Access denied.")
+        return redirect("home")
+    
+    # Get doctor_id from query params
+    doctor_id = request.GET.get('doctor')
+    
+    if not doctor_id:
+        messages.error(request, "Please select a doctor first.")
+        return redirect("patient_calendar")
+    
+    doctor = get_object_or_404(DoctorInfo, id=doctor_id, is_approved=True)
+    
+    # Get patient info
+    try:
+        patient = PatientInfo.objects.get(user=request.user)
+        patient_type = 'self'
+    except PatientInfo.DoesNotExist:
+        messages.error(request, "Please complete your profile first.")
+        return redirect("edit_my_patient_info")
+    
+    # Get recommendations
+    recommendations = get_appointment_recommendations(patient, doctor, patient_type)
+    
+    # Format recommendations for display
+    formatted_slots = []
+    for item in recommendations['recommended_times'][:10]:  # Top 10
+        slot = item['slot']
+        formatted_slots.append({
+            'datetime': slot['datetime'],
+            'date': slot['date'].strftime('%A, %B %d, %Y'),
+            'time': slot['datetime'].strftime('%I:%M %p'),
+            'score': item['score'],
+            'reasons': item['reasons'],
+            'start_iso': slot['datetime'].isoformat(),
+            'end_iso': (slot['datetime'] + timedelta(minutes=30)).isoformat()
+        })
+    
+    # Get urgency level
+    urgency_score = recommendations['urgency_score']
+    if urgency_score >= 75:
+        urgency_level = 'high'
+        urgency_label = 'High Priority'
+        urgency_color = '#ef4444'
+    elif urgency_score >= 50:
+        urgency_level = 'medium'
+        urgency_label = 'Moderate Priority'
+        urgency_color = '#f59e0b'
+    else:
+        urgency_level = 'low'
+        urgency_label = 'Low Priority'
+        urgency_color = '#10b981'
+    
+    context = {
+        'doctor': doctor,
+        'patient': patient,
+        'recommendations': formatted_slots,
+        'urgency_score': urgency_score,
+        'urgency_level': urgency_level,
+        'urgency_label': urgency_label,
+        'urgency_color': urgency_color,
+        'reasoning': recommendations['reasoning'],
+    }
+    
+    return render(request, 'calendar/appointment_recommendations.html', context)
+
