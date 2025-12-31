@@ -109,5 +109,7 @@ urlpatterns = [
 
     path('manager/dashboard/', views.manager_dashboard, name='manager_dashboard'),
     path('manager/reports/', views.manager_reports, name='manager_reports'),
+    path('manager/reports/export/', views.export_report, name='export_report'), 
+
 ]
 

@@ -31,7 +31,6 @@
                         <option value="appointments" {% if report_type == 'appointments' %}selected{% endif %}>Appointments Report</option>
                         <option value="doctors" {% if report_type == 'doctors' %}selected{% endif %}>Doctors Performance</option>
                         <option value="patients" {% if report_type == 'patients' %}selected{% endif %}>Patients Statistics</option>
-                        <option value="revenue" {% if report_type == 'revenue' %}selected{% endif %}>Revenue Report</option>
                     </select>
                 </div>
 
@@ -225,31 +224,6 @@
                         </div>
                     </div>
                 </div>
-
-            {% elif report_type == 'revenue' %}
-                <!-- Revenue Report -->
-                <div class="report-section">
-                    <h3 class="report-title">
-                        <i class="bi bi-currency-dollar"></i> Revenue Report
-                        <span class="report-subtitle">{{ start_date }} to {{ end_date }}</span>
-                    </h3>
-
-                    <div class="summary-grid">
-                        <div class="summary-card success">
-                            <div class="summary-label">Completed Appointments</div>
-                            <div class="summary-value">{{ report_data.completed_appointments }}</div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-label">Estimated Revenue</div>
-                            <div class="summary-value">${{ report_data.estimated_revenue }}</div>
-                        </div>
-                    </div>
-
-                    <div class="alert alert-info mt-3">
-                        <i class="bi bi-info-circle"></i>
-                        {{ report_data.note }}
-                    </div>
-                </div>
             {% endif %}
         {% endif %}
     </div>
@@ -271,11 +245,207 @@
             // Get current form data
             const form = document.querySelector('.filters-form');
             const formData = new FormData(form);
-            const params = new URLSearchParams(formData);
             
-            alert('Export functionality would download the report as CSV/PDF. Implementation pending.');
-            // In production, this would trigger a download
+            // Show export format modal
+            const exportModal = document.createElement('div');
+            exportModal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+            `;
+            
+            exportModal.innerHTML = `
+                <div style="
+                    background: white;
+                    padding: 30px;
+                    border-radius: 12px;
+                    max-width: 400px;
+                    width: 90%;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+                ">
+                    <h3 style="margin-top: 0; color: #214994;">
+                        <i class="bi bi-download"></i> Export Report
+                    </h3>
+                    <p style="color: #6b7280; margin-bottom: 20px;">
+                        Choose your preferred export format:
+                    </p>
+                    
+                    <div style="display: grid; gap: 12px;">
+                        <button onclick="performExport('pdf')" style="
+                            padding: 15px;
+                            background: #214994;
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-size: 15px;
+                            font-weight: 600;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 8px;
+                            transition: all 0.2s;
+                        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(33,73,148,0.3)'"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                            Export as PDF
+                            <small style="opacity: 0.8; font-size: 12px;">(Formatted, print-ready)</small>
+                        </button>
+                        
+                        <button onclick="performExport('csv')" style="
+                            padding: 15px;
+                            background: #10b981;
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-size: 15px;
+                            font-weight: 600;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 8px;
+                            transition: all 0.2s;
+                        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(16,185,129,0.3)'"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                            <i class="bi bi-file-earmark-spreadsheet"></i>
+                            Export as CSV
+                            <small style="opacity: 0.8; font-size: 12px;">(Excel, data analysis)</small>
+                        </button>
+                    </div>
+                    
+                    <button onclick="closeExportModal()" style="
+                        width: 100%;
+                        padding: 12px;
+                        background: #f3f4f6;
+                        color: #374151;
+                        border: none;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        font-weight: 600;
+                        margin-top: 15px;
+                        transition: all 0.2s;
+                    " onmouseover="this.style.background='#e5e7eb'"
+                    onmouseout="this.style.background='#f3f4f6'">
+                        Cancel
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(exportModal);
+            
+            // Store form data globally for export function
+            window.exportFormData = formData;
         }
+
+        function performExport(format) {
+            // Get form data
+            const formData = window.exportFormData;
+            
+            // Build export URL
+            const params = new URLSearchParams();
+            for (let [key, value] of formData.entries()) {
+                params.append(key, value);
+            }
+            params.append('format', format);
+            
+            // Show loading indicator
+            showLoadingIndicator(format);
+            
+            // Trigger download
+            window.location.href = `/manager/reports/export/?${params.toString()}`;
+            
+            // Close modal after a short delay
+            setTimeout(() => {
+                closeExportModal();
+                hideLoadingIndicator();
+            }, 1000);
+        }
+
+        function closeExportModal() {
+            const modal = document.querySelector('[style*="position: fixed"]');
+            if (modal) {
+                modal.remove();
+            }
+            window.exportFormData = null;
+        }
+
+        function showLoadingIndicator(format) {
+            const indicator = document.createElement('div');
+            indicator.id = 'export-loading';
+            indicator.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            indicator.innerHTML = `
+                <div style="
+                    width: 20px;
+                    height: 20px;
+                    border: 3px solid #f3f4f6;
+                    border-top-color: #214994;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                "></div>
+                <span style="font-weight: 600; color: #214994;">
+                    Preparing ${format.toUpperCase()} export...
+                </span>
+            `;
+            
+            // Add animations
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+                @keyframes slideIn {
+                    from { 
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to { 
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            document.body.appendChild(indicator);
+        }
+
+        function hideLoadingIndicator() {
+            const indicator = document.getElementById('export-loading');
+            if (indicator) {
+                indicator.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => indicator.remove(), 300);
+            }
+        }
+
+        // Close modal on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeExportModal();
+            }
+        });
 
         // Render charts for patient report
         {% if report_type == 'patients' and report_data %}

@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib import messages
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, HttpResponse
 from django.template.loader import render_to_string
 from datetime import datetime, timedelta, date
 from django.http import JsonResponse
@@ -20,6 +20,7 @@ from django import forms
 from itertools import chain
 from django.core.exceptions import ValidationError
 from website.services.appointment_recommender import get_appointment_recommendations
+from website.services.export_service import ReportExporter
 
 from accounts.models import Phone, User
 
@@ -3265,3 +3266,125 @@ def generate_revenue_report(start_date, end_date):
         'estimated_revenue': estimated_revenue,
         'note': 'Revenue tracking is a placeholder. Implement actual pricing model.'
     }
+
+@login_required
+def export_report(request):
+    """Handle report export requests"""
+    if request.user.role != "manager":
+        messages.error(request, "Access denied.")
+        return redirect("home")
+    
+    # Get parameters
+    report_type = request.GET.get('type', 'appointments')
+    export_format = request.GET.get('format', 'pdf')  # 'pdf' or 'csv'
+    date_range = request.GET.get('range', '30')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    
+    # Calculate date range
+    today = timezone.now().date()
+    if start_date and end_date:
+        try:
+            start = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end = datetime.strptime(end_date, '%Y-%m-%d').date()
+        except ValueError:
+            start = today - timedelta(days=int(date_range))
+            end = today
+    else:
+        start = today - timedelta(days=int(date_range))
+        end = today
+    
+    # Format dates for filenames
+    start_str = start.strftime('%Y-%m-%d')
+    end_str = end.strftime('%Y-%m-%d')
+    
+    # Generate report data
+    if report_type == 'appointments':
+        report_data = generate_appointments_report(start, end)
+        if export_format == 'csv':
+            return ReportExporter.export_appointments_csv(report_data, start_str, end_str)
+        else:
+            return ReportExporter.export_appointments_pdf(report_data, start_str, end_str)
+    
+    elif report_type == 'doctors':
+        report_data = generate_doctors_report(start, end)
+        if export_format == 'csv':
+            return ReportExporter.export_doctors_csv(report_data, start_str, end_str)
+        else:
+            return ReportExporter.export_doctors_pdf(report_data, start_str, end_str)
+    
+    elif report_type == 'patients':
+        report_data = generate_patients_report(start, end)
+        if export_format == 'csv':
+            return ReportExporter.export_patients_csv(report_data, start_str, end_str)
+        else:
+            return ReportExporter.export_patients_pdf(report_data, start_str, end_str)
+    
+    elif report_type == 'revenue':
+        # Revenue export is simpler, create inline
+        report_data = generate_revenue_report(start, end)
+        
+        if export_format == 'csv':
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = f'attachment; filename="revenue_report_{start_str}_to_{end_str}.csv"'
+            
+            writer = csv.writer(response)
+            writer.writerow(['Revenue Report'])
+            writer.writerow([f'Period: {start_str} to {end_str}'])
+            writer.writerow([f'Generated: {timezone.now().strftime("%Y-%m-%d %H:%M")}'])
+            writer.writerow([])
+            writer.writerow(['Metric', 'Value'])
+            writer.writerow(['Completed Appointments', report_data['completed_appointments']])
+            writer.writerow(['Estimated Revenue', f"${report_data['estimated_revenue']}"])
+            writer.writerow([])
+            writer.writerow(['Note', report_data['note']])
+            
+            return response
+        else:
+            # Simple PDF for revenue
+            from reportlab.lib.pagesizes import letter
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+            from reportlab.lib.styles import getSampleStyleSheet
+            from reportlab.lib import colors
+            from reportlab.lib.units import inch
+            from io import BytesIO
+            
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=letter)
+            elements = []
+            styles = getSampleStyleSheet()
+            
+            elements.append(Paragraph("Revenue Report", styles['Title']))
+            elements.append(Spacer(1, 0.3*inch))
+            
+            data = [
+                ['Report Period:', f'{start_str} to {end_str}'],
+                ['Generated:', timezone.now().strftime('%Y-%m-%d %H:%M')],
+                ['', ''],
+                ['Completed Appointments:', str(report_data['completed_appointments'])],
+                ['Estimated Revenue:', f"${report_data['estimated_revenue']}"],
+            ]
+            
+            table = Table(data, colWidths=[2.5*inch, 3*inch])
+            table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 11),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
+            ]))
+            elements.append(table)
+            elements.append(Spacer(1, 0.2*inch))
+            elements.append(Paragraph(f"<i>Note: {report_data['note']}</i>", styles['Normal']))
+            
+            doc.build(elements)
+            pdf = buffer.getvalue()
+            buffer.close()
+            
+            response = HttpResponse(content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="revenue_report_{start_str}_to_{end_str}.pdf"'
+            response.write(pdf)
+            
+            return response
+    
+    messages.error(request, "Invalid report type.")
+    return redirect('manager_reports')
