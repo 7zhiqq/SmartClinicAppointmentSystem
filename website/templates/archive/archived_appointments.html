@@ -1,174 +1,234 @@
-<!-- website/templates/archive/archived_appointments.html - UPDATED -->
-
 {% extends "components/base.html" %}
 {% load static %}
 
 {% block content %}
-    <link rel="stylesheet" href="{% static 'css/appointments.css' %}">
-    
-    {% if user.is_authenticated %}
-        {% if user.role == "staff" %}
-            {% include "components/sidebar/staff.html" %}
-        {% elif user.role == "doctor" %}
-            {% include "components/sidebar/doctor.html" %}
-        {% elif user.role == "patient" %}
-            {% include "components/sidebar/patient.html" %}
-        {% elif user.role == "manager" %}
-            {% include "components/sidebar/manager.html" %}
-        {% endif %}
+<link rel="stylesheet" href="{% static 'css/appointments.css' %}">
+<link rel="stylesheet" href="{% static 'css/schedule.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/bootstrap-icons.min.css">
 
-        <div class="main-content">
-            <div class="schedule-header mb-4">
-                <div>
-                    <h2 class="heading-title">
-                        <i class="bi bi-archive"></i> Archived Appointments
-                    </h2>
-                    <p class="subtitle">
-                        View historical appointment records
-                    </p>
-                </div>
-                
-                <div class="d-flex gap-2">
-                    <a href="{% url 'appointments' %}" class="add-schedule-btn">
-                        ← Back to Appointments
-                    </a>
-                    
-                    {% if user.role in 'staff,manager' %}
-                        <a href="{% url 'bulk_archive_appointments' %}" class="add-schedule-btn">
-                            <i class="bi bi-archive-fill"></i> Bulk Archive
-                        </a>
-                    {% endif %}
-                </div>
+{% if user.is_authenticated %}
+
+    {% if user.role == "staff" %}
+        {% include "components/sidebar/staff.html" %}
+    {% elif user.role == "doctor" %}
+        {% include "components/sidebar/doctor.html" %}
+    {% elif user.role == "patient" %}
+        {% include "components/sidebar/patient.html" %}
+    {% elif user.role == "manager" %}
+        {% include "components/sidebar/manager.html" %}
+    {% endif %}
+
+    <div class="main-content">
+
+        <!-- HEADER -->
+        <div class="schedule-header mb-4">
+            <div>
+                <h2 class="heading-title">
+                    <i class="bi bi-archive"></i> Archived Appointments
+                </h2>
+                <p class="subtitle">View historical appointment records</p>
             </div>
 
-            <!-- Filters -->
-            <div class="d-flex gap-2 mb-4">
-                <div class="search-box flex-grow-1">
-                    <i class="fas fa-search"></i>
-                    <input 
-                        type="text" 
-                        id="searchInput" 
-                        placeholder="Search patient or doctor name..." 
-                        class="form-control border-0"
-                        value="{{ search_query }}"
-                    >
-                </div>
-                
-                <form method="get" class="d-flex gap-2">
-                    <select name="status" class="form-select" style="width: auto;">
-                        <option value="">All Status</option>
-                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
-                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
-                        <option value="no_show" {% if status_filter == 'no_show' %}selected{% endif %}>No Show</option>
-                    </select>
-                    
-                    <select name="type" class="form-select" style="width: auto;">
-                        <option value="">All Types</option>
-                        <option value="self" {% if type_filter == 'self' %}selected{% endif %}>Regular</option>
-                        <option value="dependent" {% if type_filter == 'dependent' %}selected{% endif %}>Dependent</option>
-                    </select>
-                    
-                    <button type="submit" class="btn btn-primary">Filter</button>
-                    <a href="{% url 'archived_appointments' %}" class="btn btn-secondary">Clear</a>
-                </form>
-            </div>
+            {% if user.role in 'staff,manager' %}
+            <a href="{% url 'bulk_archive_appointments' %}" class="bulk-archive-btn">
+                <i class="bi bi-archive-fill"></i> Bulk Archive
+            </a>
+            {% endif %}
 
-            <div class="table-container">
-                <table class="appointments-table">
-                    <thead>
-                        <tr>
-                            <th>DATE</th>
-                            <th>PATIENT</th>
-                            <th>DOCTOR</th>
-                            <th>TYPE</th>
-                            <th>STATUS</th>
-                            <th>ARCHIVED</th>
-                            {% if user.role in 'staff,manager' %}
-                                <th>ACTIONS</th>
-                            {% endif %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for appointment in archived_appointments %}
-                        <tr class="appointment-row">
-                            <td class="time-cell">
-                                {{ appointment.start_time|date:"M d, Y" }}<br>
-                                <small>{{ appointment.start_time|date:"h:i A" }} - {{ appointment.end_time|date:"h:i A" }}</small>
-                            </td>
-                            <td class="patient-cell">
-                                {{ appointment.patient_name }}
-                            </td>
-                            <td class="doctor-cell">
-                                {{ appointment.doctor_name }}
-                                {% if appointment.doctor_specialization %}
-                                    <br><small class="text-muted">{{ appointment.doctor_specialization }}</small>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if appointment.appointment_type == 'self' %}
-                                    <span class="badge bg-primary">Regular</span>
-                                {% else %}
-                                    <span class="badge bg-info">Dependent</span>
-                                {% endif %}
-                            </td>
-                            <td class="status-cell">
-                                <span class="status-badge status-{{ appointment.status }}">
-                                    {% if appointment.status == 'completed' %}
-                                        Completed
-                                    {% elif appointment.status == 'rejected' %}
-                                        Cancelled
-                                    {% elif appointment.status == 'no_show' %}
-                                        No Show
-                                    {% else %}
-                                        {{ appointment.status|title }}
-                                    {% endif %}
-                                </span>
-                            </td>
-                            <td class="time-cell">
-                                <small>
-                                    {{ appointment.archived_at|date:"M d, Y" }}<br>
-                                    {% if appointment.archive_reason %}
-                                        <span class="text-muted">{{ appointment.archive_reason|truncatewords:3 }}</span>
-                                    {% endif %}
-                                </small>
-                            </td>
-                            {% if user.role in 'staff,manager' %}
-                            <td class="actions-cell">
-                                <a href="{% url 'restore_archived_appointment' appointment.id %}" 
-                                   class="btn-action"
-                                   title="Restore">
-                                    <i class="bi bi-arrow-counterclockwise"></i>
-                                </a>
-                            </td>
-                            {% endif %}
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="{% if user.role in 'staff,manager' %}7{% else %}6{% endif %}" class="text-center text-muted py-4">
-                                <i class="bi bi-archive" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-                                <p>No archived appointments found</p>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+            <a href="{% url 'appointments' %}" class="btn btn-secondary">
+                ← Back
+            </a>
         </div>
 
-        <script>
-            document.addEventListener("DOMContentLoaded", function() {
-                const searchInput = document.getElementById("searchInput");
-                const rows = document.querySelectorAll(".appointment-row");
+        <!-- SEARCH + FILTER -->
+        <div class="d-flex gap-2 mb-4">
 
-                searchInput.addEventListener("input", function() {
-                    const searchTerm = this.value.toLowerCase().trim();
+            <!-- SEARCH -->
+            <div class="search-box flex-grow-1">
+                <i class="fas fa-search"></i>
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Search patient or doctor name..."
+                    class="form-control border-0"
+                >
+            </div>
 
-                    rows.forEach(row => {
-                        const text = row.textContent.toLowerCase();
-                        row.style.display = text.includes(searchTerm) ? "" : "none";
-                    });
-                });
+            <!-- STATUS FILTER -->
+            <div class="dropdown">
+                <button class="dropdown-toggle" type="button" id="statusFilterBtn">
+                    All Status
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item active" href="#" data-value="">All Status</a></li>
+                    <li><a class="dropdown-item" href="#" data-value="completed">Completed</a></li>
+                    <li><a class="dropdown-item" href="#" data-value="rejected">Rejected</a></li>
+                    <li><a class="dropdown-item" href="#" data-value="no_show">No Show</a></li>
+                </ul>
+            </div>
+
+        </div>
+
+        <!-- TABLE -->
+        <div class="table-container">
+            <table class="appointments-table">
+                <thead>
+                    <tr>
+                        <th>DATE</th>
+                        <th>PATIENT</th>
+                        <th>DOCTOR</th>
+                        <th>TYPE</th>
+                        <th>STATUS</th>
+                        <th>ARCHIVED</th>
+                        {% if user.role in 'staff,manager' %}
+                        <th>ACTIONS</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for appointment in archived_appointments %}
+                    <tr class="appointment-row"
+                        data-status="{{ appointment.status }}">
+
+                        <td class="time-cell">
+                            {{ appointment.start_time|date:"M d, Y" }}<br>
+                            <small>
+                                {{ appointment.start_time|date:"h:i A" }} -
+                                {{ appointment.end_time|date:"h:i A" }}
+                            </small>
+                        </td>
+
+                        <td class="patient-cell">
+                            {{ appointment.patient_name }}
+                        </td>
+
+                        <td class="doctor-cell">
+                            {{ appointment.doctor_name }}
+                            {% if appointment.doctor_specialization %}
+                                <br>
+                                <small class="text-muted">
+                                    {{ appointment.doctor_specialization }}
+                                </small>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if appointment.appointment_type == 'self' %}
+                                <span class="badge bg-primary">Regular</span>
+                            {% else %}
+                                <span class="badge bg-info">Dependent</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="status-cell">
+                            <span class="status-badge status-{{ appointment.status }}">
+                                {% if appointment.status == 'completed' %}
+                                    Completed
+                                {% elif appointment.status == 'rejected' %}
+                                    Cancelled
+                                {% elif appointment.status == 'no_show' %}
+                                    No Show
+                                {% else %}
+                                    {{ appointment.status|title }}
+                                {% endif %}
+                            </span>
+                        </td>
+
+                        <td class="time-cell">
+                            <small>
+                                {{ appointment.archived_at|date:"M d, Y" }}<br>
+                                {% if appointment.archive_reason %}
+                                    <span class="text-muted">
+                                        {{ appointment.archive_reason|truncatewords:3 }}
+                                    </span>
+                                {% endif %}
+                            </small>
+                        </td>
+
+                        {% if user.role in 'staff,manager' %}
+                        <td class="actions-cell">
+                            <a href="{% url 'restore_archived_appointment' appointment.id %}"
+                               class="btn-action"
+                               title="Restore">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </a>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if user.role in 'staff,manager' %}7{% else %}6{% endif %}"
+                            class="text-center text-muted py-4">
+                            <i class="bi bi-archive" style="font-size: 2rem;"></i>
+                            <p>No archived appointments found</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- JS (MATCHES APPOINTMENTS PAGE LOGIC) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const searchInput = document.getElementById("searchInput");
+        const filterBtn = document.getElementById("statusFilterBtn");
+        const filterMenu = document.querySelector(".dropdown-menu");
+        const filterItems = document.querySelectorAll(".dropdown-item");
+        const rows = document.querySelectorAll(".appointment-row");
+
+        let currentStatusFilter = "";
+
+        function filterTable() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+
+            rows.forEach(row => {
+                const status = row.dataset.status.toLowerCase();
+                const text = row.textContent.toLowerCase();
+
+                const matchesSearch = !searchTerm || text.includes(searchTerm);
+                const matchesStatus = !currentStatusFilter || status === currentStatusFilter;
+
+                row.style.display = (matchesSearch && matchesStatus) ? "" : "none";
             });
-        </script>
-    {% endif %}
+        }
+
+        // Search
+        searchInput.addEventListener("input", filterTable);
+
+        // Dropdown toggle
+        filterBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            filterMenu.classList.toggle("show");
+        });
+
+        // Close dropdown
+        document.addEventListener("click", function (e) {
+            if (!e.target.closest(".dropdown")) {
+                filterMenu.classList.remove("show");
+            }
+        });
+
+        // Status selection
+        filterItems.forEach(item => {
+            item.addEventListener("click", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                filterItems.forEach(i => i.classList.remove("active"));
+                this.classList.add("active");
+
+                currentStatusFilter = this.dataset.value;
+                filterBtn.textContent = this.textContent;
+
+                filterMenu.classList.remove("show");
+                filterTable();
+            });
+        });
+    });
+    </script>
+
+{% endif %}
 {% endblock %}

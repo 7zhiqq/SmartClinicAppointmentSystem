@@ -2,145 +2,170 @@
 {% load static %}
 
 {% block content %}
-<div class="doctor-profile-container">
-    <h1>Complete Your Doctor Profile</h1>
-
-    <form method="post" enctype="multipart/form-data" class="doctor-form">
-        {% csrf_token %}
-
-        <!-- Profile Picture Preview -->
-        <div class="profile-preview">
-            {% if form.instance.profile_picture %}
-                <img id="profilePreview" src="{{ form.instance.profile_picture.url }}" alt="Profile Picture">
-            {% else %}
-                <img id="profilePreview" src="{% static 'images/default_profile.png' %}" alt="Profile Picture">
-            {% endif %}
-        </div>
-
-        <!-- Profile Picture -->
-        <div class="form-group">
-            <label for="{{ form.profile_picture.id_for_label }}">Profile Picture</label>
-            {{ form.profile_picture }}
-        </div>
-
-        <!-- Specialization -->
-        <div class="form-group">
-            <label for="{{ form.specialization.id_for_label }}">Specialization</label>
-            {{ form.specialization }}
-        </div>
-
-        <!-- License Number -->
-        <div class="form-group">
-            <label for="{{ form.license_number.id_for_label }}">License Number</label>
-            {{ form.license_number }}
-        </div>
-
-        <!-- Years of Experience -->
-        <div class="form-group">
-            <label for="{{ form.years_experience.id_for_label }}">Years of Experience</label>
-            {{ form.years_experience }}
-        </div>
-
-        <!-- Biography -->
-        <div class="form-group">
-            <label for="{{ form.bio.id_for_label }}">Biography</label>
-            {{ form.bio }}
-        </div>
-
-        <!-- Qualifications -->
-        <div class="form-group">
-            <label for="{{ form.qualifications.id_for_label }}">Qualifications</label>
-            {{ form.qualifications }}
-        </div>
-
-        <button type="submit" class="btn-submit">Save Profile</button>
-    </form>
-</div>
-
+<link rel="stylesheet" href="{% static 'css/edit-profile.css' %}">
 <style>
-    .doctor-profile-container {
-        max-width: 600px;
-        margin: 40px auto;
-        background: #f5f7ff;
-        padding: 30px;
-        border-radius: 14px;
-    }
+    
+.profile-picture-section {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 24px;
+}
 
-    .doctor-profile-container h1 {
-        font-size: 28px;
-        margin-bottom: 25px;
-    }
+.profile-preview img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid var(--primary);
+    box-shadow: var(--shadow-md);
+}
 
-    .form-group {
-        margin-bottom: 18px;
-    }
+/* Upload Button */
+.upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    background: var(--primary);
+    color: white;
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    font-weight: 600;
+    transition: all var(--transition-fast);
+    width: fit-content;
+}
 
-    .form-group label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: 6px;
-    }
+.upload-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
 
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-        width: 100%;
-        padding: 10px 12px;
-        border-radius: 8px;
-        border: 1px solid #ccc;
-        font-size: 15px;
-    }
+.upload-btn input[type="file"] {
+    display: none;
+}
 
-    .form-group textarea {
-        resize: vertical;
+/* Responsive */
+@media (max-width: 768px) {
+    .profile-picture-section {
+        grid-template-columns: 1fr;
+        text-align: center;
     }
 
     .profile-preview {
-        text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 16px;
     }
 
-    .profile-preview img {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid #4f46e5;
+    .upload-btn {
+        margin: 0 auto;
     }
+}
 
-    .btn-submit {
-        width: 100%;
-        padding: 14px;
-        background: #4f46e5;
-        color: white;
-        border: none;
-        border-radius: 10px;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-
-    .btn-submit:hover {
-        background: #4338ca;
-    }
 </style>
 
-<!-- Live preview of selected profile picture -->
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const profileInput = document.getElementById("id_profile_picture");
-        const previewImg = document.getElementById("profilePreview");
+{% include "components/sidebar/doctor.html" %}
 
-        profileInput.addEventListener("change", function() {
-            const file = this.files[0];
+<div class="main-content">
+    <div class="edit-profile-wrapper">
+
+        <h2>
+            <i class="bi bi-person-badge"></i>
+            Complete Doctor Profile
+        </h2>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- PROFILE PICTURE -->
+            <h3><i class="bi bi-camera"></i> Profile Picture</h3>
+
+            <div class="profile-picture-section">
+                <div class="profile-preview">
+                    {% if form.instance.profile_picture %}
+                        <img id="profilePreview" src="{{ form.instance.profile_picture.url }}">
+                    {% else %}
+                        <img id="profilePreview" src="{% static 'images/default_profile.png' %}">
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Upload Photo</label>
+
+                    <label class="upload-btn">
+                        <i class="bi bi-upload"></i> Change Photo
+                        {{ form.profile_picture }}
+                    </label>
+
+                    <small class="form-text">
+                        JPG or PNG • Max 5MB
+                    </small>
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- PROFESSIONAL INFO -->
+            <h3><i class="bi bi-briefcase"></i> Professional Information</h3>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Specialization</label>
+                    {{ form.specialization }}
+                </div>
+
+                <div class="form-group">
+                    <label>License Number</label>
+                    {{ form.license_number }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Years of Experience</label>
+                    {{ form.years_experience }}
+                </div>
+
+                <div class="form-group">
+                    <label>Qualifications</label>
+                    {{ form.qualifications }}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Biography</label>
+                {{ form.bio }}
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg"></i> Save Profile
+                </button>
+                <a href="{% url 'home' %}" class="btn btn-secondary">
+                    <i class="bi bi-x"></i> Cancel
+                </a>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const input = document.getElementById("id_profile_picture");
+    const preview = document.getElementById("profilePreview");
+
+    if (input) {
+        input.addEventListener("change", () => {
+            const file = input.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    previewImg.src = e.target.result;
-                }
+                reader.onload = e => preview.src = e.target.result;
                 reader.readAsDataURL(file);
             }
         });
-    });
+    }
+});
 </script>
 {% endblock %}

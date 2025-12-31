@@ -87,6 +87,8 @@
                 </div>
             </div>
 
+            <br>
+
             <!-- Role-Specific Information -->
             {% if viewed_user.role == 'doctor' and profile %}
             <div class="card">
@@ -148,6 +150,8 @@
             </div>
             {% endif %}
 
+            <br>
+
             <!-- Recent Activity -->
             <div class="card">
                 <h4>
@@ -197,13 +201,15 @@
                 </div>
             </div>
 
+            <br>
+
             <!-- Actions -->
             {% if viewed_user != user %}
             <div class="card">
                 <h4>
                     <i class="bi bi-gear"></i>
                     Account Management
-                </h4>
+                </h4><br>
                 <div class="card-content">
                     <div class="action-buttons-grid">
                         {% if viewed_user.role == 'doctor' and profile %}

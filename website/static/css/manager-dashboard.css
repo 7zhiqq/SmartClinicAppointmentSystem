@@ -8,16 +8,24 @@
 }
 
 .heading-title {
-    font-size: 1.75rem;
-    font-weight: 700;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
     color: var(--text-main);
-    margin: 0 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin: 0 0 var(--space-sm) 0;
+    letter-spacing: -0.5px;
+}
+
+.heading-title i {
+    color: var(--primary);
 }
 
 .subtitle {
+    font-size: var(--font-size-md);
     color: var(--text-muted);
     margin: 0;
-    font-size: 0.95rem;
 }
 
 /* Metrics Grid */
@@ -58,9 +66,20 @@
     margin-left: -10px;
 }
 
+.metric-card.primary {
+    border-color: #007bff;
+    background: linear-gradient(135deg, rgba(0, 123, 255, 0.05), transparent);
+}
+
+
 .metric-card.primary .metric-icon {
     background: linear-gradient(135deg, #214994 0%, #326edd 100%);
     color: white;
+}
+
+.metric-card.success {
+    border-color: var(--success);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), transparent);
 }
 
 .metric-card.success .metric-icon {
@@ -68,9 +87,19 @@
     color: white;
 }
 
+.metric-card.warning {
+    border-color: var(--warning);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), transparent);
+}
+
 .metric-card.warning .metric-icon {
     background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
     color: white;
+}
+
+.metric-card.info {
+    border-color: var(--info);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), transparent);
 }
 
 .metric-card.info .metric-icon {

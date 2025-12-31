@@ -21,6 +21,8 @@
     }
 }
 
+
+
 /* ==================== PAGE TITLE ==================== */
 .edit-profile-wrapper h1,
 .edit-profile-wrapper h2 {
@@ -707,3 +709,5 @@ a.btn-cancel:active,
         font-size: var(--font-size-xs);
     }
 }
+
+/* ================= PROFILE PICTURE ================= */

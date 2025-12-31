@@ -17,8 +17,9 @@
                             <option value="">Choose a doctor...</option>
                             {% for doctor in doctors %}
                                 <option value="{{ doctor.id }}">
-                                    Dr. {{ doctor.user.get_full_name }}
+                                    Dr. {{ doctor.user.get_full_name }} ({{ doctor.specialization }})
                                 </option>
+
                             {% endfor %}
                         </select>
                         

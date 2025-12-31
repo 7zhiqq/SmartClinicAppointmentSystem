@@ -57,7 +57,7 @@
                         >
                             <i class="bi bi-archive-fill"></i> Archive Appointments
                         </button>
-                        <a href="{% url 'appointments' %}" class="btn btn-secondary">
+                        <a href="{% url 'archived_appointments' %}" class="btn btn-secondary">
                             <i class="bi bi-x"></i> Cancel
                         </a>
                     </div>
@@ -71,7 +71,8 @@
                     </h3>
                     <p class="text-muted">
                         View all archived appointments in the 
-                        <a href="{% url 'archived_appointments' %}">Archived Appointments</a> page.
+                        <a href="{% url 'archived_appointments' %}">
+                            Archived Appointments</a> page.
                     </p>
                 </div>
             </div>

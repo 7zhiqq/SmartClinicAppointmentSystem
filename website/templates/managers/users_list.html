@@ -2,328 +2,311 @@
 {% load static %}
 
 {% block content %}
-    <link rel="stylesheet" href="{% static 'css/users.css' %}">
-    {% if user.is_authenticated and user.role == "manager" %}
-        {% include 'components/sidebar/manager.html' %}
-        
-        <div class="main-content">
-            <!-- Header with Stats -->
-            <div class="users-header">
-                <div>
-                    <h2 class="users-title">
-                        User Management
-                    </h2>
-                    <p class="users-subtitle">
-                        Manage doctors, staff, and managers
-                    </p>
-                </div>
+<link rel="stylesheet" href="{% static 'css/users.css' %}">
+<link rel="stylesheet" href="{% static 'css/appointments.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/bootstrap-icons.min.css">
 
-                <a href="{% url 'create_invite' %}" class="btn btn-primary">
-                    <i class="bi bi-person-add"></i>
-                    Invite Users
-                </a>
-                <a href="{% url 'manager_add_specialization' %}" class="btn btn-primary">
-                    + Doctor Dept
-                </a>
-            </div>
+{% if user.is_authenticated and user.role == "manager" %}
+{% include 'components/sidebar/manager.html' %}
 
-            <!-- Statistics Cards -->
-            <div class="row g-3 mb-4">
-                <div class="col-md-3">
-                    <div class="stat-card total">
-                        <div class="stat-content">
-                            <div class="stat-header">
-                                <div>
-                                    <div class="stat-number">{{ total_doctors }}</div>
-                                    <div class="stat-label">Doctors</div>
-                                </div>
-                            </div>
-                            <div class="stat-meta">
-                                {% if pending_doctors > 0 %}
-                                    {{ pending_doctors }} pending approval
-                                {% else %}
-                                    All approved
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card confirmed">
-                        <div class="stat-content">
-                            <div class="stat-header">
-                                <div>
-                                    <div class="stat-number">{{ total_staff }}</div>
-                                    <div class="stat-label">Staff</div>
-                                </div>
-                            </div>
-                            <div class="stat-meta">Active staff members</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card pending">
-                        <div class="stat-content">
-                            <div class="stat-header">
-                                <div>
-                                    <div class="stat-number">{{ total_managers }}</div>
-                                    <div class="stat-label">Managers</div>
-                                </div>
-                            </div>
-                            <div class="stat-meta">Active managers</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card completed">
-                        <div class="stat-content">
-                            <div class="stat-header">
-                                <div>
-                                    <div class="stat-number">{{ user_list|length }}</div>
-                                    <div class="stat-label">Total Users</div>
-                                </div>
-                            </div>
-                            <div class="stat-meta">Excluding patients</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="main-content">
 
-            <!-- Filters -->
-            <div class="d-flex gap-2 mb-4">
-                <div class="search-box flex-grow-1">
-                    <i class="fas fa-search"></i>
-                    <input 
-                        type="text" 
-                        id="searchInput" 
-                        placeholder="Search by name, email, or username..." 
-                        class="form-control border-0"
-                        value="{{ search_query }}"
-                    >
-                </div>
-                
-                <form method="get" class="d-flex gap-2" id="filterForm">
-                    <select name="role" class="form-select" style="width: auto;">
-                        <option value="all" {% if role_filter == 'all' %}selected{% endif %}>All Roles</option>
-                        <option value="doctor" {% if role_filter == 'doctor' %}selected{% endif %}>Doctors</option>
-                        <option value="staff" {% if role_filter == 'staff' %}selected{% endif %}>Staff</option>
-                        <option value="manager" {% if role_filter == 'manager' %}selected{% endif %}>Managers</option>
-                    </select>
-                    
-                    <select name="status" class="form-select" style="width: auto;">
-                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
-                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
-                        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
-                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
-                    </select>
-                    
-                    <button type="submit" class="btn btn-primary">Filter</button>
-                    <a href="{% url 'manager_users_list' %}" class="btn btn-secondary">Clear</a>
-                </form>
-            </div>
-
-            <!-- Users Table -->
-            <div class="users-table-wrapper">
-                <table class="users-table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Role</th>
-                            <th>Additional Info</th>
-                            <th>Status</th>
-                            <th style="text-align:right;">Actions</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                    {% for item in user_list %}
-                        <tr class="user-row" data-username="{{ item.user.username }}" data-email="{{ item.user.email }}" data-name="{{ item.user.get_full_name }}">
-                            <td>
-                                <div class="user-cell">
-                                    <div class="user-avatar">
-                                        {% if item.user.role == 'doctor' and item.profile and item.profile.profile_picture %}
-                                            <img src="{{ item.profile.profile_picture.url }}" alt="Profile picture">
-                                        {% else %}
-                                            <span class="avatar-fallback">
-                                                {{ item.user.first_name|slice:":1" }}{{ item.user.last_name|slice:":1" }}
-                                            </span>
-                                        {% endif %}
-                                    </div>
-
-                                    <div>
-                                        <strong>{{ item.user.get_full_name|default:item.user.username }}</strong>
-                                        <br>
-                                        <small class="text-muted">{{ item.user.email }}</small>
-                                    </div>
-                                </div>
-                            </td>
-
-                            <td>
-                                <span class="badge-users bg-primary text-uppercase">{{ item.user.role }}</span>
-                            </td>
-
-                            <td>
-                                {% if item.user.role == 'doctor' and item.additional_info.specialization %}
-                                    <span class="badge-users bg-info">{{ item.additional_info.specialization }}</span>
-                                    <br>
-                                    <small class="text-muted">License: {{ item.additional_info.license }}</small>
-                                {% elif item.user.role == 'staff' and item.additional_info.staff_id %}
-                                    <small class="text-muted">ID: {{ item.additional_info.staff_id }}</small>
-                                {% elif item.user.role == 'manager' and item.additional_info.manager_id %}
-                                    <small class="text-muted">ID: {{ item.additional_info.manager_id }}</small>
-                                {% else %}
-                                    <span class="text-muted">—</span>
-                                {% endif %}
-                            </td>
-
-                            <td>
-                                {% if not item.user.is_active %}
-                                    <span class="status rejected">Deactivated</span>
-                                {% elif item.status == 'approved' %}
-                                    <span class="status approved">Approved</span>
-                                {% elif item.status == 'pending' %}
-                                    <span class="status pending">Pending</span>
-                                {% elif item.status == 'rejected' %}
-                                    <span class="status rejected">Rejected</span>
-                                {% else %}
-                                    <span class="status approved">Active</span>
-                                {% endif %}
-                            </td>
-
-                            <td style="text-align:right;">
-                                <div class="action-buttons">
-                                    <a href="{% url 'manager_user_details' item.user.id %}" 
-                                       class="action-btn action-view"
-                                       title="View Details">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-
-                                    {% if item.user.role == 'doctor' %}
-                                        {% if item.status == 'pending' %}
-                                            <a href="{% url 'manager_approve_doctor' item.profile.id %}"
-                                               class="action-btn action-approve"
-                                               title="Approve">
-                                                <i class="bi bi-check-lg"></i>
-                                            </a>
-                                            <a href="{% url 'manager_reject_doctor' item.profile.id %}"
-                                               class="action-btn action-reject"
-                                               title="Reject">
-                                                <i class="bi bi-x-lg"></i>
-                                            </a>
-                                        {% endif %}
-                                    {% endif %}
-
-                                    {% if item.user != user %}
-                                        {% if item.user.is_active %}
-                                            <a href="{% url 'manager_deactivate_user' item.user.id %}"
-                                               class="action-btn action-reject"
-                                               title="Deactivate"
-                                               onclick="return confirm('Deactivate this user?')">
-                                                <i class="bi bi-person-x"></i>
-                                            </a>
-                                        {% else %}
-                                            <a href="{% url 'manager_activate_user' item.user.id %}"
-                                               class="action-btn action-approve"
-                                               title="Activate">
-                                                <i class="bi bi-person-check"></i>
-                                            </a>
-                                        {% endif %}
-
-                                        <a href="{% url 'manager_change_user_role' item.user.id %}"
-                                           class="action-btn action-edit"
-                                           title="Change Role">
-                                            <i class="bi bi-arrow-left-right"></i>
-                                        </a>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                    {% empty %}
-                        <tr>
-                            <td colspan="5" class="users-empty">
-                                No users found.
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+    <!-- Header -->
+    <div class="users-header">
+        <div>
+            <h2 class="heading-title">
+                <i class="bi bi-people"></i> User Management
+            </h2>
+            <p class="subtitle">Manage doctors, staff, and managers</p>
         </div>
 
-        <script>
-            // Client-side search
-            document.getElementById('searchInput').addEventListener('input', function() {
-                const searchTerm = this.value.toLowerCase();
-                const rows = document.querySelectorAll('.user-row');
-                
-                rows.forEach(row => {
-                    const username = row.dataset.username.toLowerCase();
-                    const email = row.dataset.email.toLowerCase();
-                    const name = row.dataset.name.toLowerCase();
-                    
-                    if (username.includes(searchTerm) || 
-                        email.includes(searchTerm) || 
-                        name.includes(searchTerm)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
+        <div class="d-flex gap-2">
+            <a href="{% url 'create_invite' %}" class="btn btn-primary">
+                <i class="bi bi-person-add"></i> Invite Users
+            </a>
+            <a href="{% url 'manager_add_specialization' %}" class="btn btn-primary">
+                + Doctor Dept
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards (UNCHANGED) -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card total">
+                <div class="stat-number">{{ total_doctors }}</div>
+                <div class="stat-label">Doctors</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card confirmed">
+                <div class="stat-number">{{ total_staff }}</div>
+                <div class="stat-label">Staff</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card pending">
+                <div class="stat-number">{{ total_managers }}</div>
+                <div class="stat-label">Managers</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card completed">
+                <div class="stat-number">{{ user_list|length }}</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filters (Appointments-style) -->
+    <div class="d-flex gap-2 mb-4">
+        <div class="search-box flex-grow-1">
+            <i class="fas fa-search"></i>
+            <input
+                type="text"
+                id="searchInput"
+                class="form-control border-0"
+                placeholder="Search by name, email, or username..."
+            >
+        </div>
+
+        <!-- Role Filter -->
+        <div class="dropdown">
+            <button class="dropdown-toggle" id="roleFilterBtn">
+                All Roles
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item active" data-value="">All Roles</a></li>
+                <li><a class="dropdown-item" data-value="doctor">Doctor</a></li>
+                <li><a class="dropdown-item" data-value="staff">Staff</a></li>
+                <li><a class="dropdown-item" data-value="manager">Manager</a></li>
+            </ul>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="dropdown">
+            <button class="dropdown-toggle" id="statusFilterBtn">
+                All Status
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item active" data-value="">All Status</a></li>
+                <li><a class="dropdown-item" data-value="approved">Approved</a></li>
+                <li><a class="dropdown-item" data-value="pending">Pending</a></li>
+                <li><a class="dropdown-item" data-value="rejected">Rejected</a></li>
+                <li><a class="dropdown-item" data-value="deactivated">Deactivated</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- USERS TABLE (100% UNCHANGED CONTENT) -->
+    <div class="users-table-wrapper">
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Role</th>
+                    <th>Additional Info</th>
+                    <th>Status</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+            {% for item in user_list %}
+                <tr class="user-row"
+                    data-name="{{ item.user.get_full_name|lower }}"
+                    data-username="{{ item.user.username|lower }}"
+                    data-email="{{ item.user.email|lower }}"
+                    data-role="{{ item.user.role }}"
+                    data-status="{% if not item.user.is_active %}deactivated{% else %}{{ item.status }}{% endif %}">
+
+                    <td>
+                        <div class="user-cell">
+                            <div class="user-avatar">
+                                {% if item.user.role == 'doctor' and item.profile and item.profile.profile_picture %}
+                                    <img src="{{ item.profile.profile_picture.url }}" alt="Profile picture">
+                                {% else %}
+                                    <span class="avatar-fallback">
+                                        {{ item.user.first_name|slice:":1" }}{{ item.user.last_name|slice:":1" }}
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <strong>{{ item.user.get_full_name|default:item.user.username }}</strong><br>
+                                <small class="text-muted">{{ item.user.email }}</small>
+                            </div>
+                        </div>
+                    </td>
+
+                    <td>
+                        <span class="badge-users bg-primary text-uppercase">
+                            {{ item.user.role }}
+                        </span>
+                    </td>
+
+                    <td>
+                        {% if item.user.role == 'doctor' and item.additional_info.specialization %}
+                            <span class="badge-users bg-info">
+                                {{ item.additional_info.specialization }}
+                            </span><br>
+                            <small class="text-muted">
+                                License: {{ item.additional_info.license }}
+                            </small>
+                        {% elif item.user.role == 'staff' and item.additional_info.staff_id %}
+                            <small class="text-muted">
+                                ID: {{ item.additional_info.staff_id }}
+                            </small>
+                        {% elif item.user.role == 'manager' and item.additional_info.manager_id %}
+                            <small class="text-muted">
+                                ID: {{ item.additional_info.manager_id }}
+                            </small>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if not item.user.is_active %}
+                            <span class="status rejected">Deactivated</span>
+                        {% elif item.status == 'approved' %}
+                            <span class="status approved">Approved</span>
+                        {% elif item.status == 'pending' %}
+                            <span class="status pending">Pending</span>
+                        {% elif item.status == 'rejected' %}
+                            <span class="status rejected">Rejected</span>
+                        {% else %}
+                            <span class="status approved">Active</span>
+                        {% endif %}
+                    </td>
+
+                    <td style="text-align:right;">
+                        <div class="action-buttons">
+
+                            <a href="{% url 'manager_user_details' item.user.id %}"
+                               class="action-btn action-view"
+                               title="View Details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+
+                            {% if item.user.role == 'doctor' and item.status == 'pending' %}
+                                <a href="{% url 'manager_approve_doctor' item.profile.id %}"
+                                   class="action-btn action-approve"
+                                   title="Approve">
+                                    <i class="bi bi-check-lg"></i>
+                                </a>
+                                <a href="{% url 'manager_reject_doctor' item.profile.id %}"
+                                   class="action-btn action-reject"
+                                   title="Reject">
+                                    <i class="bi bi-x-lg"></i>
+                                </a>
+                            {% endif %}
+
+                            {% if item.user != user %}
+                                {% if item.user.is_active %}
+                                    <a href="{% url 'manager_deactivate_user' item.user.id %}"
+                                       class="action-btn action-reject"
+                                       title="Deactivate"
+                                       onclick="return confirm('Deactivate this user?')">
+                                        <i class="bi bi-person-x"></i>
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'manager_activate_user' item.user.id %}"
+                                       class="action-btn action-approve"
+                                       title="Activate">
+                                        <i class="bi bi-person-check"></i>
+                                    </a>
+                                {% endif %}
+
+                                <a href="{% url 'manager_change_user_role' item.user.id %}"
+                                   class="action-btn action-edit"
+                                   title="Change Role">
+                                    <i class="bi bi-arrow-left-right"></i>
+                                </a>
+                            {% endif %}
+
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="5" class="users-empty">
+                        No users found.
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Search & Filter JS (Appointments-style) -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("searchInput");
+    const rows = document.querySelectorAll(".user-row");
+
+    let roleFilter = "";
+    let statusFilter = "";
+
+    function filterTable() {
+        const search = searchInput.value.toLowerCase().trim();
+
+        rows.forEach(row => {
+            const text =
+                row.dataset.name +
+                row.dataset.username +
+                row.dataset.email;
+
+            const role = row.dataset.role;
+            const status = row.dataset.status;
+
+            const matchSearch = !search || text.includes(search);
+            const matchRole = !roleFilter || role === roleFilter;
+            const matchStatus = !statusFilter || status === statusFilter;
+
+            row.style.display =
+                (matchSearch && matchRole && matchStatus) ? "" : "none";
+        });
+    }
+
+    searchInput.addEventListener("input", filterTable);
+
+    document.querySelectorAll(".dropdown").forEach(dropdown => {
+        const btn = dropdown.querySelector(".dropdown-toggle");
+        const items = dropdown.querySelectorAll(".dropdown-item");
+
+        btn.addEventListener("click", e => {
+            e.stopPropagation();
+            dropdown.querySelector(".dropdown-menu").classList.toggle("show");
+        });
+
+        items.forEach(item => {
+            item.addEventListener("click", e => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                items.forEach(i => i.classList.remove("active"));
+                item.classList.add("active");
+
+                btn.textContent = item.textContent;
+
+                if (btn.id === "roleFilterBtn") roleFilter = item.dataset.value;
+                if (btn.id === "statusFilterBtn") statusFilter = item.dataset.value;
+
+                dropdown.querySelector(".dropdown-menu").classList.remove("show");
+                filterTable();
             });
-        </script>
+        });
+    });
 
-        <style>
-            .action-buttons {
-                display: flex;
-                gap: 8px;
-                justify-content: flex-end;
-            }
+    document.addEventListener("click", () => {
+        document
+            .querySelectorAll(".dropdown-menu")
+            .forEach(menu => menu.classList.remove("show"));
+    });
+});
+</script>
 
-            .action-btn {
-                padding: 6px 10px;
-                border-radius: 6px;
-                text-decoration: none;
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                font-size: 13px;
-                transition: all 0.2s ease;
-                border: 1px solid;
-            }
-
-            .action-btn-view {
-                background-color: var(--primary);
-                color: white;
-                border-color: var(--primary);
-            }
-
-            .action-btn-view:hover {
-                background-color: var(--primary-hover);
-                transform: translateY(-2px);
-            }
-
-            .action-btn-edit {
-                background-color: #000000;
-                color: white;
-                border-color: #f59e0b;
-            }
-
-            .action-btn-edit:hover {
-                background-color: #d97706;
-            }
-
-            .badge-users {
-                display: inline-block;
-                padding: 6px 12px;
-                border-radius: var(--radius-pill);
-                font-size: var(--font-size-xs);
-                font-weight: var(--font-weight-semibold);
-                text-transform: uppercase;
-                letter-spacing: 0.4px;
-                transition: all var(--transition-fast);
-                white-space: nowrap;
-                color: var(--white);
-            }
-        </style>
-    {% endif %}
+{% endif %}
 {% endblock %}

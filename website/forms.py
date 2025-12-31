@@ -343,12 +343,33 @@ class DoctorInfoForm(forms.ModelForm):
             "qualifications",
         ]
         widgets = {
+            "profile_picture": forms.FileInput(   
+                attrs={
+                    "class": "custom-file-input",
+                    "accept": "image/*"
+                }
+            ),
             "specialization": forms.Select(attrs={"class": "form-select"}),
-            "license_number": forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter license number"}),
-            "years_experience": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
-            "bio": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Short biography"}),
-            "qualifications": forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "Doctor's qualifications"}),
+            "license_number": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Enter license number"
+            }),
+            "years_experience": forms.NumberInput(attrs={
+                "class": "form-control",
+                "min": 0
+            }),
+            "bio": forms.Textarea(attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": "Short biography"
+            }),
+            "qualifications": forms.Textarea(attrs={
+                "class": "form-control",
+                "rows": 2,
+                "placeholder": "Doctor's qualifications"
+            }),
         }
+
 
         
 class SpecializationForm(forms.ModelForm):

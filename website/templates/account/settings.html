@@ -123,9 +123,15 @@
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-check-lg"></i> Save Changes
                             </button>
-                            <a href="{% url 'home' %}" class="btn btn-secondary">
-                                <i class="bi bi-x"></i> Cancel
-                            </a>
+                            {% if user.role == 'manager' %}
+                                <a href="{% url 'manager_dashboard' %}" class="btn btn-secondary">
+                                    <i class="bi bi-x"></i> Cancel
+                                </a>
+                            {% else %}
+                                <a href="{% url 'home' %}" class="btn btn-secondary">
+                                    <i class="bi bi-x"></i> Cancel
+                                </a>
+                            {% endif %}
                         </div>
                     </form>
                 </div>
@@ -213,9 +219,15 @@
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-lock"></i> Update Password
                             </button>
-                            <a href="{% url 'home' %}" class="btn btn-secondary">
-                                <i class="bi bi-x"></i> Cancel
-                            </a>
+                            {% if user.role == 'manager' %}
+                                <a href="{% url 'manager_dashboard' %}" class="btn btn-secondary">
+                                    <i class="bi bi-x"></i> Cancel
+                                </a>
+                            {% else %}
+                                <a href="{% url 'home' %}" class="btn btn-secondary">
+                                    <i class="bi bi-x"></i> Cancel
+                                </a>
+                            {% endif %}
                         </div>
                     </form>
                 </div>

@@ -11,17 +11,21 @@
     padding: 20px;
 }
 
+
 .urgency-banner {
-    background: linear-gradient(
-        135deg,
-        var(--urgency-color)15 0%,
-        var(--urgency-color)05 100%
-    );
-    border-left: 4px solid var(--urgency-color);
-    border-radius: 8px;
+    background: #ffffff;
+    border-left: 5px solid var(--urgency-color);
+    border-radius: 12px;
     padding: 20px;
     margin-bottom: 30px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
+
+.urgency-icon {
+    background: var(--urgency-color);
+    color: #ffffff;
+}
+
 
 .urgency-content {
     display: flex;
@@ -83,12 +87,13 @@
 }
 
 .reasoning-section {
-    background: var(--bg-muted);
+    background: #ffffff;
+    border: 1px solid var(--border-light);
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 30px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
-
 .reasoning-section h3 {
     margin: 0 0 15px 0;
     color: var(--text-main);
@@ -268,6 +273,17 @@
     margin-bottom: 15px;
 }
 
+/* Doctor profile image */
+.doctor-avatar-img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border-light);
+    flex-shrink: 0;
+}
+
+
 @media (max-width: 768px) {
     .recommendations-container {
         padding: 15px;
@@ -289,7 +305,7 @@
         <div class="main-content">
             <div class="recommendations-container">
 
-            <a href="{% url 'patient_calendar' %}" class="back-link">
+            <a href="{% url 'patient_calendar' %}" class="btn btn-secondary mb-3">
                 <i class="bi bi-arrow-left"></i>
                 Back to Calendar
             </a>
@@ -328,15 +344,28 @@
             <!-- Doctor Info -->
             <div class="doctor-info-card">
                 <div class="doctor-info-content">
-                    <div class="doctor-avatar">
-                        {{ doctor.user.first_name|slice:":1" }}{{ doctor.user.last_name|slice:":1" }}
-                    </div>
+
+                    {% if doctor.profile_picture %}
+                        <img 
+                            src="{{ doctor.profile_picture.url }}" 
+                            alt="Dr. {{ doctor.user.get_full_name }}"
+                            class="doctor-avatar-img"
+                        >
+                    {% else %}
+                        <div class="doctor-avatar">
+                            {{ doctor.user.first_name|slice:":1" }}{{ doctor.user.last_name|slice:":1" }}
+                        </div>
+                    {% endif %}
+
                     <div>
                         <h3 style="margin: 0 0 5px 0;">Dr. {{ doctor.user.get_full_name }}</h3>
-                        <p style="margin: 0; color: var(--text-muted);">{{ doctor.specialization.name }}</p>
+                        <p style="margin: 0; color: var(--text-muted);">
+                            {{ doctor.specialization.name }}
+                        </p>
                     </div>
                 </div>
             </div>
+
 
             <!-- Reasoning Section -->
             {% if reasoning %}

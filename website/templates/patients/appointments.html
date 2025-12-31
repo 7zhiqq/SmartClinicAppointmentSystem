@@ -1,95 +1,172 @@
 {% extends "components/base.html" %}
 {% load custom_filters %}
 {% load static %}
-    
+
 {% block content %}
-    <link rel="stylesheet" href="{% static 'css/appointments.css' %}">
-    <link rel="stylesheet" href="{% static 'css/schedule.css' %}">
-    {% if user.is_authenticated %}
-        {% include "components/sidebar/patient.html" %}
-        <div class="main-content">
-            <div class="schedule-header mb-4">
-                <div>
-                    <h2 class="heading-title">Appointments</h2>
-                    <p class="subtitle">View status of all your appointments</p>
-                </div>
-                <a href="{% url 'patient_calendar' %}" class="add-schedule-btn mt-2">
-                    + New Appointment
-                </a>
+<link rel="stylesheet" href="{% static 'css/appointments.css' %}">
+<link rel="stylesheet" href="{% static 'css/schedule.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/bootstrap-icons.min.css">
+
+{% if user.is_authenticated %}
+    {% include "components/sidebar/patient.html" %}
+
+    <div class="main-content">
+
+        <!-- HEADER -->
+        <div class="schedule-header mb-4 d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="heading-title">Appointments</h2>
+                <p class="subtitle">View status of all your appointments</p>
+            </div>
+            <a href="{% url 'patient_calendar' %}" class="add-schedule-btn">
+                + New Appointment
+            </a>
+        </div>
+
+        <!-- SEARCH + STATUS FILTER (LIKE STAFF PAGE) -->
+        <div class="d-flex gap-2 mb-4">
+            <div class="search-box flex-grow-1">
+                <i class="fas fa-search"></i>
+                <input
+                    type="text"
+                    id="searchInput"
+                    class="form-control border-0"
+                    placeholder="Search doctor or patient..."
+                >
             </div>
 
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-
-            <div class="table-container">
-                <table class="appointments-table">
-                    <thead>
-                        <tr>
-                            <th>TIME</th>
-                            <th>PATIENT</th>
-                            <th>DOCTOR</th>
-                            <th>STATUS</th>
-                            <th>ACTIONS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for a in appointments %}
-                            <tr class="appointment-row" data-id="{{ a.id }}" data-status="{{ a.status }}">
-                                <td class="time-cell">
-                                    <div class="appointment-time">
-                                        {{ a.start_time|date:"M d, Y" }}<br>
-                                        <small>{{ a.start_time|date:"h:i A" }} - {{ a.end_time|date:"h:i A" }}</small>
-                                    </div>
-                                </td>
-                                <td class="patient-cell">
-                                    {% if a.patient %}
-                                        {{ a.patient.get_full_name }}
-                                    {% else %}
-                                        {{ a.dependent_patient.full_name }}
-                                    {% endif %}
-                                </td>
-                                <td class="doctor-cell">{{ a.doctor.user.get_full_name }}</td>
-                                <td class="status-cell">
-                                    <span class="status-badge status-{{ a.status }}" id="status-{{ a.id }}">
-                                        {% if a.status == 'pending' %} Pending
-                                        {% elif a.status == 'approved' %} Confirmed
-                                        {% elif a.status == 'completed' %} Completed
-                                        {% elif a.status == 'rejected' %} Cancelled
-                                        {% else %} {{ a.status|title }}
-                                        {% endif %}
-                                    </span>
-                                </td>
-                                <td class="actions-cell">
-                                    <div class="action-buttons" id="actions-{{ a.id }}">
-                                        {% if a.status in 'pending,approved' %}
-                                            <a href="{% url 'cancel_appointment' a.id %}" 
-                                               class="btn-action" 
-                                               style="color: var(--danger); border-color: var(--danger);"
-                                               title="Cancel Appointment"
-                                               onclick="return confirm('Are you sure you want to cancel this appointment?');">
-                                                <i class="bi bi-x-circle"></i>
-                                            </a>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center text-muted py-4">
-                                    <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-                                    <p>No appointments found</p>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="dropdown">
+                <button class="dropdown-toggle" type="button" id="statusFilterBtn">
+                    All Status
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item active" href="#" data-value="">All Status</a></li>
+                    <li><a class="dropdown-item" href="#" data-value="pending">Pending</a></li>
+                    <li><a class="dropdown-item" href="#" data-value="approved">Confirmed</a></li>
+                    <li><a class="dropdown-item" href="#" data-value="completed">Completed</a></li>
+                    <li><a class="dropdown-item" href="#" data-value="rejected">Cancelled</a></li>
+                </ul>
             </div>
         </div>
-    {% endif %}
+
+        <!-- TABLE -->
+        <div class="table-container">
+            <table class="appointments-table">
+                <thead>
+                    <tr>
+                        <th>TIME</th>
+                        <th>PATIENT</th>
+                        <th>DOCTOR</th>
+                        <th>STATUS</th>
+                        <th>ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in appointments %}
+                    <tr class="appointment-row" data-status="{{ a.status }}">
+                        <td class="time-cell">
+                            {{ a.start_time|date:"M d, Y" }}<br>
+                            <small>{{ a.start_time|date:"h:i A" }} - {{ a.end_time|date:"h:i A" }}</small>
+                        </td>
+                        <td class="patient-cell">
+                            {% if a.patient %}
+                                {{ a.patient.get_full_name }}
+                            {% else %}
+                                {{ a.dependent_patient.full_name }}
+                            {% endif %}
+                        </td>
+                        <td class="doctor-cell">{{ a.doctor.user.get_full_name }}</td>
+                        <td class="status-cell">
+                            <span class="status-badge status-{{ a.status }}">
+                                {% if a.status == 'pending' %} Pending
+                                {% elif a.status == 'approved' %} Confirmed
+                                {% elif a.status == 'completed' %} Completed
+                                {% else %} Cancelled
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td class="actions-cell">
+                            {% if a.status in 'pending,approved' %}
+                                <a href="{% url 'cancel_appointment' a.id %}"
+                                   class="btn-action"
+                                   style="color: var(--danger); border-color: var(--danger);"
+                                   onclick="return confirm('Cancel this appointment?');">
+                                    <i class="bi bi-x-circle"></i>
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            <p>No appointments found</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- WORKING SEARCH + DROPDOWN SCRIPT -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const searchInput = document.getElementById("searchInput");
+        const filterBtn = document.getElementById("statusFilterBtn");
+        const filterMenu = document.querySelector(".dropdown-menu");
+        const filterItems = document.querySelectorAll(".dropdown-item");
+        const rows = document.querySelectorAll(".appointment-row");
+
+        let currentStatusFilter = "";
+
+        function filterTable() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const status = row.dataset.status;
+
+                const matchesSearch = !searchTerm || text.includes(searchTerm);
+                const matchesStatus = !currentStatusFilter || status === currentStatusFilter;
+
+                row.style.display = (matchesSearch && matchesStatus) ? "" : "none";
+            });
+        }
+
+        // 🔽 Toggle dropdown
+        filterBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            filterMenu.classList.toggle("show");
+        });
+
+        // ❌ Close dropdown when clicking outside
+        document.addEventListener("click", function (e) {
+            if (!e.target.closest(".dropdown")) {
+                filterMenu.classList.remove("show");
+            }
+        });
+
+        // 🔍 Search
+        searchInput.addEventListener("input", filterTable);
+
+        // ✅ Status filter
+        filterItems.forEach(item => {
+            item.addEventListener("click", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                filterItems.forEach(i => i.classList.remove("active"));
+                this.classList.add("active");
+
+                currentStatusFilter = this.dataset.value;
+                filterBtn.textContent = this.textContent;
+
+                filterMenu.classList.remove("show");
+                filterTable();
+            });
+        });
+    });
+    </script>
+
+{% endif %}
 {% endblock %}

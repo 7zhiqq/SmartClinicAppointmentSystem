@@ -33,6 +33,59 @@
     margin: 0;
 }
 
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.action-btn {
+    padding: 6px 10px;
+    border-radius: 6px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    transition: all 0.2s ease;
+    border: 1px solid;
+}
+
+.action-btn-view {
+    background-color: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.action-btn-view:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.action-btn-edit {
+    background-color: #000000;
+    color: white;
+    border-color: #f59e0b;
+}
+
+.action-btn-edit:hover {
+    background-color: #d97706;
+}
+
+.badge-users {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+    color: var(--white);
+}
+
+
 /* ==================== DOCTOR CARD ==================== */
 .doctor-card {
     background: var(--white);
