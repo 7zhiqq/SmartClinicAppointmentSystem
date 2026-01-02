@@ -39,7 +39,12 @@
 
                         <div class="field">
                             <label>Password</label>
-                            <input type="password" name="password" placeholder="Enter your password" required>
+                            <div class="password-field-wrapper">
+                                <input type="password" name="password" id="login-password" placeholder="Enter your password" required>
+                                <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('login-password', this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <button type="submit" class="btn-primary">
@@ -99,6 +104,57 @@
                 gap: 12px;
                 margin-top: 16px;
             }
+
+            /* Password Field Styles */
+            .password-field-wrapper {
+                position: relative;
+                display: flex;
+                align-items: center;
+            }
+
+            .password-field-wrapper input {
+                width: 100%;
+                padding-right: 45px;
+            }
+
+            .toggle-password-btn {
+                position: absolute;
+                right: 12px;
+                background: none;
+                border: none;
+                cursor: pointer;
+                padding: 8px;
+                color: #6b7280;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: color 0.2s;
+            }
+
+            .toggle-password-btn:hover {
+                color: #214994;
+            }
+
+            .toggle-password-btn i {
+                font-size: 18px;
+            }
         </style>
+
+        <script>
+            function togglePasswordVisibility(inputId, button) {
+                const input = document.getElementById(inputId);
+                const icon = button.querySelector('i');
+                
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                }
+            }
+        </script>
     {% endif %}
 {% endblock %}

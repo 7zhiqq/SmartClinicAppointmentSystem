@@ -198,14 +198,14 @@ def patient_list(request):
 def patient_details_ajax(request, pk):
     """
     AJAX view to fetch patient details (self or dependent) for staff/doctor.
-    Always returns JSON with 'html' key, even if patient not found.
+    Always returns JSON with 'html' key.
     """
     try:
         user_role = getattr(request.user, 'role', None)
         patient = None
         patient_type = None
 
-        # --- Try self patient first ---
+        # ---------- Identify patient ----------
         if user_role in ['staff', 'doctor']:
             patient = PatientInfo.objects.filter(pk=pk).first()
             if patient:
@@ -215,7 +215,6 @@ def patient_details_ajax(request, pk):
             if patient:
                 patient_type = 'self'
 
-        # --- Try dependent patient ---
         if not patient:
             if user_role in ['staff', 'doctor']:
                 patient = DependentPatient.objects.filter(pk=pk).first()
@@ -229,71 +228,53 @@ def patient_details_ajax(request, pk):
         if not patient:
             return JsonResponse({'html': '<p class="muted">Patient not found.</p>'})
 
-        # --- Fetch related objects safely ---
+        # ---------- Vitals ----------
         vitals = getattr(patient, 'vitals', None)
-        if vitals:
-            vitals = vitals.last()  # Get latest vital record
+        vitals = vitals.last() if vitals else None
 
-        # Medications
-        medications = getattr(patient, 'medications', None) or getattr(patient, 'patientmedication_set', None)
+        # ---------- Medications ----------
+        medications = getattr(patient, 'medications', None)
         medications = medications.all() if medications else []
 
-        # Allergies
-        allergies = getattr(patient, 'allergies', None) or getattr(patient, 'patientallergy_set', None)
+        # ---------- Allergies ----------
+        allergies = getattr(patient, 'allergies', None)
         allergies = allergies.all() if allergies else []
 
-        # Medical history
+        # ---------- Medical History ----------
         if patient_type == 'self':
-            medical_history = MedicalRecord.objects.filter(patient=patient).order_by('-created_at')
-        elif patient_type == 'dependent':
-            medical_history = MedicalRecord.objects.filter(dependent_patient=patient).order_by('-created_at')
+            medical_history = MedicalRecord.objects.filter(
+                patient=patient
+            ).order_by('-created_at')
         else:
-            medical_history = []
+            medical_history = MedicalRecord.objects.filter(
+                dependent_patient=patient
+            ).order_by('-created_at')
 
-        # --- Last appointment/visit ---
+        # ---------- ✅ LAST VISIT (COMPLETED ONLY) ----------
         last_visit = None
+
         try:
             if patient_type == 'self' and getattr(patient, 'user', None):
-                # Get the most recent COMPLETED appointment
                 last_appointment = Appointment.objects.filter(
                     patient=patient.user,
                     status='completed'
                 ).order_by('-start_time').first()
-                
-                if last_appointment:
-                    last_visit = last_appointment.start_time
-                else:
-                    # If no completed appointments, get the most recent approved appointment
-                    last_appointment = Appointment.objects.filter(
-                        patient=patient.user,
-                        status='approved'
-                    ).order_by('-start_time').first()
-                    if last_appointment:
-                        last_visit = last_appointment.start_time
-                        
+
+                last_visit = last_appointment.start_time if last_appointment else None
+
             elif patient_type == 'dependent':
-                # Get the most recent COMPLETED appointment for dependent
                 last_appointment = DependentAppointment.objects.filter(
                     dependent_patient=patient,
                     status='completed'
                 ).order_by('-start_time').first()
-                
-                if last_appointment:
-                    last_visit = last_appointment.start_time
-                else:
-                    # If no completed appointments, get the most recent approved appointment
-                    last_appointment = DependentAppointment.objects.filter(
-                        dependent_patient=patient,
-                        status='approved'
-                    ).order_by('-start_time').first()
-                    if last_appointment:
-                        last_visit = last_appointment.start_time
-                        
+
+                last_visit = last_appointment.start_time if last_appointment else None
+
         except Exception as e:
-            print(f"Error fetching last visit for patient {pk}: {e}")
+            print(f"Last visit error for patient {pk}: {e}")
             last_visit = None
 
-        # --- Render partial template ---
+        # ---------- Render ----------
         html = render_to_string(
             'patients/partials/patient_details.html',
             {
@@ -313,8 +294,10 @@ def patient_details_ajax(request, pk):
 
     except Exception as e:
         print(f"AJAX error for patient {pk}: {e}")
-        return JsonResponse({'html': f'<p class="muted">Failed to load patient details: {e}</p>'})
-    
+        return JsonResponse({
+            'html': '<p class="muted">Failed to load patient details.</p>'
+        })
+
 @login_required
 def doctor_patient_list(request):
     if getattr(request.user, "role", None) != "doctor":
@@ -2841,8 +2824,11 @@ def manager_dashboard(request):
     active_doctors = DoctorInfo.objects.filter(is_approved=True).count()
     pending_doctors = DoctorInfo.objects.filter(is_approved=False, is_rejected=False).count()
     total_staff = User.objects.filter(role='staff').count()
-    total_patients = User.objects.filter(role='patient').count()
+    
+    # Patient counts
+    total_self_patients = User.objects.filter(role='patient').count()
     total_dependents = DependentPatient.objects.count()
+    total_patients = total_self_patients + total_dependents 
     
     # Appointments
     total_appointments = Appointment.objects.count() + DependentAppointment.objects.count()
@@ -3002,7 +2988,7 @@ def manager_dashboard(request):
         'active_doctors': active_doctors,
         'pending_doctors': pending_doctors,
         'total_staff': total_staff,
-        'total_patients': total_patients,
+        'total_patients': total_patients, 
         'total_dependents': total_dependents,
         'total_appointments': total_appointments,
         'pending_appointments': pending_appointments,
@@ -3193,14 +3179,21 @@ def generate_doctors_report(start_date, end_date):
 def generate_patients_report(start_date, end_date):
     """Generate patients statistics report"""
 
+    # New patient accounts created in date range
     new_patients = User.objects.filter(
         role='patient',
         date_joined__date__gte=start_date,
         date_joined__date__lte=end_date
     ).count()
 
-    total_patients = User.objects.filter(role='patient').count()
+    # Total patient accounts (self profiles)
+    total_self_patients = User.objects.filter(role='patient').count()
+    
+    # Total dependents
     total_dependents = DependentPatient.objects.count()
+    
+    # FIXED: Total patients = self patients + dependents
+    total_patients = total_self_patients + total_dependents
 
     # ✅ SAFE age distribution keys
     age_groups = {
@@ -3211,6 +3204,7 @@ def generate_patients_report(start_date, end_date):
         'age_65_plus': 0
     }
 
+    # Count ages from self patients
     patients = PatientInfo.objects.all()
     for patient in patients:
         age = patient.age or 0
@@ -3225,7 +3219,24 @@ def generate_patients_report(start_date, end_date):
             age_groups['age_51_65'] += 1
         else:
             age_groups['age_65_plus'] += 1
+    
+    # Count ages from dependents
+    dependents = DependentPatient.objects.all()
+    for dependent in dependents:
+        age = dependent.age or 0
 
+        if age <= 18:
+            age_groups['age_0_18'] += 1
+        elif age <= 35:
+            age_groups['age_19_35'] += 1
+        elif age <= 50:
+            age_groups['age_36_50'] += 1
+        elif age <= 65:
+            age_groups['age_51_65'] += 1
+        else:
+            age_groups['age_65_plus'] += 1
+
+    # Gender distribution from both self patients and dependents
     gender_dist = {
         'male': PatientInfo.objects.filter(gender='M').count() +
                 DependentPatient.objects.filter(gender='M').count(),
@@ -3234,13 +3245,13 @@ def generate_patients_report(start_date, end_date):
     }
 
     return {
-        'new_patients': new_patients,
-        'total_patients': total_patients,
+        'new_patients': new_patients,  # New patient accounts only
+        'total_patients': total_patients,  # FIXED: Self + Dependents
+        'total_self_patients': total_self_patients,  # Just for reference
         'total_dependents': total_dependents,
         'age_distribution': age_groups,
         'gender_distribution': gender_dist,
     }
-
 
 def generate_revenue_report(start_date, end_date):
     """Generate revenue projections (placeholder for future implementation)"""

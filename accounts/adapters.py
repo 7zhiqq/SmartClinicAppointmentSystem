@@ -1,8 +1,8 @@
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.account.adapter import DefaultAccountAdapter
-from accounts.models import PatientProfile, Phone
-from website.models import PatientInfo
-from accounts.validators import normalize_ph_phone_number
+from accounts.models import PatientProfile, Phone, User
+from django.utils.text import slugify
+import random
 
 
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
@@ -26,21 +26,23 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         
         # Check if a user with this email already exists
         try:
-            from accounts.models import User
             existing_user = User.objects.get(email=email)
             # Connect the social account to the existing user
             sociallogin.connect(request, existing_user)
         except User.DoesNotExist:
             pass
 
-    def save_user(self, request, sociallogin, form=None):
+    def is_auto_signup_allowed(self, request, sociallogin):
         """
-        Saves a newly signed up social login user.
+        Allow automatic signup for all Google accounts
         """
-        user = super().save_user(request, sociallogin, form)
-        
-        # Set role to patient for Google sign-ups
-        user.role = 'patient'
+        return True
+
+    def populate_user(self, request, sociallogin, data):
+        """
+        Populate user data from social account
+        """
+        user = super().populate_user(request, sociallogin, data)
         
         # Get data from Google
         extra_data = sociallogin.account.extra_data
@@ -51,6 +53,33 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         if 'family_name' in extra_data:
             user.last_name = extra_data['family_name']
         
+        # Auto-generate username from email
+        if not user.username:
+            email = extra_data.get('email', '')
+            if email:
+                # Use email prefix as base username
+                base_username = email.split('@')[0]
+                base_username = slugify(base_username).replace('-', '_')
+                
+                # Ensure username is unique
+                username = base_username
+                counter = 1
+                while User.objects.filter(username=username).exists():
+                    username = f"{base_username}{counter}"
+                    counter += 1
+                
+                user.username = username
+        
+        return user
+
+    def save_user(self, request, sociallogin, form=None):
+        """
+        Saves a newly signed up social login user.
+        """
+        user = super().save_user(request, sociallogin, form)
+        
+        # Set role to patient for Google sign-ups
+        user.role = 'patient'
         user.save()
         
         # Create PatientProfile
