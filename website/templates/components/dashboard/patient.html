@@ -1,0 +1,188 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/patient-dashboard.css' %}">
+
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div class="header-content">
+            <div class="welcome-section">
+                <h1>Welcome back, {{ user.get_full_name }}!</h1>
+                <p class="subtitle">Your dashboard overview</p>
+            </div>
+            <div class="user-info">
+                <span class="date-display">{% now "l, M d" %}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card appointments">
+            <div class="stat-header">
+                <div class="stat-icon">
+                    <i class="bi bi-calendar-check"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ upcoming_appointments_count|default:0 }}</div>
+            <div class="stat-label">Upcoming Appointments</div>
+        </div>
+
+        <div class="stat-card prescriptions">
+            <div class="stat-header">
+                <div class="stat-icon">
+                    <i class="bi bi-prescription2"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ active_medications_count|default:0 }}</div>
+            <div class="stat-label">Active Medications</div>
+        </div>
+
+        <div class="stat-card records">
+            <div class="stat-header">
+                <div class="stat-icon">
+                    <i class="bi bi-file-medical"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ medical_records_count|default:0 }}</div>
+            <div class="stat-label">Medical Records</div>
+        </div>
+
+        <div class="stat-card alerts">
+            <div class="stat-header">
+                <div class="stat-icon">
+                    <i class="bi bi-heart-pulse"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ dependents_count|default:0 }}</div>
+            <div class="stat-label">Dependents</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-grid">
+        <!-- Left Column -->
+        <div>
+            <!-- Scheduled Appointments -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="bi bi-calendar-event"></i>
+                        Scheduled Appointments
+                    </h3>
+                    <a href="{% url 'patient_calendar' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-lg"></i>
+                        New Appointment
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_appointments %}
+                        {% for appointment in upcoming_appointments|slice:":3" %}
+                            <div class="appointment-item">
+                                <div class="appointment-header">
+                                    <div class="doctor-name">
+                                        {% if appointment.patient %}
+                                            {{ appointment.patient.get_full_name }}
+                                        {% else %}
+                                            {{ appointment.dependent_patient.full_name }}
+                                        {% endif %}
+                                    </div>
+                                    <span class="appointment-badge badge-{{ appointment.status }}">
+                                        {% if appointment.status == 'pending' %}
+                                            Pending
+                                        {% elif appointment.status == 'approved' %}
+                                            Confirmed
+                                        {% else %}
+                                            {{ appointment.status|title }}
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="appointment-time">
+                                    <i class="bi bi-clock"></i>
+                                    <span>{{ appointment.start_time|date:"M d, Y" }} • {{ appointment.start_time|date:"h:i A" }} - {{ appointment.end_time|date:"h:i A" }}</span>
+                                </div>
+                                <div class="appointment-time">
+                                    <i class="bi bi-person"></i>
+                                    <span>Doctor: {{ appointment.doctor.user.get_full_name }}</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                        {% if upcoming_appointments|length > 3 %}
+                            <div style="text-align: center; margin-top: 1rem;">
+                                <a href="{% url 'patient_appointments' %}" class="btn btn-outline">View All Appointments</a>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="bi bi-calendar-x"></i>
+                            <p>No upcoming appointments</p>
+                            <a href="{% url 'patient_calendar' %}" class="btn btn-primary" style="margin-top: 1rem;">Schedule Appointment</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div>
+            <!-- Health Metrics -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="bi bi-heart-pulse"></i>
+                        Health Metrics
+                    </h3>
+                </div>
+                <div class="card-body">
+                    {% if latest_vitals %}
+                        <div class="health-metric">
+                            <div class="metric-header">
+                                <span class="metric-label">
+                                    <i class="bi bi-heart"></i>
+                                    Blood Pressure
+                                </span>
+                                <span class="metric-trend trend-stable">Stable</span>
+                            </div>
+                            <div class="metric-value">{{ latest_vitals.blood_pressure|default:"N/A" }}</div>
+                            <div class="metric-unit">mmHg</div>
+                        </div>
+
+                        <div class="health-metric">
+                            <div class="metric-header">
+                                <span class="metric-label">
+                                    <i class="bi bi-activity"></i>
+                                    Heart Rate
+                                </span>
+                                <span class="metric-trend trend-stable">Normal</span>
+                            </div>
+                            <div class="metric-value">{{ latest_vitals.heart_rate|default:"N/A" }}</div>
+                            <div class="metric-unit">bpm</div>
+                        </div>
+
+                        <div class="health-metric">
+                            <div class="metric-header">
+                                <span class="metric-label">
+                                    <i class="bi bi-speedometer2"></i>
+                                    Weight
+                                </span>
+                                <span class="metric-trend trend-stable">Stable</span>
+                            </div>
+                            <div class="metric-value">{{ latest_vitals.weight_kg|default:"N/A" }}</div>
+                            <div class="metric-unit">kg</div>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-light);">
+                            <small style="color: var(--text-muted); font-size: 0.85rem;">
+                                Last recorded: {{ latest_vitals.recorded_at|date:"M d, Y" }}
+                            </small>
+                        </div>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="bi bi-heart"></i>
+                            <p>No vitals recorded yet</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

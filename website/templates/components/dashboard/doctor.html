@@ -1,0 +1,285 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/doctor-dashboard.css' %}">
+
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div class="header-content">
+            <div class="welcome-section">
+                <h1>Doctor Dashboard</h1>
+                <p class="subtitle">Welcome back, Dr. {{ user.get_full_name }}</p>
+            </div>
+            <div class="user-info">
+                <span class="date-display">{% now "l, M d" %}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card appointments">
+            <div class="stat-header">
+                <div class="stat-icon">
+                    <i class="bi bi-calendar-check"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ today_appointments_count|default:0 }}</div>
+            <div class="stat-label">Today's Appointments</div>
+            <div class="stat-meta">{{ total_appointments|default:0 }} total appointments</div>
+        </div>
+
+        <div class="stat-card patients">
+            <div class="stat-header">
+                <div class="stat-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ total_patients|default:0 }}</div>
+            <div class="stat-label">Total Patients</div>
+            <div class="stat-meta">{{ pending_appointments|default:0 }} pending appointments</div>
+        </div>
+
+        <div class="stat-card completed">
+            <div class="stat-header">
+                <div class="stat-icon">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ completed_appointments|default:0 }}</div>
+            <div class="stat-label">Completed</div>
+            <div class="stat-meta">This month</div>
+        </div>
+
+        <div class="stat-card rating">
+            <div class="stat-header">
+                <div class="stat-icon">
+                    <i class="bi bi-star-fill"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ average_rating|default:"N/A" }}</div>
+            <div class="stat-label">Average Rating</div>
+            <div class="stat-meta">{{ total_ratings|default:0 }} reviews</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-grid">
+        <!-- Left Column -->
+        <div>
+            <!-- Today's Schedule -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="bi bi-calendar-event"></i>
+                        Today's Schedule
+                    </h3>
+                    <a href="{% url 'doctor_calendar' %}" class="btn btn-primary">
+                        <i class="bi bi-calendar3"></i>
+                        View Calendar
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if today_appointments %}
+                        {% for appointment in today_appointments|slice:":5" %}
+                            <div class="appointment-item">
+                                <div class="appointment-header">
+                                    <div class="patient-name">
+                                        {% if appointment.appointment_type == "self" %}
+                                            {{ appointment.patient.get_full_name }}
+                                        {% else %}
+                                            {{ appointment.dependent_patient.full_name }}
+                                        {% endif %}
+                                    </div>
+                                    <span class="appointment-badge badge-{{ appointment.status }}">
+                                        {% if appointment.status == 'pending' %}
+                                            Pending
+                                        {% elif appointment.status == 'approved' %}
+                                            Confirmed
+                                        {% elif appointment.status == 'completed' %}
+                                            Completed
+                                        {% else %}
+                                            {{ appointment.status|title }}
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="appointment-time">
+                                    <i class="bi bi-clock"></i>
+                                    <span>{{ appointment.start_time|date:"h:i A" }} - {{ appointment.end_time|date:"h:i A" }}</span>
+                                </div>
+                                {% if appointment.appointment_type == "dependent" %}
+                                    <div class="appointment-time">
+                                        <i class="bi bi-info-circle"></i>
+                                        <span>Dependent Patient</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        {% if today_appointments|length > 5 %}
+                            <div style="text-align: center; margin-top: 1rem;">
+                                <a href="{% url 'doctor_appointments' %}" class="btn btn-outline">View All Appointments</a>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="bi bi-calendar-x"></i>
+                            <p>No appointments scheduled for today</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Pending Appointments -->
+            {% if pending_appointments_list %}
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="bi bi-clock-history"></i>
+                        Pending Approvals
+                        <span class="badge-count">{{ pending_appointments|default:0 }}</span>
+                    </h3>
+                </div>
+                <div class="card-body">
+                    {% for appointment in pending_appointments_list|slice:":3" %}
+                        <div class="pending-item">
+                            <div class="pending-info">
+                                <div class="patient-name">
+                                    {% if appointment.patient %}
+                                        {{ appointment.patient.get_full_name }}
+                                    {% else %}
+                                        {{ appointment.dependent_patient.full_name }}
+                                    {% endif %}
+                                </div>
+
+                                <div class="pending-time">
+                                    {{ appointment.start_time|date:"M d, Y • h:i A" }}
+                                </div>
+                            </div>
+                            <div class="pending-actions">
+                                <button class="btn-mini btn-approve" onclick="updateAppointmentStatus({{ appointment.id }}, '{{ appointment.appointment_type }}', 'approve')">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                                <button class="btn-mini btn-reject" onclick="updateAppointmentStatus({{ appointment.id }}, '{{ appointment.appointment_type }}', 'reject')">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    {% if pending_appointments > 3 %}
+                        <div style="text-align: center; margin-top: 1rem;">
+                            <a href="{% url 'doctor_appointments' %}" class="btn btn-outline">View All Pending</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column -->
+        <div>
+            <!-- Schedule Overview -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="bi bi-clock"></i>
+                        Schedule Overview
+                    </h3>
+                </div>
+                <div class="card-body">
+                    {% if schedule_summary %}
+                        {% for day in schedule_summary %}
+                            <div class="schedule-item">
+                                <div class="schedule-day">{{ day.day }}</div>
+                                <div class="schedule-time">
+                                    {% if day.available %}
+                                        <span class="available-indicator"></span>
+                                        {{ day.start_time }} - {{ day.end_time }}
+                                    {% else %}
+                                        <span class="unavailable-text">Not Available</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                        <div style="text-align: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-light);">
+                            <a href="{% url 'doctor_schedule' %}" class="btn btn-outline">
+                                <i class="bi bi-pencil"></i>
+                                Manage Schedule
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="bi bi-calendar-plus"></i>
+                            <p>No schedule set yet</p>
+                            <a href="{% url 'doctor_schedule' %}" class="btn btn-primary" style="margin-top: 1rem;">
+                                Set Your Schedule
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Reviews -->
+            {% if recent_reviews %}
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="bi bi-star"></i>
+                        Recent Reviews
+                    </h3>
+                </div>
+                <div class="card-body">
+                    {% for review in recent_reviews|slice:":3" %}
+                        <div class="review-item">
+                            <div class="review-header">
+                                <div class="review-stars">
+                                    {% for i in "12345"|make_list %}
+                                        {% if forloop.counter <= review.rating %}
+                                            <i class="bi bi-star-fill" style="color: #fbbf24;"></i>
+                                        {% else %}
+                                            <i class="bi bi-star" style="color: #d1d5db;"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <div class="review-date">{{ review.created_at|date:"M d, Y" }}</div>
+                            </div>
+                            {% if review.review %}
+                                <div class="review-text">{{ review.review|truncatewords:15 }}</div>
+                            {% endif %}
+                            <div class="review-patient">- {{ review.patient.user.get_full_name }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<meta name="csrf-token" content="{{ csrf_token }}">
+
+<script>
+function updateAppointmentStatus(appointmentId, appointmentType, action) {
+    const csrftoken = document.querySelector('meta[name="csrf-token"]').content;
+    const formData = new FormData();
+    formData.append('appointment_type', appointmentType);
+
+    fetch(`/appointments/${appointmentId}/update_status/${action}/`, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": csrftoken,
+        },
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.error) {
+            alert(data.error);
+        } else {
+            location.reload();
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('An error occurred while updating the appointment.');
+    });
+}
+</script>

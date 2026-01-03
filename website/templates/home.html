@@ -26,19 +26,15 @@
             {% else %}
                 {% include "components/sidebar/doctor.html" %}
                 <div class="main-content" id="mainContent">
-                    <h1>Hello doctor</h1>
-                    
-                    <a href="{% url 'logout' %}">Logout</a>
+                    {% include 'components/dashboard/doctor.html' %}
                 </div>
             {% endif %}
         {% endif %}
 
-
         {% if user.role == "patient" %}
             {% include 'components/sidebar/patient.html' %}
             <div class="main-content" id="mainContent">
-                <h1>Hello patient</h1>
-                <a href="{% url 'logout' %}">Logout</a>
+                {% include 'components/dashboard/patient.html' %}
             </div>
         {% endif %}
     {% else %}

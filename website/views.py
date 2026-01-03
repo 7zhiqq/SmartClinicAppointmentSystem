@@ -68,8 +68,9 @@ from .forms import (
     DoctorRatingForm
 )
 
-# Authentication
 def home(request):
+
+    # LOGIN HANDLING
     if request.method == "POST":
         user = authenticate(
             request,
@@ -81,15 +82,177 @@ def home(request):
             if user.role == "manager":
                 return redirect("manager_dashboard")
             return redirect("home")
-        messages.error(request, "Invalid username or password. Please try again...")
 
-    doctor_info = None
-    if request.user.is_authenticated and request.user.role == "doctor":
-        doctor_info = getattr(request.user, "doctor_info", None)
+        messages.error(request, "Invalid username or password.")
 
-    return render(request, "home.html", {
-        "doctor_info": doctor_info
-    })
+    context = {}
+
+    # AUTHENTICATED USERS
+    if request.user.is_authenticated:
+        user = request.user
+        
+        # DOCTOR DASHBOARD CONTEXT
+        if user.role == "doctor":
+            doctor_info = getattr(user, "doctor_info", None)
+            context["doctor_info"] = doctor_info
+
+            if doctor_info and doctor_info.is_approved:
+                today = timezone.localdate()
+
+                # -------------------------
+                # Today's Appointments
+                # -------------------------
+                today_self = Appointment.objects.filter(
+                    doctor=doctor_info,
+                    start_time__date=today
+                ).select_related("patient")
+
+                today_dependent = DependentAppointment.objects.filter(
+                    doctor=doctor_info,
+                    start_time__date=today
+                ).select_related("dependent_patient")
+
+                today_appointments = sorted(
+                    list(today_self) + list(today_dependent),
+                    key=lambda x: x.start_time
+                )
+
+                context["today_appointments"] = today_appointments
+                context["today_appointments_count"] = len(today_appointments)
+
+                # -------------------------
+                # Pending Appointments
+                # -------------------------
+                pending_self = Appointment.objects.filter(
+                    doctor=doctor_info,
+                    status="pending"
+                )
+
+                pending_dependent = DependentAppointment.objects.filter(
+                    doctor=doctor_info,
+                    status="pending"
+                )
+
+                pending_list = sorted(
+                    list(pending_self) + list(pending_dependent),
+                    key=lambda x: x.start_time
+                )
+
+                context["pending_appointments_list"] = pending_list
+                context["pending_appointments"] = len(pending_list)
+
+                # -------------------------
+                # Total Appointments
+                # -------------------------
+                context["total_appointments"] = (
+                    Appointment.objects.filter(doctor=doctor_info).count()
+                    + DependentAppointment.objects.filter(doctor=doctor_info).count()
+                )
+
+                # -------------------------
+                # Completed This Month
+                # -------------------------
+                context["completed_appointments"] = (
+                    Appointment.objects.filter(
+                        doctor=doctor_info,
+                        status="completed",
+                        start_time__month=today.month,
+                        start_time__year=today.year,
+                    ).count()
+                    + DependentAppointment.objects.filter(
+                        doctor=doctor_info,
+                        status="completed",
+                        start_time__month=today.month,
+                        start_time__year=today.year,
+                    ).count()
+                )
+
+                # -------------------------
+                # Total Patients
+                # -------------------------
+                self_patients = Appointment.objects.filter(
+                    doctor=doctor_info
+                ).values_list("patient", flat=True)
+
+                dependent_patients = DependentAppointment.objects.filter(
+                    doctor=doctor_info
+                ).values_list("dependent_patient", flat=True)
+
+                context["total_patients"] = (
+                    PatientInfo.objects.filter(user__in=self_patients).count()
+                    + DependentPatient.objects.filter(patient_id__in=dependent_patients).count()
+                )
+
+
+                # -------------------------
+                # Ratings
+                # -------------------------
+                rating_stats = DoctorRating.objects.filter(
+                    doctor=doctor_info
+                ).aggregate(
+                    avg=Avg("rating"),
+                    count=Count("id")
+                )
+
+                context["average_rating"] = (
+                    round(rating_stats["avg"], 1)
+                    if rating_stats["avg"] else "N/A"
+                )
+                context["total_ratings"] = rating_stats["count"]
+
+                context["recent_reviews"] = DoctorRating.objects.filter(
+                    doctor=doctor_info
+                ).select_related("patient__user").order_by("-created_at")[:5]
+
+        
+        # PATIENT DASHBOARD CONTEXT 
+        elif user.role == "patient":
+            try:
+                patient = PatientInfo.objects.get(user=user)
+                context["patient"] = patient
+                context["latest_vitals"] = patient.vitals.order_by("-recorded_at").first()
+            except PatientInfo.DoesNotExist:
+                context["patient"] = None
+                context["latest_vitals"] = None
+
+            dependents = DependentPatient.objects.filter(guardian=user)
+            context["dependents_count"] = dependents.count()
+
+            upcoming_self = Appointment.objects.filter(
+                patient=user,
+                start_time__gte=timezone.now(),
+                status__in=["pending", "approved"],
+            )
+
+            upcoming_dependent = DependentAppointment.objects.filter(
+                dependent_patient__in=dependents,
+                start_time__gte=timezone.now(),
+                status__in=["pending", "approved"],
+            )
+
+            upcoming = sorted(
+                list(upcoming_self) + list(upcoming_dependent),
+                key=lambda x: x.start_time,
+            )
+
+            context["upcoming_appointments"] = upcoming[:5]
+            context["upcoming_appointments_count"] = len(upcoming)
+
+            active_medications = patient.medications.count() if context["patient"] else 0
+            for dep in dependents:
+                active_medications += dep.medications.count()
+
+            context["active_medications_count"] = active_medications
+
+            medical_records = 0
+            if context["patient"]:
+                medical_records += MedicalRecord.objects.filter(patient=context["patient"]).count()
+            for dep in dependents:
+                medical_records += MedicalRecord.objects.filter(dependent_patient=dep).count()
+
+            context["medical_records_count"] = medical_records
+
+    return render(request, "home.html", context)
 
 @login_required
 def logout_user(request):
