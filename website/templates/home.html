@@ -4,8 +4,7 @@
         {% if user.role == "staff" %}
             {% include 'components/sidebar/staff.html' %}
             <div class="main-content" id="mainContent">
-                <h1>Hello staff</h1>
-                <a href="{% url 'logout' %}">Logout</a>
+                {% include 'components/dashboard/staff.html' %}
             </div>
         {% endif %}
 

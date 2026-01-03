@@ -100,7 +100,7 @@ def home(request):
                 today = timezone.localdate()
 
                 # -------------------------
-                # Today's Appointments
+                # Today's Appointments (BOTH self and dependent)
                 # -------------------------
                 today_self = Appointment.objects.filter(
                     doctor=doctor_info,
@@ -112,6 +112,13 @@ def home(request):
                     start_time__date=today
                 ).select_related("dependent_patient")
 
+                # Add appointment_type attribute for template usage
+                for appt in today_self:
+                    appt.appointment_type = "self"
+                
+                for appt in today_dependent:
+                    appt.appointment_type = "dependent"
+
                 today_appointments = sorted(
                     list(today_self) + list(today_dependent),
                     key=lambda x: x.start_time
@@ -121,25 +128,50 @@ def home(request):
                 context["today_appointments_count"] = len(today_appointments)
 
                 # -------------------------
-                # Pending Appointments
+                # Pending Appointments (BOTH self and dependent)
                 # -------------------------
                 pending_self = Appointment.objects.filter(
                     doctor=doctor_info,
                     status="pending"
-                )
+                ).select_related("patient")
 
                 pending_dependent = DependentAppointment.objects.filter(
                     doctor=doctor_info,
                     status="pending"
-                )
+                ).select_related("dependent_patient")
+
+                # Add appointment_type attribute
+                for appt in pending_self:
+                    appt.appointment_type = "self"
+                
+                for appt in pending_dependent:
+                    appt.appointment_type = "dependent"
 
                 pending_list = sorted(
                     list(pending_self) + list(pending_dependent),
                     key=lambda x: x.start_time
                 )
 
+                # Always set both values in context (even if empty list)
                 context["pending_appointments_list"] = pending_list
                 context["pending_appointments"] = len(pending_list)
+
+                # -------------------------
+                # Weekly Schedule Summary
+                # -------------------------
+                day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                schedule_summary = []
+                
+                for weekday in range(7):
+                    availability = doctor_info.availabilities.filter(weekday=weekday).first()
+                    schedule_summary.append({
+                        'day': day_names[weekday],
+                        'available': availability is not None,
+                        'start_time': availability.start_time.strftime('%I:%M %p') if availability else None,
+                        'end_time': availability.end_time.strftime('%I:%M %p') if availability else None,
+                    })
+                
+                context["schedule_summary"] = schedule_summary
 
                 # -------------------------
                 # Total Appointments
@@ -168,21 +200,17 @@ def home(request):
                 )
 
                 # -------------------------
-                # Total Patients
+                # Total Unique Patients
                 # -------------------------
                 self_patients = Appointment.objects.filter(
                     doctor=doctor_info
-                ).values_list("patient", flat=True)
+                ).values_list("patient", flat=True).distinct()
 
                 dependent_patients = DependentAppointment.objects.filter(
                     doctor=doctor_info
-                ).values_list("dependent_patient", flat=True)
+                ).values_list("dependent_patient", flat=True).distinct()
 
-                context["total_patients"] = (
-                    PatientInfo.objects.filter(user__in=self_patients).count()
-                    + DependentPatient.objects.filter(patient_id__in=dependent_patients).count()
-                )
-
+                context["total_patients"] = len(set(self_patients)) + len(set(dependent_patients))
 
                 # -------------------------
                 # Ratings
@@ -252,6 +280,132 @@ def home(request):
 
             context["medical_records_count"] = medical_records
 
+        # STAFF DASHBOARD CONTEXT
+        elif user.role == "staff":
+            today = timezone.localdate()
+            
+            # -------------------------
+            # Today's Appointments
+            # -------------------------
+            today_self = Appointment.objects.filter(
+                start_time__date=today
+            ).select_related("patient", "doctor")
+            
+            today_dependent = DependentAppointment.objects.filter(
+                start_time__date=today
+            ).select_related("dependent_patient", "doctor")
+            
+            # Add appointment_type attribute
+            for appt in today_self:
+                appt.appointment_type = "self"
+            
+            for appt in today_dependent:
+                appt.appointment_type = "dependent"
+            
+            today_appointments = sorted(
+                list(today_self) + list(today_dependent),
+                key=lambda x: x.start_time
+            )
+            
+            context["today_appointments"] = today_appointments
+            context["today_appointments_count"] = len(today_appointments)
+            
+            # -------------------------
+            # Pending Appointments
+            # -------------------------
+            pending_self = Appointment.objects.filter(
+                status="pending"
+            ).select_related("patient", "doctor")
+            
+            pending_dependent = DependentAppointment.objects.filter(
+                status="pending"
+            ).select_related("dependent_patient", "doctor")
+            
+            # Add appointment_type attribute
+            for appt in pending_self:
+                appt.appointment_type = "self"
+            
+            for appt in pending_dependent:
+                appt.appointment_type = "dependent"
+            
+            pending_list = sorted(
+                list(pending_self) + list(pending_dependent),
+                key=lambda x: x.start_time
+            )
+            
+            context["pending_appointments_list"] = pending_list
+            context["pending_appointments"] = len(pending_list)
+            
+            # -------------------------
+            # Total Appointments Statistics
+            # -------------------------
+            context["total_appointments"] = (
+                Appointment.objects.count() + 
+                DependentAppointment.objects.count()
+            )
+            
+            context["confirmed_appointments"] = (
+                Appointment.objects.filter(status="approved").count() +
+                DependentAppointment.objects.filter(status="approved").count()
+            )
+            
+            context["completed_appointments"] = (
+                Appointment.objects.filter(
+                    status="completed",
+                    start_time__month=today.month,
+                    start_time__year=today.year
+                ).count() +
+                DependentAppointment.objects.filter(
+                    status="completed",
+                    start_time__month=today.month,
+                    start_time__year=today.year
+                ).count()
+            )
+            
+            # -------------------------
+            # Total Patients (Self + Dependents)
+            # -------------------------
+            total_self_patients = User.objects.filter(role='patient').count()
+            total_dependents = DependentPatient.objects.count()
+            context["total_patients"] = total_self_patients + total_dependents
+            
+            # -------------------------
+            # Active Doctors
+            # -------------------------
+            context["active_doctors"] = DoctorInfo.objects.filter(is_approved=True).count()
+            
+            # -------------------------
+            # Recent Activity (Last 10 actions)
+            # -------------------------
+            context["recent_activities"] = ActivityLog.objects.select_related('user').order_by('-timestamp')[:10]
+            
+            # -------------------------
+            # Upcoming Appointments (Next 5)
+            # -------------------------
+            upcoming_self = Appointment.objects.filter(
+                start_time__gte=timezone.now(),
+                status__in=["pending", "approved"]
+            ).select_related("patient", "doctor").order_by("start_time")[:5]
+            
+            upcoming_dependent = DependentAppointment.objects.filter(
+                start_time__gte=timezone.now(),
+                status__in=["pending", "approved"]
+            ).select_related("dependent_patient", "doctor").order_by("start_time")[:5]
+            
+            # Add appointment_type
+            for appt in upcoming_self:
+                appt.appointment_type = "self"
+            
+            for appt in upcoming_dependent:
+                appt.appointment_type = "dependent"
+            
+            upcoming = sorted(
+                list(upcoming_self) + list(upcoming_dependent),
+                key=lambda x: x.start_time
+            )[:5]
+            
+            context["upcoming_appointments"] = upcoming
+            
     return render(request, "home.html", context)
 
 @login_required

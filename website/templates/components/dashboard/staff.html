@@ -6,8 +6,8 @@
     <div class="dashboard-header">
         <div class="header-content">
             <div class="welcome-section">
-                <h1>Doctor Dashboard</h1>
-                <p class="subtitle">Welcome back, Dr. {{ user.get_full_name }}</p>
+                <h1>Staff Dashboard</h1>
+                <p class="subtitle">Welcome back, {{ user.get_full_name }}</p>
             </div>
             <div class="user-info">
                 <span class="date-display">{% now "l, M d" %}</span>
@@ -36,7 +36,7 @@
             </div>
             <div class="stat-number">{{ total_patients|default:0 }}</div>
             <div class="stat-label">Total Patients</div>
-            <div class="stat-meta">{{ pending_appointments|default:0 }} pending appointments</div>
+            <div class="stat-meta">{{ pending_appointments|default:0 }} pending approvals</div>
         </div>
 
         <div class="stat-card completed">
@@ -53,12 +53,12 @@
         <div class="stat-card rating">
             <div class="stat-header">
                 <div class="stat-icon">
-                    <i class="bi bi-star-fill"></i>
+                    <i class="bi bi-person-badge"></i>
                 </div>
             </div>
-            <div class="stat-number">{{ average_rating|default:"N/A" }}</div>
-            <div class="stat-label">Average Rating</div>
-            <div class="stat-meta">{{ total_ratings|default:0 }} reviews</div>
+            <div class="stat-number">{{ active_doctors|default:0 }}</div>
+            <div class="stat-label">Active Doctors</div>
+            <div class="stat-meta">{{ confirmed_appointments|default:0 }} confirmed today</div>
         </div>
     </div>
 
@@ -73,7 +73,7 @@
                         <i class="bi bi-calendar-event"></i>
                         Today's Schedule
                     </h3>
-                    <a href="{% url 'doctor_calendar' %}" class="btn btn-primary">
+                    <a href="{% url 'staff_calendar' %}" class="btn btn-primary">
                         <i class="bi bi-calendar3"></i>
                         View Calendar
                     </a>
@@ -106,12 +106,10 @@
                                     <i class="bi bi-clock"></i>
                                     <span>{{ appointment.start_time|date:"h:i A" }} - {{ appointment.end_time|date:"h:i A" }}</span>
                                 </div>
-                                {% if appointment.appointment_type == "dependent" %}
-                                    <div class="appointment-time">
-                                        <i class="bi bi-info-circle"></i>
-                                        <span>Dependent Patient</span>
-                                    </div>
-                                {% endif %}
+                                <div class="appointment-time">
+                                    <i class="bi bi-person-badge"></i>
+                                    <span>Dr. {{ appointment.doctor.user.get_full_name }}</span>
+                                </div>
                             </div>
                         {% endfor %}
                     {% else %}
@@ -134,7 +132,45 @@
                 </div>
                 <div class="card-body" style="max-height: 400px; overflow-y: auto;">
                     {% if pending_appointments_list %}
-                        ...appointments...
+                        {% for appointment in pending_appointments_list %}
+                            <div class="pending-item">
+                                <div class="pending-info">
+                                    <div class="patient-name">
+                                        {% if appointment.appointment_type == "self" %}
+                                            {{ appointment.patient.get_full_name }}
+                                        {% else %}
+                                            {{ appointment.dependent_patient.full_name }}
+                                        {% endif %}
+                                        {% if appointment.appointment_type == "dependent" %}
+                                            <span class="badge" style="font-size: 0.75rem; background: #6366f1; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">Dependent</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="pending-time">
+                                        {{ appointment.start_time|date:"M d, Y • h:i A" }}
+                                    </div>
+                                    <div class="pending-time" style="color: #6b7280; font-size: 0.85rem;">
+                                        <i class="bi bi-person-badge"></i>
+                                        Dr. {{ appointment.doctor.user.get_full_name }}
+                                    </div>
+                                </div>
+                                <div class="pending-actions">
+                                    <button class="btn-mini btn-approve" 
+                                            data-id="{{ appointment.id }}" 
+                                            data-type="{{ appointment.appointment_type }}" 
+                                            title="Approve"
+                                            onclick="updateAppointmentStatus({{ appointment.id }}, '{{ appointment.appointment_type }}', 'approve')">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                    <button class="btn-mini btn-reject" 
+                                            data-id="{{ appointment.id }}" 
+                                            data-type="{{ appointment.appointment_type }}" 
+                                            title="Reject"
+                                            onclick="updateAppointmentStatus({{ appointment.id }}, '{{ appointment.appointment_type }}', 'reject')">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
                     {% else %}
                         <div class="empty-state">
                             <i class="bi bi-check-circle"></i>
@@ -147,83 +183,61 @@
 
         <!-- Right Column -->
         <div>
-            <!-- Schedule Overview -->
+            <!-- Upcoming Appointments -->
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">
-                        <i class="bi bi-clock"></i>
-                        Schedule Overview
+                        <i class="bi bi-calendar-week"></i>
+                        Upcoming Appointments
                     </h3>
                 </div>
-                <div class="card-body">
-                    {% if schedule_summary %}
-                        {% for day in schedule_summary %}
-                            {% if day.available %}
-                                <div class="schedule-item">
-                                    <div class="schedule-day">{{ day.day }}</div>
-                                    <div class="schedule-time">
-                                        <span class="available-indicator"></span>
-                                        {{ day.start_time }} - {{ day.end_time }}
+                <div class="card-body" style="max-height: 612px; overflow-y: auto;">
+                    {% if upcoming_appointments %}
+                        {% for appointment in upcoming_appointments %}
+                            <div class="appointment-item">
+                                <div class="appointment-header">
+                                    <div class="patient-name">
+                                        {% if appointment.appointment_type == "self" %}
+                                            {{ appointment.patient.get_full_name }}
+                                        {% else %}
+                                            {{ appointment.dependent_patient.full_name }}
+                                        {% endif %}
                                     </div>
+                                    <span class="appointment-badge badge-{{ appointment.status }}">
+                                        {% if appointment.status == 'pending' %}
+                                            Pending
+                                        {% elif appointment.status == 'approved' %}
+                                            Confirmed
+                                        {% elif appointment.status == 'completed' %}
+                                            Completed
+                                        {% else %}
+                                            {{ appointment.status|title }}
+                                        {% endif %}
+                                    </span>
                                 </div>
-                            {% endif %}
+                                <div class="appointment-time">
+                                    <i class="bi bi-calendar"></i>
+                                    <span>{{ appointment.start_time|date:"M d, Y" }}</span>
+                                </div>
+                                <div class="appointment-time">
+                                    <i class="bi bi-clock"></i>
+                                    <span>{{ appointment.start_time|date:"h:i A" }} - {{ appointment.end_time|date:"h:i A" }}</span>
+                                </div>
+                                <div class="appointment-time">
+                                    <i class="bi bi-person-badge"></i>
+                                    <span>Dr. {{ appointment.doctor.user.get_full_name }}</span>
+                                </div>
+                            </div>
                         {% endfor %}
-                        <div style="text-align: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-light);">
-                            <a href="{% url 'doctor_schedule' %}" class="btn btn-outline">
-                                <i class="bi bi-pencil"></i>
-                                Manage Schedule
-                            </a>
-                        </div>
                     {% else %}
                         <div class="empty-state">
                             <i class="bi bi-calendar-plus"></i>
-                            <p>No schedule set yet</p>
-                            <a href="{% url 'doctor_schedule' %}" class="btn btn-primary" style="margin-top: 1rem;">
-                                Set Your Schedule
-                            </a>
+                            <p>No upcoming appointments</p>
                         </div>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Recent Reviews -->
-            <div class="card" style="margin-top: 1.5rem;">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="bi bi-star"></i>
-                        Recent Reviews
-                    </h3>
-                </div>
-                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                    {% if recent_reviews %}
-                        {% for review in recent_reviews %}
-                            <div class="review-item">
-                                <div class="review-header">
-                                    <div class="review-stars">
-                                        {% for i in "12345"|make_list %}
-                                            {% if forloop.counter <= review.rating %}
-                                                <i class="bi bi-star-fill" style="color: #fbbf24;"></i>
-                                            {% else %}
-                                                <i class="bi bi-star" style="color: #d1d5db;"></i>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                    <div class="review-date">{{ review.created_at|date:"M d, Y" }}</div>
-                                </div>
-                                {% if review.review %}
-                                    <div class="review-text">{{ review.review|truncatewords:15 }}</div>
-                                {% endif %}
-                                <div class="review-patient">- {{ review.patient.user.get_full_name }}</div>
-                            </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="empty-state">
-                            <i class="bi bi-star"></i>
-                            <p>No reviews yet</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
         </div>
     </div>
 </div>
