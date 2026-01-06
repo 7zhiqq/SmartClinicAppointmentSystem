@@ -2,6 +2,7 @@ from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.account.adapter import DefaultAccountAdapter
 from accounts.models import PatientProfile, Phone, User
 from django.utils.text import slugify
+from django.core.exceptions import ValidationError
 import random
 
 
@@ -26,7 +27,7 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         
         # Check if a user with this email already exists
         try:
-            existing_user = User.objects.get(email=email)
+            existing_user = User.objects.get(email__iexact=email)
             # Connect the social account to the existing user
             sociallogin.connect(request, existing_user)
         except User.DoesNotExist:
@@ -52,6 +53,10 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
             user.first_name = extra_data['given_name']
         if 'family_name' in extra_data:
             user.last_name = extra_data['family_name']
+        
+        # ✅ Set email (already validated by Google)
+        if 'email' in extra_data:
+            user.email = extra_data['email'].lower()
         
         # Auto-generate username from email
         if not user.username:
@@ -106,7 +111,22 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         user = super().save_user(request, user, form, commit=False)
         user.role = 'patient'
         
+        # ✅ Ensure email is lowercase for consistency
+        if user.email:
+            user.email = user.email.lower()
+        
         if commit:
             user.save()
         
         return user
+    
+    def clean_email(self, email):
+        """
+        ✅ Validate email uniqueness (case-insensitive)
+        """
+        email = email.lower()
+        
+        if User.objects.filter(email__iexact=email).exists():
+            raise ValidationError("A user with this email already exists.")
+        
+        return email

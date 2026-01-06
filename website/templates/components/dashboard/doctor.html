@@ -124,25 +124,59 @@
             </div>
 
             <!-- Pending Appointments -->
-            <div class="card" style="margin-top: 1.5rem;">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="bi bi-clock-history"></i>
-                        Pending Approvals
-                        <span class="badge-count">{{ pending_appointments|default:0 }}</span>
-                    </h3>
-                </div>
-                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                    {% if pending_appointments_list %}
-                        ...appointments...
-                    {% else %}
-                        <div class="empty-state">
-                            <i class="bi bi-check-circle"></i>
-                            <p>No pending approvals</p>
+<div class="card" style="margin-top: 1.5rem;">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="bi bi-clock-history"></i>
+            Pending Approvals
+            <span class="badge-count">{{ pending_appointments|default:0 }}</span>
+        </h3>
+    </div>
+    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+        {% if pending_appointments_list %}
+            {% for appointment in pending_appointments_list %}
+                <div class="pending-item">
+                    <div class="pending-info">
+                        <div class="patient-name">
+                            {% if appointment.appointment_type == "self" %}
+                                {{ appointment.patient.get_full_name }}
+                            {% else %}
+                                {{ appointment.dependent_patient.full_name }}
+                            {% endif %}
+                            {% if appointment.appointment_type == "dependent" %}
+                                <span class="badge" style="font-size: 0.75rem; background: #6366f1; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">Dependent</span>
+                            {% endif %}
                         </div>
-                    {% endif %}
+                        <div class="pending-time">
+                            {{ appointment.start_time|date:"M d, Y • h:i A" }}
+                        </div>
+                    </div>
+                    <div class="pending-actions">
+                        <button class="btn-mini btn-approve" 
+                                data-id="{{ appointment.id }}" 
+                                data-type="{{ appointment.appointment_type }}" 
+                                title="Approve"
+                                onclick="updateAppointmentStatus({{ appointment.id }}, '{{ appointment.appointment_type }}', 'approve')">
+                            <i class="bi bi-check-lg"></i>
+                        </button>
+                        <button class="btn-mini btn-reject" 
+                                data-id="{{ appointment.id }}" 
+                                data-type="{{ appointment.appointment_type }}" 
+                                title="Reject"
+                                onclick="updateAppointmentStatus({{ appointment.id }}, '{{ appointment.appointment_type }}', 'reject')">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
                 </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <i class="bi bi-check-circle"></i>
+                <p>No pending approvals</p>
             </div>
+        {% endif %}
+    </div>
+</div>
         </div>
 
         <!-- Right Column -->

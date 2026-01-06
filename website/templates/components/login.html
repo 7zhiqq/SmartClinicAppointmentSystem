@@ -33,8 +33,12 @@
                         {% csrf_token %}
 
                         <div class="field">
-                            <label>Username</label>
-                            <input type="text" name="username" placeholder="Enter your username" required>
+                            <label>Username/Email</label>
+                            <input type="text" name="username" placeholder="Enter your username or email" required>
+                            <small class="form-text text-muted">
+                                <i class="bi bi-info-circle"></i> 
+                                You can login with either your username or email address
+                            </small>
                         </div>
 
                         <div class="field">

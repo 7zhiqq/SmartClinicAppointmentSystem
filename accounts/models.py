@@ -35,6 +35,20 @@ class User(AbstractUser):
         choices=ROLE_CHOICES,
         default='patient'
     )
+    
+    # ✅ ADD THIS: Enforce unique email
+    email = models.EmailField(unique=True, blank=False)
+
+    class Meta:
+        # Optional: Add this to improve query performance
+        indexes = [
+            models.Index(fields=['email']),
+            models.Index(fields=['username']),
+        ]
+
+    def __str__(self):
+        return self.username
+
 
 class Phone(models.Model):
     user = models.OneToOneField(
@@ -92,8 +106,6 @@ class Invite(models.Model):
         remaining = self.expires_at - datetime.now(self.created_at.tzinfo)
         return max(0, remaining.total_seconds() / 3600)
 
-
-# ? Allow google/facebook registration and login (OAuth2, all roles)
 
 # TODO: Add gender field to all profiles
 # TODO: Add profile picture field to all profiles (patient: optional, doctor/staff/manager: mandatory)
@@ -176,6 +188,3 @@ class ManagerProfile(models.Model):
 
     def __str__(self):
         return f"{self.manager_id} - {self.user.get_full_name()}"
-
-
-
