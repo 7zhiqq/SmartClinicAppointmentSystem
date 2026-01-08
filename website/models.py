@@ -564,3 +564,42 @@ class ActivityLog(models.Model):
     def __str__(self):
         user_name = self.user.get_full_name() if self.user else "System"
         return f"{self.timestamp:%Y-%m-%d %H:%M} | {user_name} {self.get_action_type_display()} {self.model_name} ({self.related_object_repr})"
+
+class SMSNotification(models.Model):
+    """Track SMS notifications"""
+    
+    NOTIFICATION_TYPES = [
+        ('booking_confirmation', 'Booking Confirmation'),
+        ('approval', 'Appointment Approved'),
+        ('rejection', 'Appointment Rejected'),
+        ('reschedule', 'Appointment Rescheduled'),
+        ('cancellation', 'Appointment Cancelled'),
+        ('reminder_2days', '2-Day Reminder'),
+        ('reminder_1day', '1-Day Reminder'),
+        ('reminder_today', 'Same-Day Reminder'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('sent', 'Sent'),
+        ('failed', 'Failed'),
+        ('disabled', 'Disabled'),
+    ]
+    
+    appointment = models.ForeignKey('Appointment', on_delete=models.CASCADE, null=True, blank=True, related_name='sms_notifications')
+    dependent_appointment = models.ForeignKey('DependentAppointment', on_delete=models.CASCADE, null=True, blank=True, related_name='sms_notifications')
+    notification_type = models.CharField(max_length=50, choices=NOTIFICATION_TYPES)
+    phone_number = models.CharField(max_length=20)
+    message = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    sent_at = models.DateTimeField(null=True, blank=True)
+    error_message = models.TextField(null=True, blank=True)
+    api_response = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='sms_notifications_created')
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.get_notification_type_display()} - {self.phone_number} ({self.status})"

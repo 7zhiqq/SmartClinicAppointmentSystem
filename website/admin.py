@@ -148,3 +148,12 @@ class DeletedRecordAdmin(admin.ModelAdmin):
     search_fields = ['object_repr', 'model_name', 'original_id']
     list_filter = ['deleted_at', 'model_name']
     readonly_fields = ['deleted_at', 'data_snapshot']
+
+from .models import SMSNotification
+
+@admin.register(SMSNotification)
+class SMSNotificationAdmin(admin.ModelAdmin):
+    list_display = ('phone_number', 'notification_type', 'status', 'sent_at', 'created_at')
+    list_filter = ('status', 'notification_type', 'created_at')
+    search_fields = ('phone_number', 'message')
+    readonly_fields = ('created_at', 'sent_at', 'api_response')
