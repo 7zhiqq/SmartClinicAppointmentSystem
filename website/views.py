@@ -22,12 +22,6 @@ from django.core.exceptions import ValidationError
 from website.services.appointment_recommender import get_appointment_recommendations
 from website.services.export_service import ReportExporter
 
-from website.services.sms_service import AppointmentSMS, VonageSMS
-from website.models import SMSNotification
-import logging
-
-logger = logging.getLogger('website')
-
 
 from accounts.models import Phone, User
 
@@ -1209,32 +1203,6 @@ def book_appointment(request):
                     related_object_repr=str(appointment)
                 )
                 
-                # ⭐ SEND SMS - BOOKING CONFIRMATION (SELF)
-                try:
-                    phone = Phone.objects.get(user=request.user).number
-                    success, response = AppointmentSMS.send_booking_confirmation(appointment, phone)
-                    
-                    # Log SMS
-                    SMSNotification.objects.create(
-                        appointment=appointment,
-                        notification_type='booking_confirmation',
-                        phone_number=phone,
-                        message=response.get('message', ''),
-                        status='sent' if success else 'failed',
-                        sent_at=timezone.now() if success else None,
-                        error_message=response.get('error') if not success else None,
-                        api_response=response,
-                        created_by=request.user
-                    )
-                    
-                    if success:
-                        logger.info(f"SMS sent to {phone} for appointment {appointment.id}")
-                except Phone.DoesNotExist:
-                    logger.warning(f"No phone for user {request.user.id}")
-                except Exception as e:
-                    logger.error(f"SMS error: {str(e)}")
-                # ⭐ END SMS
-                
             else:
                 dependent = get_object_or_404(
                     DependentPatient,
@@ -1257,33 +1225,8 @@ def book_appointment(request):
                     object_id=str(appointment.id),
                     related_object_repr=str(appointment)
                 )
-                
-                # ⭐ SEND SMS - BOOKING CONFIRMATION (DEPENDENT)
-                try:
-                    # Use dependent's phone or fallback to guardian
-                    phone = dependent.phone if dependent.phone else Phone.objects.get(user=request.user).number
-                    success, response = AppointmentSMS.send_booking_confirmation(appointment, phone)
-                    
-                    # Log SMS
-                    SMSNotification.objects.create(
-                        dependent_appointment=appointment,
-                        notification_type='booking_confirmation',
-                        phone_number=phone,
-                        message=response.get('message', ''),
-                        status='sent' if success else 'failed',
-                        sent_at=timezone.now() if success else None,
-                        error_message=response.get('error') if not success else None,
-                        api_response=response,
-                        created_by=request.user
-                    )
-                    
-                    if success:
-                        logger.info(f"SMS sent to {phone} for dependent appointment {appointment.id}")
-                except Exception as e:
-                    logger.error(f"SMS error for dependent: {str(e)}")
-                # ⭐ END SMS
 
-        messages.success(request, "Appointment requested successfully. You'll receive an SMS when confirmed.")
+        messages.success(request, "Appointment requested successfully. You'll be notified when confirmed.")
         return redirect("patient_calendar")
 
     return render(request, "calendar/book.html", {
@@ -1293,7 +1236,7 @@ def book_appointment(request):
         "dependents": dependents
     })
 
-    
+ 
 @login_required
 @doctor_approved_required
 def doctor_schedule(request):
@@ -1935,14 +1878,11 @@ def update_appointment_status(request, pk, action):
 
     # Update status
     old_status = appointment.status
-    notification_type = None
     
     if action == "approve":
         appointment.status = "approved"
-        notification_type = 'approval'
     elif action == "reject":
         appointment.status = "rejected"
-        notification_type = 'rejection'
     elif action == "complete":
         appointment.status = "completed"
         if appointment_type == "self":
@@ -1963,44 +1903,6 @@ def update_appointment_status(request, pk, action):
         related_object_repr=str(appointment),
         description=f"Status changed from {old_status} to {appointment.status}"
     )
-
-    # ⭐ SEND SMS - STATUS CHANGE NOTIFICATION
-    if notification_type:
-        try:
-            phone = AppointmentSMS._get_patient_phone(appointment)
-            if phone:
-                # Send appropriate SMS based on notification type
-                if notification_type == 'approval':
-                    success, response = AppointmentSMS.send_approval_notification(appointment, phone)
-                elif notification_type == 'rejection':
-                    success, response = AppointmentSMS.send_rejection_notification(appointment, phone)
-                else:
-                    success, response = False, {}
-                
-                # Log SMS
-                sms_data = {
-                    'notification_type': notification_type,
-                    'phone_number': phone,
-                    'message': response.get('message', ''),
-                    'status': 'sent' if success else 'failed',
-                    'sent_at': timezone.now() if success else None,
-                    'error_message': response.get('error') if not success else None,
-                    'api_response': response,
-                    'created_by': request.user
-                }
-                
-                if appointment_type == "dependent":
-                    sms_data['dependent_appointment'] = appointment
-                else:
-                    sms_data['appointment'] = appointment
-                
-                SMSNotification.objects.create(**sms_data)
-                
-                if success:
-                    logger.info(f"SMS sent to {phone} for {notification_type}")
-        except Exception as e:
-            logger.error(f"SMS error: {str(e)}")
-    # ⭐ END SMS
 
     return JsonResponse({
         "id": appointment.id,
@@ -2092,11 +1994,6 @@ def reschedule_appointment(request, pk):
                 return render(request, "calendar/partials/reschedule_appointment.html", {
                     "appointment": appointment
                 })
-
-        # ⭐ SAVE OLD TIMES FOR SMS
-        old_date = appointment.start_time.strftime('%B %d, %Y')
-        old_time = appointment.start_time.strftime('%I:%M %p')
-        # ⭐ END
         
         old_start, old_end = appointment.start_time, appointment.end_time
         appointment.start_time = new_start_dt
@@ -2114,33 +2011,7 @@ def reschedule_appointment(request, pk):
             description=f"Rescheduled from {old_start}–{old_end} to {new_start_dt}–{new_end_dt}"
         )
 
-        # ⭐ SEND SMS - RESCHEDULE NOTIFICATION
-        try:
-            phone = Phone.objects.get(user=appointment.patient).number
-            success, response = AppointmentSMS.send_reschedule_notification(
-                appointment, phone, old_date, old_time
-            )
-            
-            # Log SMS
-            SMSNotification.objects.create(
-                appointment=appointment,
-                notification_type='reschedule',
-                phone_number=phone,
-                message=response.get('message', ''),
-                status='sent' if success else 'failed',
-                sent_at=timezone.now() if success else None,
-                error_message=response.get('error') if not success else None,
-                api_response=response,
-                created_by=request.user
-            )
-            
-            if success:
-                logger.info(f"Reschedule SMS sent to {phone}")
-        except Exception as e:
-            logger.error(f"SMS error: {str(e)}")
-        # ⭐ END SMS
-
-        messages.success(request, "Appointment rescheduled successfully! Patient has been notified via SMS.")
+        messages.success(request, "Appointment rescheduled successfully!")
 
         if request.user.role == "staff":
             return redirect("appointments")
@@ -2192,37 +2063,6 @@ def cancel_appointment(request, pk):
             description=f"Cancelled appointment (was {old_status})"
         )
         
-        # ⭐ SEND SMS - CANCELLATION NOTIFICATION
-        try:
-            phone = AppointmentSMS._get_patient_phone(appointment)
-            if phone:
-                success, response = AppointmentSMS.send_cancellation_notification(appointment, phone)
-                
-                # Log SMS
-                sms_data = {
-                    'notification_type': 'cancellation',
-                    'phone_number': phone,
-                    'message': response.get('message', ''),
-                    'status': 'sent' if success else 'failed',
-                    'sent_at': timezone.now() if success else None,
-                    'error_message': response.get('error') if not success else None,
-                    'api_response': response,
-                    'created_by': request.user
-                }
-                
-                if is_dependent:
-                    sms_data['dependent_appointment'] = appointment
-                else:
-                    sms_data['appointment'] = appointment
-                
-                SMSNotification.objects.create(**sms_data)
-                
-                if success:
-                    logger.info(f"Cancellation SMS sent to {phone}")
-        except Exception as e:
-            logger.error(f"SMS error: {str(e)}")
-        # ⭐ END SMS
-        
         messages.success(request, "Your appointment has been cancelled successfully.")
         return redirect("patient_appointments")
     
@@ -2230,8 +2070,7 @@ def cancel_appointment(request, pk):
         "appointment": appointment,
         "is_dependent": is_dependent
     })
-
-  
+    
 @login_required
 def patient_appointments(request):
     if request.user.role != "patient":
