@@ -5,7 +5,9 @@
 {% block content %}
     <link rel="stylesheet" href="{% static 'css/login.css' %}">
     {% if user.is_authenticated %}
-        
+        <script>
+            window.location.href = "{% url 'home' %}";
+        </script>
     {% else %}
         <div class="layout-container">
             <div class="left-panel">
@@ -23,9 +25,11 @@
 
                     {% if messages %}
                         {% for message in messages %}
-                            <div class="alert {{ message.tags }}">
-                                {{ message }}
-                            </div>
+                            {% if 'login' in message.tags or 'error' in message.tags or message.level_tag == 'error' %}
+                                <div class="alert {{ message.tags }}">
+                                    {{ message }}
+                                </div>
+                            {% endif %}
                         {% endfor %}
                     {% endif %}
 
@@ -109,7 +113,6 @@
                 margin-top: 16px;
             }
 
-            /* Password Field Styles */
             .password-field-wrapper {
                 position: relative;
                 display: flex;

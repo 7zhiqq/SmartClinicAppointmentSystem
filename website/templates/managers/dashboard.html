@@ -8,7 +8,6 @@
     {% include 'components/sidebar/manager.html' %}
     
     <div class="main-content">
-        <!-- Header -->
         <div class="dashboard-header">
             <div>
                 <h2 class="heading-title">
@@ -29,8 +28,8 @@
                 </div>
                 <div class="metric-content">
                     <div class="metric-label">Total Patients</div>
-                    <div class="metric-value">{{ total_patients|add:total_dependents }}</div>
-                    <div class="metric-detail">{{ total_patients }} direct + {{ total_dependents }} dependents</div>
+                    <div class="metric-value">{{ total_patients }}</div>
+                    <div class="metric-detail">{{ total_self_patients }} self + {{ total_dependents }} dependents</div>
                 </div>
             </div>
 

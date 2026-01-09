@@ -21,6 +21,7 @@ from itertools import chain
 from django.core.exceptions import ValidationError
 from website.services.appointment_recommender import get_appointment_recommendations
 from website.services.export_service import ReportExporter
+from django.contrib.messages import get_messages
 
 
 from accounts.models import Phone, User
@@ -70,7 +71,6 @@ from .forms import (
 )
 
 def home(request):
-
     # LOGIN HANDLING
     if request.method == "POST":
         user = authenticate(
@@ -80,6 +80,11 @@ def home(request):
         )
         if user:
             login(request, user)
+            
+            # CLEAR any leftover messages after successful login
+            storage = get_messages(request)
+            storage.used = True
+            
             if user.role == "manager":
                 return redirect("manager_dashboard")
             return redirect("home")
@@ -412,6 +417,10 @@ def home(request):
 @login_required
 def logout_user(request):
     logout(request)
+    # Clear messages on logout
+    storage = get_messages(request)
+    storage.used = True
+    
     messages.success(request, "You have been logged out.")
     return redirect("home")
 
@@ -438,6 +447,7 @@ def account_settings(request):
                 user.save()
                 
                 messages.success(request, "Your account information has been updated successfully.")
+                # Stay on settings page
                 return redirect('account_settings')
         
         elif tab == 'security':
@@ -448,15 +458,11 @@ def account_settings(request):
                 current_password = form_security.cleaned_data['current_password']
                 new_password = form_security.cleaned_data['new_password1']
                 
-                # Verify current password
                 if not user.check_password(current_password):
                     form_security.add_error('current_password', 'Current password is incorrect.')
                 else:
-                    # Set new password
                     user.set_password(new_password)
                     user.save()
-                    
-                    # Keep the user logged in after password change
                     update_session_auth_hash(request, user)
                     
                     messages.success(request, "Your password has been changed successfully.")
@@ -681,7 +687,8 @@ def edit_my_patient_info(request):
             )
 
             messages.success(request, "Profile updated successfully.")
-            return redirect("medical_records")
+            # IMPORTANT: Redirect to stay on same page or go to specific page
+            return redirect("medical_records")  # or wherever appropriate
 
         except ValidationError as e:
             for message in e.messages:
@@ -3307,6 +3314,7 @@ def manager_dashboard(request):
         'total_staff': total_staff,
         'total_patients': total_patients, 
         'total_dependents': total_dependents,
+        'total_self_patients': total_self_patients,
         'total_appointments': total_appointments,
         'pending_appointments': pending_appointments,
         'completed_appointments': completed_appointments,
@@ -3503,16 +3511,16 @@ def generate_patients_report(start_date, end_date):
         date_joined__date__lte=end_date
     ).count()
 
-    # Total patient accounts (self profiles)
+    # FIXED: Total patient accounts (self profiles) - ALL TIME, not filtered by date
     total_self_patients = User.objects.filter(role='patient').count()
     
-    # Total dependents
+    # FIXED: Total dependents - ALL TIME, not filtered by date
     total_dependents = DependentPatient.objects.count()
     
     # FIXED: Total patients = self patients + dependents
     total_patients = total_self_patients + total_dependents
 
-    # ✅ SAFE age distribution keys
+    # Age distribution keys
     age_groups = {
         'age_0_18': 0,
         'age_19_35': 0,
@@ -3521,7 +3529,8 @@ def generate_patients_report(start_date, end_date):
         'age_65_plus': 0
     }
 
-    # Count ages from self patients
+    # Count ages from ALL self patients who have completed their profile
+    # Note: Only patients with PatientInfo can have age data
     patients = PatientInfo.objects.all()
     for patient in patients:
         age = patient.age or 0
@@ -3537,7 +3546,7 @@ def generate_patients_report(start_date, end_date):
         else:
             age_groups['age_65_plus'] += 1
     
-    # Count ages from dependents
+    # Count ages from ALL dependents (not filtered by date)
     dependents = DependentPatient.objects.all()
     for dependent in dependents:
         age = dependent.age or 0
@@ -3553,7 +3562,7 @@ def generate_patients_report(start_date, end_date):
         else:
             age_groups['age_65_plus'] += 1
 
-    # Gender distribution from both self patients and dependents
+    # Gender distribution from ALL patients (both self and dependents)
     gender_dist = {
         'male': PatientInfo.objects.filter(gender='M').count() +
                 DependentPatient.objects.filter(gender='M').count(),
@@ -3562,10 +3571,11 @@ def generate_patients_report(start_date, end_date):
     }
 
     return {
-        'new_patients': new_patients,  # New patient accounts only
-        'total_patients': total_patients,  # FIXED: Self + Dependents
-        'total_self_patients': total_self_patients,  # Just for reference
+        'new_patients': new_patients,  # New patient accounts in the date range
+        'total_patients': total_patients,  # FIXED: Total of all patients (self + dependents)
+        'total_self_patients': total_self_patients,  # Total patient user accounts
         'total_dependents': total_dependents,
+        'patients_with_profiles': PatientInfo.objects.count(),  # Patients who completed their profile
         'age_distribution': age_groups,
         'gender_distribution': gender_dist,
     }

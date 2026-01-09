@@ -5,9 +5,11 @@
     <!-- Header -->
     <div class="dashboard-header">
         <div class="header-content">
-            <div class="welcome-section">
-                <h1>Welcome back, {{ user.get_full_name }}!</h1>
-                <p class="subtitle">Your dashboard overview</p>
+            <div>
+                <h2 class="heading-title">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </h2>
+                <p class="subtitle">Welcome back, {{ user.get_full_name }}!</p>
             </div>
             <div class="user-info">
                 <span class="date-display">{% now "l, M d" %}</span>

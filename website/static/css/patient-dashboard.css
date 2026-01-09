@@ -11,17 +11,27 @@
     margin-bottom: var(--space-xl);
 }
 
-.welcome-section h1 {
-    font-size: 2rem;
+.heading-title {
+    font-size: var(--font-size-2xl);
     font-weight: var(--font-weight-bold);
     color: var(--text-main);
-    margin-bottom: var(--space-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin: 0 0 var(--space-sm) 0;
     letter-spacing: -0.5px;
 }
 
+.heading-title i {
+    color: var(--primary);
+    font-size: 1.75rem;
+}
+
 .subtitle {
+    font-size: var(--font-size-md);
     color: var(--text-muted);
-    font-size: 0.95rem;
+    margin: 0;
+    font-weight: var(--font-weight-normal);
 }
 
 .user-info {
