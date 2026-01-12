@@ -10,3 +10,5 @@ mysqlclient
 jwt
 PyJWT
 requests
+mysql-connector-python
+mysql-connector

@@ -1,6 +1,3 @@
-"""
-Service for analyzing patient context and recommending optimal appointment times
-"""
 from datetime import datetime, timedelta, time
 from django.utils import timezone
 from django.db.models import Count, Avg, Q
@@ -20,8 +17,6 @@ from website.models import (
 
 
 class AppointmentRecommender:
-    """Analyzes patient data and recommends optimal appointment times"""
-    
     def __init__(self, patient, doctor, patient_type='self'):
         self.patient = patient
         self.doctor = doctor
@@ -30,14 +25,6 @@ class AppointmentRecommender:
         self.now = timezone.now()
     
     def get_recommendations(self):
-        """
-        Generate comprehensive appointment recommendations
-        Returns dict with:
-        - recommended_times: list of best time slots
-        - urgency_score: 0-100 indicating appointment urgency
-        - reasoning: explanations for recommendations
-        - avoid_times: times to avoid if possible
-        """
         recommendations = {
             'recommended_times': [],
             'urgency_score': 0,
@@ -84,7 +71,6 @@ class AppointmentRecommender:
         return recommendations
     
     def _calculate_urgency(self):
-        """Calculate urgency score (0-100) based on patient history"""
         score = 0
         
         # Check last visit date
@@ -165,6 +151,8 @@ class AppointmentRecommender:
                 status__in=['completed', 'approved'],
                 start_time__lt=self.now
             )
+        
+        
         
         preferred['frequency'] = past_appointments.count()
         

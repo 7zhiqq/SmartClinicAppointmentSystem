@@ -1047,7 +1047,7 @@ def manager_approve_doctor(request, doctor_id):
 
         # Send email notification
         subject = "Your Doctor Profile Has Been Approved"
-        message = f"Hello {doctor.user.get_full_name()},\n\nYour doctor profile has been approved. You can now access all doctor features on the platform.\n\nBest regards,\nThe Team"
+        message = f"Hello {doctor.user.get_full_name()},\n\nYour doctor profile has been approved. You can now access all doctor features on the platform.\n\nBest regards,\nWestPoint Team"
         send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [doctor.user.email])
 
         messages.success(request, f"{doctor.user.get_full_name()} has been approved.")
@@ -1082,7 +1082,7 @@ def manager_reject_doctor(request, doctor_id):
 
         # Send email
         subject = "Your Doctor Profile Has Been Rejected"
-        message = f"Hello {doctor.user.get_full_name()},\n\nWe regret to inform you that your doctor profile has been rejected. Please review your submission and try again.\n\nBest regards,\nThe Team"
+        message = f"Hello {doctor.user.get_full_name()},\n\nWe regret to inform you that your doctor profile has been rejected. Please review your submission and try again.\n\nBest regards,\nWestPoint Team"
         send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [doctor.user.email])
 
         messages.success(request, f"{doctor.user.get_full_name()} has been rejected.")

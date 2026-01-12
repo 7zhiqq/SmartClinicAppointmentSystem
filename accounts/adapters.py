@@ -1,9 +1,9 @@
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.account.adapter import DefaultAccountAdapter
-from accounts.models import PatientProfile, Phone, User
+from accounts.models import PatientProfile, User
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
-import random
+from django.urls import reverse
 
 
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
@@ -54,7 +54,7 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         if 'family_name' in extra_data:
             user.last_name = extra_data['family_name']
         
-        # ✅ Set email (already validated by Google)
+        # Set email (already validated by Google)
         if 'email' in extra_data:
             user.email = extra_data['email'].lower()
         
@@ -87,20 +87,33 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         user.role = 'patient'
         user.save()
         
-        # Create PatientProfile
-        try:
-            PatientProfile.objects.create(user=user)
-        except Exception as e:
-            print(f"Error creating PatientProfile: {e}")
+        # Create PatientProfile if it doesn't exist
+        PatientProfile.objects.get_or_create(user=user)
         
         return user
+
+    def get_login_redirect_url(self, request):
+        """
+        Role-based redirect after social login
+        """
+        user = request.user
+        
+        if user.role == 'manager':
+            return '/manager/dashboard/'
+        elif user.role == 'doctor':
+            return '/doctor/dashboard/'
+        elif user.role == 'receptionist':
+            return '/receptionist/dashboard/'
+        elif user.role == 'patient':
+            return '/'
+        else:
+            return '/'
 
 
 class CustomAccountAdapter(DefaultAccountAdapter):
     def is_open_for_signup(self, request):
         """
-        Only allow patients to sign up directly.
-        Other roles require invitation.
+        Allow patients to sign up directly.
         """
         return True
     
@@ -111,22 +124,45 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         user = super().save_user(request, user, form, commit=False)
         user.role = 'patient'
         
-        # ✅ Ensure email is lowercase for consistency
+        # Ensure email is lowercase for consistency
         if user.email:
             user.email = user.email.lower()
         
         if commit:
             user.save()
+            # Create PatientProfile after user is saved
+            PatientProfile.objects.get_or_create(user=user)
         
         return user
     
     def clean_email(self, email):
         """
-        ✅ Validate email uniqueness (case-insensitive)
+        Validate email uniqueness (case-insensitive)
         """
-        email = email.lower()
+        email = super().clean_email(email)
+        email_lower = email.lower()
         
-        if User.objects.filter(email__iexact=email).exists():
-            raise ValidationError("A user with this email already exists.")
+        # Check if email already exists (case-insensitive)
+        if User.objects.filter(email__iexact=email_lower).exists():
+            raise ValidationError(
+                "A user is already registered with this email address."
+            )
         
-        return email
+        return email_lower
+    
+    def get_login_redirect_url(self, request):
+        """
+        Role-based redirect after regular login
+        """
+        user = request.user
+        
+        if user.role == 'manager':
+            return '/manager/dashboard/'
+        elif user.role == 'doctor':
+            return '/doctor/dashboard/'
+        elif user.role == 'receptionist':
+            return '/receptionist/dashboard/'
+        elif user.role == 'patient':
+            return '/'
+        else:
+            return '/'
