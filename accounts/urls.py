@@ -1,7 +1,7 @@
-
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
+from .views import CustomPasswordResetView
 
 urlpatterns = [
     # Existing invite URLs
@@ -9,15 +9,12 @@ urlpatterns = [
     path("register/invite/<uuid:token>/", views.register_invite, name="register_invite"),
     path('register/patient/', views.register_patient, name='register_patient'),
     
-    # Password Reset URLs - ADD THESE
-    path('password-reset/', 
-         auth_views.PasswordResetView.as_view(
-             template_name='accounts/password_reset.html',
-             email_template_name='accounts/password_reset_email.html',
-             subject_template_name='accounts/password_reset_subject.txt',
-             success_url='/accounts/password-reset/done/'
-         ), 
-         name='password_reset'),
+    # UPDATED: Use custom view with debugging
+    path(
+        "password-reset/",
+        CustomPasswordResetView.as_view(),
+        name="password_reset"
+    ),
     
     path('password-reset/done/', 
          auth_views.PasswordResetDoneView.as_view(
@@ -38,3 +35,4 @@ urlpatterns = [
          ), 
          name='password_reset_complete'),
 ]
+

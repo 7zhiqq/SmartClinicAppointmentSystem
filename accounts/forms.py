@@ -2,6 +2,8 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from .models import User, Phone
 from .validators import validate_ph_phone_number, normalize_ph_phone_number
+from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth import get_user_model
 
 
 class RegisterForm(UserCreationForm):
@@ -86,3 +88,15 @@ class RegisterForm(UserCreationForm):
             )
 
         return user
+    
+User = get_user_model()
+
+class CustomPasswordResetForm(PasswordResetForm):
+    def get_users(self, email):
+        """
+        Correct user lookup for custom user model
+        """
+        return User.objects.filter(
+            email__iexact=email,
+            is_active=True
+        )
