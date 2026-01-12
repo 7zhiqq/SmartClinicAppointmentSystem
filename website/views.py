@@ -1124,10 +1124,14 @@ def view_doctors(request):
         messages.error(request, "Access denied.")
         return redirect("home")
 
+    # ✅ CLEAR any lingering messages before loading the page
+    storage = get_messages(request)
+    storage.used = True
+
     # Fetch only approved AND ACTIVE doctors
     approved_doctors = DoctorInfo.objects.filter(
         is_approved=True,
-        user__is_active=True  # NEW: Only show active doctors
+        user__is_active=True
     ).select_related("user").annotate(
         average_rating=Avg('ratings__rating'),
         rating_count=Count('ratings')
@@ -1142,18 +1146,44 @@ def view_doctors(request):
     })
 
 
+# ==================== ALTERNATIVE SOLUTION ====================
+# If you want to only clear SUCCESS messages (keep errors):
 
-"""
-Key changes to hide deactivated doctors and label them properly:
+@login_required
+def view_doctors(request):
+    # Only allow staff or patients
+    if request.user.role not in ["staff", "patient"]:
+        messages.error(request, "Access denied.")
+        return redirect("home")
 
-1. Update view_doctors() - Filter out deactivated doctors
-2. Update patient_appointment_calendar() - Only show active doctors
-3. Update manager reports - Label deactivated status
-4. Update manager dashboard - Show deactivated count
-"""
+    # ✅ CLEAR only success messages (keep error/warning messages)
+    storage = get_messages(request)
+    messages_to_keep = []
+    
+    for message in storage:
+        if message.level_tag != 'success':
+            messages_to_keep.append(message)
+    
+    # Re-add non-success messages
+    for msg in messages_to_keep:
+        messages.add_message(request, msg.level, msg.message, msg.extra_tags)
 
-# ===== CHANGE 1: Update view_doctors() =====
-# In views.py, find the view_doctors function and update it:
+    # Fetch only approved AND ACTIVE doctors
+    approved_doctors = DoctorInfo.objects.filter(
+        is_approved=True,
+        user__is_active=True
+    ).select_related("user").annotate(
+        average_rating=Avg('ratings__rating'),
+        rating_count=Count('ratings')
+    ).order_by("user__last_name")
+
+    # Pass a stars list to template
+    stars = [1, 2, 3, 4, 5]
+
+    return render(request, "view_doctors.html", {
+        "doctors": approved_doctors,
+        "stars": stars
+    })
 
 @login_required
 def view_doctors(request):
@@ -1165,7 +1195,7 @@ def view_doctors(request):
     # Fetch only approved AND ACTIVE doctors
     approved_doctors = DoctorInfo.objects.filter(
         is_approved=True,
-        user__is_active=True  # ✅ NEW: Only show active doctors
+        user__is_active=True  # NEW: Only show active doctors
     ).select_related("user").annotate(
         average_rating=Avg('ratings__rating'),
         rating_count=Count('ratings')

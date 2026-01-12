@@ -20,9 +20,79 @@ a {
     z-index: 1000;
     border-right: 1px solid var(--border-light);
     box-shadow: var(--shadow-md);
-    transition: width var(--transition-normal), padding var(--transition-normal);
+    transition: transform var(--transition-normal), width var(--transition-normal), padding var(--transition-normal);
     overflow-y: auto;
     overflow-x: hidden;
+}
+
+/* ==================== HAMBURGER BUTTON ==================== */
+.hamburger-btn {
+    display: none;
+    position: fixed;
+    top: var(--space-lg);
+    left: var(--space-lg);
+    z-index: 1001;
+    width: 48px;
+    height: 48px;
+    background: var(--primary);
+    border: none;
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: var(--shadow-lg);
+    transition: all var(--transition-fast);
+}
+
+.hamburger-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
+}
+
+.hamburger-btn:active {
+    transform: scale(0.95);
+}
+
+.hamburger-btn span {
+    width: 24px;
+    height: 3px;
+    background: var(--white);
+    border-radius: var(--radius-pill);
+    transition: all var(--transition-fast);
+}
+
+.hamburger-btn.active span:nth-child(1) {
+    transform: translateY(9px) rotate(45deg);
+}
+
+.hamburger-btn.active span:nth-child(2) {
+    opacity: 0;
+    transform: translateX(-20px);
+}
+
+.hamburger-btn.active span:nth-child(3) {
+    transform: translateY(-9px) rotate(-45deg);
+}
+
+/* ==================== OVERLAY ==================== */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity var(--transition-normal);
+    backdrop-filter: blur(4px);
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
 }
 
 /* ==================== LOGO SECTION ==================== */
@@ -67,7 +137,6 @@ a {
     overflow: hidden;
 }
 
-/* Menu item hover effect */
 .menu-item:hover {
     background: var(--bg-muted);
     color: var(--primary);
@@ -75,7 +144,6 @@ a {
     border-color: var(--primary-lighter);
 }
 
-/* Active menu item */
 .menu-item.active {
     background: var(--primary);
     color: var(--white);
@@ -95,7 +163,6 @@ a {
     border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
 }
 
-/* Menu item icon */
 .menu-item i {
     font-size: var(--font-size-lg);
     min-width: 24px;
@@ -104,7 +171,6 @@ a {
     justify-content: center;
 }
 
-/* Menu item text */
 .menu-item .text {
     display: flex;
     align-items: center;
@@ -115,7 +181,7 @@ a {
     text-overflow: ellipsis;
 }
 
-/* ==================== COLLAPSED STATE ==================== */
+/* ==================== COLLAPSED STATE (DESKTOP) ==================== */
 .sidebar.collapsed {
     width: 80px;
     padding: var(--space-2xl) 0;
@@ -154,6 +220,8 @@ a {
 }
 
 /* ==================== RESPONSIVE DESIGN ==================== */
+
+/* Large Tablets and Small Laptops */
 @media (max-width: 1024px) {
     .sidebar {
         width: 240px;
@@ -166,14 +234,39 @@ a {
     }
 }
 
+/* Tablets */
 @media (max-width: 768px) {
+    .hamburger-btn {
+        display: flex;
+    }
+
     .sidebar {
-        width: 60px;
-        padding: var(--space-lg) var(--space-sm);
+        transform: translateX(-100%);
+        width: 280px;
+        padding: var(--space-2xl) var(--space-lg);
+        box-shadow: var(--shadow-2xl);
+    }
+
+    .sidebar.active {
+        transform: translateX(0);
+    }
+
+    .sidebar-overlay {
+        display: block;
+    }
+
+    .main-content {
+        margin-left: 0;
+        padding: var(--space-xl);
+        padding-top: calc(var(--space-xl) + 60px);
+    }
+
+    .main-content.shrink {
+        margin-left: 0;
     }
 
     .sidebar .logo {
-        display: none;
+        display: block;
     }
 
     .sidebar-content {
@@ -181,75 +274,79 @@ a {
     }
 
     .menu-item {
-        padding: var(--space-md) var(--space-sm);
-        justify-content: center;
-        gap: 0;
-        border-radius: var(--radius-md);
-    }
-
-    .menu-item .text {
-        display: none;
-    }
-
-    .menu-item:hover {
-        transform: none;
-    }
-
-    .main-content {
-        margin-left: 60px;
-        padding: var(--space-lg);
-    }
-
-    .main-content.shrink {
-        margin-left: 60px;
-    }
-}
-
-@media (max-width: 576px) {
-    .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-        flex-direction: row;
-        align-items: center;
-        padding: var(--space-lg);
-        border-right: none;
-        border-bottom: 1px solid var(--border-light);
-    }
-
-    .sidebar .logo {
-        margin-bottom: 0;
-        min-width: auto;
-    }
-
-    .sidebar-content {
-        flex-direction: row;
-        width: 100%;
-        overflow-x: auto;
-        gap: var(--space-md);
-    }
-
-    .menu-item {
-        margin-bottom: 0;
         padding: var(--space-md) var(--space-lg);
-        white-space: nowrap;
-        flex-shrink: 0;
     }
 
     .menu-item .text {
         display: flex;
     }
+}
 
-    .main-content {
-        margin-left: 0;
-        padding: var(--space-lg);
+/* Mobile Phones */
+@media (max-width: 576px) {
+    .hamburger-btn {
+        width: 44px;
+        height: 44px;
+        top: var(--space-md);
+        left: var(--space-md);
+        gap: 5px;
     }
 
-    .main-content.shrink {
-        margin-left: 0;
+    .hamburger-btn span {
+        width: 20px;
+        height: 2.5px;
+    }
+
+    .sidebar {
+        width: 260px;
+        padding: var(--space-xl) var(--space-md);
+    }
+
+    .sidebar .logo {
+        width: 180px;
+        margin-bottom: var(--space-md);
+    }
+
+    .main-content {
+        padding: var(--space-lg);
+        padding-top: calc(var(--space-lg) + 56px);
+    }
+
+    .menu-item {
+        padding: var(--space-md);
+        font-size: var(--font-size-xs);
+    }
+
+    .menu-item i {
+        font-size: var(--font-size-md);
+        min-width: 20px;
     }
 }
 
+/* Very Small Phones */
+@media (max-width: 360px) {
+    .sidebar {
+        width: 240px;
+        padding: var(--space-lg) var(--space-sm);
+    }
+
+    .hamburger-btn {
+        width: 40px;
+        height: 40px;
+        gap: 4px;
+    }
+
+    .hamburger-btn span {
+        width: 18px;
+        height: 2px;
+    }
+
+    .menu-item {
+        padding: var(--space-sm) var(--space-md);
+    }
+}
+
+/* ==================== ANIMATIONS ==================== */
 .menu-item {
     animation: slideIn 0.3s var(--ease-out) forwards;
 }
@@ -259,6 +356,17 @@ a {
 .menu-item:nth-child(3) { animation-delay: 0.15s; }
 .menu-item:nth-child(4) { animation-delay: 0.2s; }
 .menu-item:nth-child(5) { animation-delay: 0.25s; }
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
 
 /* ==================== LINK STYLING ==================== */
 .link a {
