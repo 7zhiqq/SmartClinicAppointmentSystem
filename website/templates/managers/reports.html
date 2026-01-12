@@ -137,6 +137,11 @@
                             <div class="summary-label">Total Doctors</div>
                             <div class="summary-value">{{ report_data.total_doctors }}</div>
                         </div>
+                        <!-- NEW: Add Deactivated Doctors Card -->
+                        <div class="summary-card danger">
+                            <div class="summary-label">Deactivated Doctors</div>
+                            <div class="summary-value">{{ report_data.deactivated_doctors }}</div>
+                        </div>
                     </div>
 
                     <div class="report-table-wrapper">
@@ -149,6 +154,7 @@
                                     <th>Completed</th>
                                     <th>Completion Rate</th>
                                     <th>Rating</th>
+                                    <th>Status</th> <!-- NEW: Status column -->
                                 </tr>
                             </thead>
                             <tbody>
@@ -171,15 +177,30 @@
                                             <i class="bi bi-star-fill"></i> {{ doctor.rating }}
                                         </span>
                                     </td>
+                                    <!-- NEW: Status badge -->
+                                    <td>
+                                        <span class="badge bg-success">{{ doctor.status }}</span>
+                                    </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="6" class="text-center">No data available</td>
+                                    <td colspan="7" class="text-center">No data available</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- NEW: Note about deactivated doctors -->
+                    {% if report_data.deactivated_doctors > 0 %}
+                    <div style="margin-top: 20px; padding: 15px; background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; border-radius: 8px;">
+                        <p style="margin: 0; color: #ef4444;">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Note:</strong> This report only includes active doctors. 
+                            {{ report_data.deactivated_doctors }} deactivated doctor(s) are excluded from performance metrics.
+                        </p>
+                    </div>
+                    {% endif %}
                 </div>
 
             {% elif report_type == 'patients' %}

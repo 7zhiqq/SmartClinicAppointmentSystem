@@ -51,9 +51,14 @@
                 <div class="metric-content">
                     <div class="metric-label">Active Doctors</div>
                     <div class="metric-value">{{ active_doctors }}/{{ total_doctors }}</div>
-                    <div class="metric-detail">{{ pending_doctors }} pending approval</div>
+                    <div class="metric-detail">
+                        {{ pending_doctors }} pending, 
+                        <span style="color: #ef4444;">{{ deactivated_doctors }} deactivated</span>
+                    </div>
                 </div>
             </div>
+
+            
 
             <div class="metric-card info">
                 <div class="metric-icon">

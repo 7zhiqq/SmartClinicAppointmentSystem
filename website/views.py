@@ -1124,9 +1124,12 @@ def view_doctors(request):
         messages.error(request, "Access denied.")
         return redirect("home")
 
-    # Fetch only approved doctors and annotate with ratings
-    approved_doctors = DoctorInfo.objects.filter(is_approved=True).select_related("user").annotate(
-        average_rating=Avg('ratings__rating'),  # <--- use 'ratings' instead of 'rating'
+    # Fetch only approved AND ACTIVE doctors
+    approved_doctors = DoctorInfo.objects.filter(
+        is_approved=True,
+        user__is_active=True  # NEW: Only show active doctors
+    ).select_related("user").annotate(
+        average_rating=Avg('ratings__rating'),
         rating_count=Count('ratings')
     ).order_by("user__last_name")
 
@@ -1139,17 +1142,62 @@ def view_doctors(request):
     })
 
 
+
+"""
+Key changes to hide deactivated doctors and label them properly:
+
+1. Update view_doctors() - Filter out deactivated doctors
+2. Update patient_appointment_calendar() - Only show active doctors
+3. Update manager reports - Label deactivated status
+4. Update manager dashboard - Show deactivated count
+"""
+
+# ===== CHANGE 1: Update view_doctors() =====
+# In views.py, find the view_doctors function and update it:
+
+@login_required
+def view_doctors(request):
+    # Only allow staff or patients
+    if request.user.role not in ["staff", "patient"]:
+        messages.error(request, "Access denied.")
+        return redirect("home")
+
+    # Fetch only approved AND ACTIVE doctors
+    approved_doctors = DoctorInfo.objects.filter(
+        is_approved=True,
+        user__is_active=True  # ✅ NEW: Only show active doctors
+    ).select_related("user").annotate(
+        average_rating=Avg('ratings__rating'),
+        rating_count=Count('ratings')
+    ).order_by("user__last_name")
+
+    # Pass a stars list to template
+    stars = [1, 2, 3, 4, 5]
+
+    return render(request, "view_doctors.html", {
+        "doctors": approved_doctors,
+        "stars": stars
+    })
+
+
+# ===== CHANGE 2: Update patient_appointment_calendar() =====
+# In views.py, find patient_appointment_calendar and update it:
+
 @login_required
 def patient_appointment_calendar(request):
     if request.user.role != "patient":
         return redirect("home")
 
-    doctors = DoctorInfo.objects.filter(is_approved=True).select_related("user")
+    # Only show approved AND ACTIVE doctors
+    doctors = DoctorInfo.objects.filter(
+        is_approved=True,
+        user__is_active=True 
+    ).select_related("user")
 
     return render(request, "calendar/patient_calendar.html", {
         "doctors": doctors
     })
-
+    
 @login_required
 def appointment_details(request, pk):
     # Only patient can view their own appointment
@@ -2831,6 +2879,8 @@ def manager_users_list(request):
             users = users.filter(role='doctor', doctor_info__is_approved=True)
         elif status_filter == 'rejected':
             users = users.filter(role='doctor', doctor_info__is_rejected=True)
+        elif status_filter == 'deactivated':  # NEW: Filter for deactivated users
+            users = users.filter(is_active=False)
     
     # Get counts for statistics
     total_doctors = User.objects.filter(role='doctor').count()
@@ -2852,7 +2902,10 @@ def manager_users_list(request):
             'additional_info': {}
         }
         
-        if user.role == 'doctor':
+        # UPDATED: Check deactivated status FIRST
+        if not user.is_active:
+            user_data['status'] = 'deactivated'
+        elif user.role == 'doctor':
             user_data['profile'] = getattr(user, 'doctor_info', None)
             if user_data['profile']:
                 if user_data['profile'].is_approved:
@@ -3145,8 +3198,9 @@ def manager_dashboard(request):
     # === OVERVIEW METRICS ===
     # Users
     total_doctors = User.objects.filter(role='doctor').count()
-    active_doctors = DoctorInfo.objects.filter(is_approved=True).count()
+    active_doctors = DoctorInfo.objects.filter(is_approved=True, user__is_active=True).count()  
     pending_doctors = DoctorInfo.objects.filter(is_approved=False, is_rejected=False).count()
+    deactivated_doctors = User.objects.filter(role='doctor', is_active=False).count() 
     total_staff = User.objects.filter(role='staff').count()
     
     # Patient counts
@@ -3311,6 +3365,7 @@ def manager_dashboard(request):
         'total_doctors': total_doctors,
         'active_doctors': active_doctors,
         'pending_doctors': pending_doctors,
+        'deactivated_doctors': deactivated_doctors, # NEW
         'total_staff': total_staff,
         'total_patients': total_patients, 
         'total_dependents': total_dependents,
@@ -3454,7 +3509,11 @@ def generate_appointments_report(start_date, end_date):
 
 def generate_doctors_report(start_date, end_date):
     """Generate doctors performance report"""
-    doctors = DoctorInfo.objects.filter(is_approved=True).select_related('user', 'specialization')
+    # UPDATED: Only include active doctors in report
+    doctors = DoctorInfo.objects.filter(
+        is_approved=True,
+        user__is_active=True  # Only active doctors
+    ).select_related('user', 'specialization')
     
     doctor_stats = []
     for doctor in doctors:
@@ -3490,16 +3549,20 @@ def generate_doctors_report(start_date, end_date):
             'appointments': appointments,
             'completed': completed,
             'rating': round(avg_rating, 1),
-            'completion_rate': round((completed / appointments * 100) if appointments > 0 else 0, 1)
+            'completion_rate': round((completed / appointments * 100) if appointments > 0 else 0, 1),
+            'status': 'Active'  # NEW: Add status label
         })
     
     doctor_stats.sort(key=lambda x: x['appointments'], reverse=True)
     
+    # NEW: Add deactivated doctors count
+    deactivated_count = User.objects.filter(role='doctor', is_active=False).count()
+    
     return {
         'total_doctors': len(doctor_stats),
         'doctor_stats': doctor_stats,
+        'deactivated_doctors': deactivated_count,  # NEW
     }
-
 
 def generate_patients_report(start_date, end_date):
     """Generate patients statistics report"""

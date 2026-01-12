@@ -3,17 +3,20 @@
 
 {% block content %}
     <link rel="stylesheet" href="{% static 'css/users.css' %}">
+    <link rel="stylesheet" href="{% static 'css/user-details.css' %}">
     
     {% if user.is_authenticated and user.role == "manager" %}
         {% include 'components/sidebar/manager.html' %}
         
         <div class="main-content">
+            <!-- Header -->
             <div class="users-header">
                 <div>
-                    <h2 class="users-title">
+                    <h2 class="heading-title">
+                        <i class="bi bi-person-circle"></i>
                         User Details
                     </h2>
-                    <p class="users-subtitle">
+                    <p class="subtitle">
                         View detailed information about {{ viewed_user.get_full_name|default:viewed_user.username }}
                     </p>
                 </div>
@@ -25,7 +28,7 @@
             </div>
 
             <!-- User Header Card -->
-            <div class="card user-detail-header">
+            <div class="user-detail-header-card">
                 <div class="user-header-content">
                     <div class="user-detail-avatar">
                         {% if viewed_user.role == 'doctor' and profile and profile.profile_picture %}
@@ -39,321 +42,230 @@
                     
                     <div class="user-detail-info">
                         <h3>{{ viewed_user.get_full_name|default:viewed_user.username }}</h3>
-                        <p class="user-detail-meta">
-                            <span class="badge bg-primary text-uppercase">{{ viewed_user.role }}</span>
+                        <div class="user-detail-meta">
+                            <span class="badge-users bg-primary text-uppercas">{{ viewed_user.role }}</span>
                             {% if not viewed_user.is_active %}
-                                <span class="badge bg-danger ms-2">Deactivated</span>
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-person-x"></i> Deactivated
+                                </span>
                             {% endif %}
-                        </p>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Account Information -->
-            <div class="card">
-                <h4>
-                    <i class="bi bi-person-circle"></i>
-                    Account Information
-                </h4>
-                <div class="card-content">
-                    <table class="table table-borderless">
-                        <tr>
-                            <th width="30%">Username:</th>
-                            <td>{{ viewed_user.username }}</td>
-                        </tr>
-                        <tr>
-                            <th>Email:</th>
-                            <td>{{ viewed_user.email }}</td>
-                        </tr>
-                        <tr>
-                            <th>Full Name:</th>
-                            <td>{{ viewed_user.get_full_name|default:"Not provided" }}</td>
-                        </tr>
-                        <tr>
-                            <th>Date Joined:</th>
-                            <td>{{ viewed_user.date_joined|date:"F d, Y" }}</td>
-                        </tr>
-                        <tr>
-                            <th>Status:</th>
-                            <td>
+            <!-- Main Content Grid -->
+            <div class="details-grid">
+                <!-- Account Information -->
+                <div class="detail-card">
+                    <div class="detail-card-header">
+                        <h4>
+                            <i class="bi bi-person-badge"></i>
+                            Account Information
+                        </h4>
+                    </div>
+                    <div class="detail-card-content">
+                        <div class="info-item">
+                            <span class="info-label">Username</span>
+                            <span class="info-value">{{ viewed_user.username }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Email</span>
+                            <span class="info-value">{{ viewed_user.email }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Full Name</span>
+                            <span class="info-value">{{ viewed_user.get_full_name|default:"Not provided" }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Date Joined</span>
+                            <span class="info-value">{{ viewed_user.date_joined|date:"F d, Y" }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Account Status</span>
+                            <span class="info-value">
                                 {% if viewed_user.is_active %}
-                                    <span class="badge bg-success">Active</span>
+                                    <span class="status approved">
+                                        <i class="bi bi-check-circle-fill"></i> Active
+                                    </span>
                                 {% else %}
-                                    <span class="badge bg-danger">Deactivated</span>
+                                    <span class="status rejected">
+                                        <i class="bi bi-x-circle-fill"></i> Deactivated
+                                    </span>
                                 {% endif %}
-                            </td>
-                        </tr>
-                    </table>
+                            </span>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <br>
-
-            <!-- Role-Specific Information -->
-            {% if viewed_user.role == 'doctor' and profile %}
-            <div class="card">
-                <h4>
-                    <i class="bi bi-briefcase"></i>
-                    Doctor Information
-                </h4>
-                <div class="card-content">
-                    <table class="table table-borderless">
-                        <tr>
-                            <th width="30%">Specialization:</th>
-                            <td>
+                <!-- Role-Specific Information -->
+                {% if viewed_user.role == 'doctor' and profile %}
+                <div class="detail-card">
+                    <div class="detail-card-header">
+                        <h4>
+                            <i class="bi bi-briefcase"></i>
+                            Doctor Information
+                        </h4>
+                    </div>
+                    <div class="detail-card-content">
+                        <div class="info-item">
+                            <span class="info-label">Specialization</span>
+                            <span class="info-value">
                                 {% if additional_data.specialization %}
-                                    <span class="badge bg-primary">{{ additional_data.specialization }}</span>
+                                    <span class="badge-users bg-info text-uppercas">{{ additional_data.specialization }}</span>
                                 {% else %}
                                     <span class="text-muted">Not specified</span>
                                 {% endif %}
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>License Number:</th>
-                            <td><code>{{ additional_data.license_number }}</code></td>
-                        </tr>
-                        <tr>
-                            <th>Years of Experience:</th>
-                            <td>{{ additional_data.years_experience }} years</td>
-                        </tr>
-                        <tr>
-                            <th>Approval Status:</th>
-                            <td>
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">License Number</span>
+                            <span class="info-value">
+                                <code>{{ additional_data.license_number }}</code>
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Years of Experience</span>
+                            <span class="info-value">{{ additional_data.years_experience }} years</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Approval Status</span>
+                            <span class="info-value">
                                 {% if additional_data.is_approved %}
-                                    <span class="badge bg-success">Approved</span>
+                                    <span class="status approved">
+                                        <i class="bi bi-check-circle-fill"></i> Approved
+                                    </span>
                                     {% if additional_data.approved_at %}
                                         <small class="text-muted">on {{ additional_data.approved_at|date:"M d, Y" }}</small>
                                     {% endif %}
                                 {% elif additional_data.is_rejected %}
-                                    <span class="badge bg-danger">Rejected</span>
+                                    <span class="status rejected">
+                                        <i class="bi bi-x-circle-fill"></i> Rejected
+                                    </span>
                                 {% else %}
-                                    <span class="badge bg-warning">Pending</span>
+                                    <span class="status pending">
+                                        <i class="bi bi-clock-fill"></i> Pending
+                                    </span>
                                 {% endif %}
-                            </td>
-                        </tr>
-                    </table>
+                            </span>
+                        </div>
+                    </div>
                     
                     {% if additional_data.bio %}
-                    <div class="mt-3">
-                        <h5>Biography</h5>
-                        <p style="white-space: pre-wrap;">{{ additional_data.bio }}</p>
+                    <div class="detail-card-section">
+                        <h5><i class="bi bi-file-text"></i> Biography</h5>
+                        <p class="bio-text">{{ additional_data.bio }}</p>
                     </div>
                     {% endif %}
                     
                     {% if additional_data.qualifications %}
-                    <div class="mt-3">
-                        <h5>Qualifications</h5>
-                        <p style="white-space: pre-wrap;">{{ additional_data.qualifications }}</p>
+                    <div class="detail-card-section">
+                        <h5><i class="bi bi-award"></i> Qualifications</h5>
+                        <p class="bio-text">{{ additional_data.qualifications }}</p>
                     </div>
                     {% endif %}
                 </div>
-            </div>
-            {% endif %}
+                {% endif %}
 
-            <br>
-
-            <!-- Recent Activity -->
-            <div class="card">
-                <h4>
-                    <i class="bi bi-clock-history"></i>
-                    Recent Activity
-                </h4>
-                <div class="card-content">
-                    {% if recent_activities %}
-                    <div class="activity-list">
-                        {% for activity in recent_activities %}
-                        <div class="activity-item">
-                            <div class="activity-icon">
-                                {% if activity.action_type == 'create' %}
-                                    <i class="bi bi-plus-circle text-success"></i>
-                                {% elif activity.action_type == 'update' %}
-                                    <i class="bi bi-pencil text-warning"></i>
-                                {% elif activity.action_type == 'delete' %}
-                                    <i class="bi bi-trash text-danger"></i>
-                                {% else %}
-                                    <i class="bi bi-circle text-muted"></i>
-                                {% endif %}
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-action">
-                                    <strong>{{ activity.action_type|title }}</strong> 
-                                    {{ activity.model_name }}
-                                    {% if activity.related_object_repr %}
-                                        - {{ activity.related_object_repr }}
+                <!-- Recent Activity -->
+                <div class="detail-card full-width">
+                    <div class="detail-card-header">
+                        <h4>
+                            <i class="bi bi-clock-history"></i>
+                            Recent Activity
+                        </h4>
+                    </div>
+                    <div class="detail-card-content">
+                        {% if recent_activities %}
+                        <div class="activity-timeline">
+                            {% for activity in recent_activities %}
+                            <div class="activity-item-timeline">
+                                <div class="activity-icon-circle">
+                                    {% if activity.action_type == 'create' %}
+                                        <i class="bi bi-plus-circle"></i>
+                                    {% elif activity.action_type == 'update' %}
+                                        <i class="bi bi-pencil"></i>
+                                    {% elif activity.action_type == 'delete' %}
+                                        <i class="bi bi-trash"></i>
+                                    {% else %}
+                                        <i class="bi bi-circle"></i>
                                     {% endif %}
                                 </div>
-                                <div class="activity-time">
-                                    <i class="bi bi-clock"></i>
-                                    {{ activity.timestamp|date:"M d, Y h:i A" }}
+                                <div class="activity-content-timeline">
+                                    <div class="activity-action">
+                                        <strong>{{ activity.action_type|title }}</strong> 
+                                        {{ activity.model_name }}
+                                        {% if activity.related_object_repr %}
+                                            - {{ activity.related_object_repr }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="activity-time">
+                                        <i class="bi bi-clock"></i>
+                                        {{ activity.timestamp|date:"M d, Y h:i A" }}
+                                    </div>
+                                    {% if activity.description %}
+                                    <div class="activity-description">
+                                        {{ activity.description }}
+                                    </div>
+                                    {% endif %}
                                 </div>
-                                {% if activity.description %}
-                                <div class="activity-description">
-                                    {{ activity.description }}
-                                </div>
-                                {% endif %}
                             </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
+                        {% else %}
+                        <div class="empty-state-text">
+                            <i class="bi bi-inbox"></i>
+                            <p>No recent activity</p>
+                        </div>
+                        {% endif %}
                     </div>
-                    {% else %}
-                    <p class="text-muted">No recent activity</p>
-                    {% endif %}
                 </div>
-            </div>
 
-            <br>
+                <!-- Account Management -->
+                {% if viewed_user != user %}
+                <div class="detail-card full-width">
+                    <div class="detail-card-header">
+                        <h4>
+                            <i class="bi bi-gear"></i>
+                            Account Management
+                        </h4>
+                    </div>
+                    <div class="detail-card-content">
+                        <div class="action-buttons-grid">
+                            {% if viewed_user.role == 'doctor' and profile %}
+                                {% if not profile.is_approved and not profile.is_rejected %}
+                                    <a href="{% url 'manager_approve_doctor' profile.id %}" 
+                                       class="action-btn action-approve">
+                                        <i class="bi bi-check-lg"></i> Approve Doctor
+                                    </a>
+                                    <a href="{% url 'manager_reject_doctor' profile.id %}" 
+                                       class="action-btn action-reject">
+                                        <i class="bi bi-x-lg"></i> Reject Doctor
+                                    </a>
+                                {% endif %}
+                            {% endif %}
 
-            <!-- Actions -->
-            {% if viewed_user != user %}
-            <div class="card">
-                <h4>
-                    <i class="bi bi-gear"></i>
-                    Account Management
-                </h4><br>
-                <div class="card-content">
-                    <div class="action-buttons-grid">
-                        {% if viewed_user.role == 'doctor' and profile %}
-                            {% if not profile.is_approved and not profile.is_rejected %}
-                                <a href="{% url 'manager_approve_doctor' profile.id %}" 
-                                   class="btn btn-success">
-                                    <i class="bi bi-check-lg"></i> Approve Doctor
+                            <a href="{% url 'manager_change_user_role' viewed_user.id %}" 
+                               class="action-btn action-edit">
+                                <i class="bi bi-arrow-left-right"></i> Change Role
+                            </a>
+
+                            {% if viewed_user.is_active %}
+                                <a href="{% url 'manager_deactivate_user' viewed_user.id %}" 
+                                   class="action-btn action-deactivate">
+                                    <i class="bi bi-person-x"></i> Deactivate Account
                                 </a>
-                                <a href="{% url 'manager_reject_doctor' profile.id %}" 
-                                   class="btn btn-danger">
-                                    <i class="bi bi-x-lg"></i> Reject Doctor
+                            {% else %}
+                                <a href="{% url 'manager_activate_user' viewed_user.id %}" 
+                                   class="action-btn action-activate">
+                                    <i class="bi bi-person-check"></i> Activate Account
                                 </a>
                             {% endif %}
-                        {% endif %}
-
-                        <a href="{% url 'manager_change_user_role' viewed_user.id %}" 
-                           class="btn btn-warning">
-                            <i class="bi bi-arrow-left-right"></i> Change Role
-                        </a>
-
-                        {% if viewed_user.is_active %}
-                            <a href="{% url 'manager_deactivate_user' viewed_user.id %}" 
-                               class="btn btn-danger">
-                                <i class="bi bi-person-x"></i> Deactivate Account
-                            </a>
-                        {% else %}
-                            <a href="{% url 'manager_activate_user' viewed_user.id %}" 
-                               class="btn btn-success">
-                                <i class="bi bi-person-check"></i> Activate Account
-                            </a>
-                        {% endif %}
+                        </div>
                     </div>
                 </div>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
-
-        <style>
-            .user-detail-header {
-                margin-bottom: 20px;
-            }
-
-            .user-header-content {
-                display: flex;
-                align-items: center;
-                gap: 20px;
-            }
-
-            .user-detail-avatar {
-                width: 100px;
-                height: 100px;
-                border-radius: 50%;
-                overflow: hidden;
-                flex-shrink: 0;
-            }
-
-            .user-detail-avatar img {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-            }
-
-            .avatar-fallback-large {
-                width: 100px;
-                height: 100px;
-                border-radius: 50%;
-                background: linear-gradient(135deg, var(--primary) 0%, #326edd 100%);
-                color: white;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 40px;
-                font-weight: 700;
-            }
-
-            .user-detail-info h3 {
-                margin: 0 0 8px 0;
-                font-size: 24px;
-            }
-
-            .user-detail-meta {
-                margin: 0;
-                display: flex;
-                gap: 8px;
-                align-items: center;
-            }
-
-            .activity-list {
-                display: flex;
-                flex-direction: column;
-                gap: 16px;
-            }
-
-            .activity-item {
-                display: flex;
-                gap: 12px;
-                padding: 12px;
-                background: var(--bg-muted);
-                border-radius: 8px;
-            }
-
-            .activity-icon {
-                font-size: 20px;
-            }
-
-            .activity-content {
-                flex: 1;
-            }
-
-            .activity-action {
-                font-size: 14px;
-                margin-bottom: 4px;
-            }
-
-            .activity-time {
-                font-size: 12px;
-                color: var(--text-muted);
-            }
-
-            .activity-description {
-                font-size: 13px;
-                color: var(--text-muted);
-                margin-top: 4px;
-            }
-
-            .action-buttons-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 12px;
-            }
-
-            .action-buttons-grid .btn {
-                width: 100%;
-                justify-content: center;
-            }
-
-            code {
-                background: #f8f9fa;
-                padding: 2px 6px;
-                border-radius: 4px;
-                font-family: monospace;
-                font-size: 0.9em;
-                color: #e83e8c;
-            }
-        </style>
     {% endif %}
 {% endblock %}
