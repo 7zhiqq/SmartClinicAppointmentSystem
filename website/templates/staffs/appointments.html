@@ -11,6 +11,15 @@
     {% if user.is_authenticated %}
         {% include "components/sidebar/staff.html" %}
 
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
         <div class="main-content">
             <div class="schedule-header mb-4">
                 <div>
@@ -184,19 +193,19 @@
                                 </span>
                             </td>
                             <td class="actions-cell">
-                                <div class="action-buttons" id="actions-{{ a.id }}">
+                                <div class="action-buttons" id="actions-{{ da.id }}">
                                     {% if da.status == 'pending' %}
-                                        <button class="btn-action approve-btn" data-id="{{ da.id }}" data-type="self" title="Approve">
+                                        <button class="btn-action approve-btn" data-id="{{ da.id }}" data-type="dependent" title="Approve">
                                             <i class="bi bi-check-lg"></i>
                                         </button>
-                                        <button class="btn-action reject-btn" data-id="{{ da.id }}" data-type="self" title="Reject">
+                                        <button class="btn-action reject-btn" data-id="{{ da.id }}" data-type="dependent" title="Reject">
                                             <i class="bi bi-x"></i>
                                         </button>
                                     {% elif da.status == 'approved' %}
-                                        <button class="btn-action complete-btn" data-id="{{ da.id }}" data-type="self" title="Mark Complete">
+                                        <button class="btn-action complete-btn" data-id="{{ da.id }}" data-type="dependent" title="Mark Complete">
                                             <i class="bi bi-check-circle-fill"></i>
                                         </button>
-                                        <button class="btn-action no-show-btn" data-id="{{ da.id }}" data-type="self" title="Mark No Show">
+                                        <button class="btn-action no-show-btn" data-id="{{ da.id }}" data-type="dependent" title="Mark No Show">
                                             <i class="bi bi-x-circle"></i>
                                         </button>
                                         <a href="{% url 'reschedule_appointment' da.id %}" class="btn-action reschedule-btn" title="Reschedule">

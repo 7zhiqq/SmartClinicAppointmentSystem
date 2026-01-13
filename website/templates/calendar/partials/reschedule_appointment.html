@@ -5,45 +5,256 @@
 {% include "components/sidebar/staff.html" %}
 
 <div class="main-content">
-    <h2>Reschedule Appointment</h2>
-    <p>Patient: 
-        {% if appointment.patient %}
-            {{ appointment.patient.get_full_name }}
-        {% elif appointment.dependent_patient %}
-            {{ appointment.dependent_patient.get_full_name }}
-        {% else %}
-            Unknown
-        {% endif %}
-    </p>
+    <!-- Page Header -->
+    <div class="appointments-header">
+        <div class="header-top">
+            <div>
+                <h1 class="heading-title">
+                    <i class="fas fa-calendar-alt"></i>
+                    Reschedule Appointment
+                </h1>
+                <p class="subtitle">Modify the appointment date and time</p>
+            </div>
+        </div>
+    </div>
 
-    <p>Doctor: {{ appointment.doctor.user.get_full_name }}</p>
+    <!-- Appointment Info Card -->
+    <div class="table-container" style="margin-bottom: var(--space-2xl);">
+        <div style="padding: var(--space-xl);">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-lg);">
+                <div>
+                    <div style="font-size: var(--font-size-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-xs);">Patient</div>
+                    <div style="font-weight: var(--font-weight-semibold); color: var(--text-main); font-size: var(--font-size-md);">
+                        {{ patient_name }}
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size: var(--font-size-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-xs);">Doctor</div>
+                    <div style="font-weight: var(--font-weight-semibold); color: var(--text-main); font-size: var(--font-size-md);">{{ appointment.doctor.user.get_full_name }}</div>
+                </div>
+                <div>
+                    <div style="font-size: var(--font-size-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-xs);">Patient Type</div>
+                    <div style="font-weight: var(--font-weight-semibold); color: var(--text-main); font-size: var(--font-size-md);">
+                        {% if appointment_type == 'dependent' %}
+                            <span style="color: var(--info);"><i class="fas fa-users"></i> Dependent</span>
+                        {% else %}
+                            <span style="color: var(--success);"><i class="fas fa-user"></i> Self</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Doctor's Schedule Section -->
+    <div class="table-container" style="margin-bottom: var(--space-2xl);">
+        <div style="padding: var(--space-xl); background: linear-gradient(135deg, rgba(79, 70, 229, 0.05), transparent);">
+            <h2 style="font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); color: var(--text-main); margin-bottom: var(--space-lg); display: flex; align-items: center; gap: var(--space-md);">
+                <i class="fas fa-calendar-week" style="color: var(--primary);"></i>
+                Dr. {{ appointment.doctor.user.get_full_name }}'s Schedule
+            </h2>
+
+            <!-- Weekly Schedule -->
+            <div style="margin-bottom: var(--space-2xl);">
+                <h3 style="font-size: var(--font-size-md); font-weight: var(--font-weight-semibold); color: var(--text-secondary); margin-bottom: var(--space-md); text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="far fa-clock" style="color: var(--primary);"></i> Regular Weekly Hours
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-md);">
+                    {% for schedule in weekly_schedule %}
+                        <div style="background: var(--white); padding: var(--space-md); border-radius: var(--radius-md); border: 2px solid {% if schedule.available %}var(--success-light){% else %}var(--border-light){% endif %}; transition: all var(--transition-fast);">
+                            <div style="font-weight: var(--font-weight-bold); color: {% if schedule.available %}var(--success){% else %}var(--text-muted){% endif %}; margin-bottom: var(--space-xs); font-size: var(--font-size-sm);">
+                                {{ schedule.day }}
+                            </div>
+                            {% if schedule.available %}
+                                <div style="font-size: var(--font-size-xs); color: var(--text-secondary);">
+                                    {{ schedule.start_time }} - {{ schedule.end_time }}
+                                </div>
+                            {% else %}
+                                <div style="font-size: var(--font-size-xs); color: var(--text-muted); font-style: italic;">
+                                    Not Available
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Custom Availabilities -->
+            {% if custom_schedule %}
+            <div style="margin-bottom: var(--space-2xl);">
+                <h3 style="font-size: var(--font-size-md); font-weight: var(--font-weight-semibold); color: var(--text-secondary); margin-bottom: var(--space-md); text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-star" style="color: var(--warning);"></i> Special Availability (Next 30 Days)
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-md);">
+                    {% for custom in custom_schedule %}
+                        <div style="background: var(--white); padding: var(--space-md); border-radius: var(--radius-md); border: 2px solid var(--warning-light); transition: all var(--transition-fast);">
+                            <div style="font-weight: var(--font-weight-bold); color: var(--warning); margin-bottom: var(--space-xs); font-size: var(--font-size-sm);">
+                                <i class="far fa-calendar-alt"></i> {{ custom.date_formatted }}
+                            </div>
+                            <div style="font-size: var(--font-size-xs); color: var(--text-muted); margin-bottom: var(--space-xs);">
+                                {{ custom.day }}
+                            </div>
+                            <div style="font-size: var(--font-size-xs); color: var(--text-secondary);">
+                                <i class="far fa-clock"></i> {{ custom.start_time }} - {{ custom.end_time }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Upcoming Booked Appointments -->
+            {% if upcoming_appointments %}
+            <div>
+                <h3 style="font-size: var(--font-size-md); font-weight: var(--font-weight-semibold); color: var(--text-secondary); margin-bottom: var(--space-md); text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-calendar-check" style="color: var(--danger);"></i> Booked Time Slots (Next 2 Weeks)
+                </h3>
+                <div style="background: var(--white); border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-light);">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: var(--bg-muted);">
+                            <tr>
+                                <th style="padding: var(--space-md); text-align: left; font-size: var(--font-size-xs); color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px;">Date</th>
+                                <th style="padding: var(--space-md); text-align: left; font-size: var(--font-size-xs); color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px;">Time</th>
+                                <th style="padding: var(--space-md); text-align: left; font-size: var(--font-size-xs); color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px;">Patient</th>
+                                <th style="padding: var(--space-md); text-align: left; font-size: var(--font-size-xs); color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for appt in upcoming_appointments %}
+                            <tr style="border-bottom: 1px solid var(--border-light);">
+                                <td style="padding: var(--space-md); font-size: var(--font-size-sm); color: var(--text-secondary);">
+                                    <i class="far fa-calendar"></i> {{ appt.start_time|date:"M d, Y" }}
+                                </td>
+                                <td style="padding: var(--space-md); font-size: var(--font-size-sm); color: var(--text-secondary); font-weight: var(--font-weight-semibold);">
+                                    {{ appt.start_time|date:"h:i A" }} - {{ appt.end_time|date:"h:i A" }}
+                                </td>
+                                <td style="padding: var(--space-md); font-size: var(--font-size-sm); color: var(--text-secondary);">
+                                    {{ appt.patient }}
+                                </td>
+                                <td style="padding: var(--space-md);">
+                                    <span class="status-badge status-{{ appt.status }}">{{ appt.status }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 
     <!-- Display Messages -->
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="border-radius: var(--radius-lg); margin-bottom: var(--space-xl); animation: fadeIn 0.4s var(--ease-out);">
                 {{ message }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         {% endfor %}
     {% endif %}
 
-    <form method="POST">
-        {% csrf_token %}
-        <div class="mb-3">
-            <label for="start" class="form-label">Start Time</label>
-            <input type="datetime-local" name="start" id="start" class="form-control"
-                   value="{{ appointment.start_time|date:'Y-m-d\TH:i' }}" required>
-        </div>
-        <div class="mb-3">
-            <label for="end" class="form-label">End Time</label>
-            <input type="datetime-local" name="end" id="end" class="form-control"
-                   value="{{ appointment.end_time|date:'Y-m-d\TH:i' }}" required>
-        </div>
-        <button type="submit" class="btn btn-primary">Reschedule</button>
-        <a href="{% if user.role == 'doctor' %}{% url 'doctor_appointments' %}{% else %}{% url 'appointments' %}{% endif %}" 
-         class="btn btn-secondary">Cancel</a>
+    <!-- Reschedule Form -->
+    <div class="table-container">
+        <form method="POST" style="padding: var(--space-2xl);">
+            {% csrf_token %}
+            
+            <!-- ✅ ADD THIS HIDDEN FIELD -->
+            <input type="hidden" name="appointment_type" value="{{ appointment_type }}">
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xl); margin-bottom: var(--space-2xl);">
+                <div class="form-group">
+                    <label for="start" style="display: block; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text-main); margin-bottom: var(--space-sm); text-transform: uppercase; letter-spacing: 0.3px;">
+                        <i class="far fa-clock" style="color: var(--primary); margin-right: var(--space-xs);"></i>
+                        Start Time
+                    </label>
+                    <input type="datetime-local" 
+                           name="start" 
+                           id="start" 
+                           class="form-control"
+                           style="padding: 12px 16px; background: var(--white); border: 2px solid var(--border-light); border-radius: var(--radius-lg); transition: all var(--transition-fast); width: 100%; font-size: var(--font-size-md); color: var(--text-main); font-family: var(--font-main);"
+                           value="{{ appointment.start_time|date:'Y-m-d\TH:i' }}" 
+                           required>
+                </div>
 
-    </form>
+                <div class="form-group">
+                    <label for="end" style="display: block; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text-main); margin-bottom: var(--space-sm); text-transform: uppercase; letter-spacing: 0.3px;">
+                        <i class="far fa-clock" style="color: var(--primary); margin-right: var(--space-xs);"></i>
+                        End Time
+                    </label>
+                    <input type="datetime-local" 
+                           name="end" 
+                           id="end" 
+                           class="form-control"
+                           style="padding: 12px 16px; background: var(--white); border: 2px solid var(--border-light); border-radius: var(--radius-lg); transition: all var(--transition-fast); width: 100%; font-size: var(--font-size-md); color: var(--text-main); font-family: var(--font-main);"
+                           value="{{ appointment.end_time|date:'Y-m-d\TH:i' }}" 
+                           required>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: var(--space-md); justify-content: flex-end; padding-top: var(--space-xl); border-top: 1px solid var(--border-light);">
+                <a href="{% if user.role == 'doctor' %}{% url 'doctor_appointments' %}{% else %}{% url 'appointments' %}{% endif %}" 
+                   class="btn btn-secondary"
+                   style="padding: 10px 20px; background: var(--gray-100); color: var(--text-main); text-decoration: none; border: 1px solid var(--border-light); border-radius: var(--radius-lg); font-size: var(--font-size-sm); white-space: nowrap; display: inline-flex; align-items: center; gap: var(--space-md); font-weight: var(--font-weight-semibold); transition: all var(--transition-fast); text-transform: uppercase; letter-spacing: 0.3px;">
+                    <i class="fas fa-times"></i>
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="new-appointment-btn"
+                        style="padding: 10px 20px; background: var(--primary); color: var(--white); border: none; cursor: pointer;">
+                    <i class="fas fa-check"></i>
+                    Reschedule Appointment
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
+
+<style>
+/* Form input hover and focus states */
+.form-control:hover {
+    border-color: var(--primary-light) !important;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08) !important;
+}
+
+.form-control:focus {
+    outline: none !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15) !important;
+    background: rgba(79, 70, 229, 0.02) !important;
+}
+
+/* Button hover effects */
+.new-appointment-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .form-control {
+        font-size: var(--font-size-sm) !important;
+    }
+    
+    div[style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+    
+    div[style*="justify-content: flex-end"] {
+        flex-direction: column-reverse;
+    }
+    
+    .new-appointment-btn,
+    .btn-secondary {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
 {% endblock %}
