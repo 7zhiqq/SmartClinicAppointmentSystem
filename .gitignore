@@ -6,7 +6,7 @@ db.py
 *.sqlite3
 
 # Django settings 
-settings.py
+
 
 # Migrations
 accounts/migrations/

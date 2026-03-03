@@ -76,18 +76,17 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 ACCOUNT_LOGOUT_ON_GET = True
 
-# Email settings for allauth
-ACCOUNT_EMAIL_REQUIRED = False  # Changed to False for social accounts
-ACCOUNT_USERNAME_REQUIRED = False  # Changed to False - we'll auto-generate username
-ACCOUNT_AUTHENTICATION_METHOD = 'email'  # Changed to email only
-ACCOUNT_EMAIL_VERIFICATION = 'none'  # Changed to none for social accounts
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_EMAIL_VERIFICATION = 'none'
 
 # Social account settings
-SOCIALACCOUNT_AUTO_SIGNUP = True  # Auto-signup without showing form
+SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_EMAIL_REQUIRED = True
-SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'  # Skip email verification for social
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
 SOCIALACCOUNT_QUERY_EMAIL = True
-SOCIALACCOUNT_LOGIN_ON_GET = True  # Auto-login on callback
+SOCIALACCOUNT_LOGIN_ON_GET = True
 
 # Custom adapters
 ACCOUNT_ADAPTER = 'accounts.adapters.CustomAccountAdapter'
