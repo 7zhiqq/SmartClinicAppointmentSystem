@@ -1,0 +1,267 @@
+{% extends "components/base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/archive.css' %}">
+
+{% if user.is_authenticated and user.role == "manager" %}
+    {% include "components/sidebar/manager.html" %}
+
+    <div class="main-content">
+        <div class="reactivate-confirm-wrapper">
+            <div class="reactivate-header">
+                <i class="bi bi-person-check success-icon"></i>
+                <h2>Reactivate User Account</h2>
+                <p class="success-text">
+                    <strong>✓ This will restore access to the user account</strong><br>
+                    The user will be able to log in and access all features again.
+                </p>
+            </div>
+
+            <div class="patient-summary success">
+                <h3>User Information</h3>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <span class="label">Name:</span>
+                        <span class="value">{{ viewed_user.get_full_name|default:viewed_user.username }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Username:</span>
+                        <span class="value">{{ viewed_user.username }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Email:</span>
+                        <span class="value">{{ viewed_user.email }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Role:</span>
+                        <span class="value">
+                            <span class="badge bg-primary text-uppercase">{{ viewed_user.role }}</span>
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Current Status:</span>
+                        <span class="value">
+                            <span class="badge bg-danger">Deactivated</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="affected-records success">
+                <h3>What will happen:</h3>
+                <ul>
+                    <li><i class="bi bi-check-circle"></i> User will regain login access</li>
+                    <li><i class="bi bi-check-circle"></i> All user data will remain intact</li>
+                    <li><i class="bi bi-check-circle"></i> User can resume normal activities</li>
+                    <li><i class="bi bi-info-circle" style="color: #3b82f6;"></i> Activity will be logged for audit</li>
+                </ul>
+            </div>
+
+            <form method="post" class="reactivate-form">
+                {% csrf_token %}
+                
+                <div class="confirmation-message">
+                    <i class="bi bi-info-circle"></i>
+                    <p>Are you sure you want to reactivate this user account?</p>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-person-check"></i> Reactivate Account
+                    </button>
+                    <a href="{% url 'manager_user_details' viewed_user.id %}" class="btn btn-secondary">
+                        <i class="bi bi-x"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endif %}
+
+<style>
+.reactivate-confirm-wrapper {
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 30px;
+    background: var(--bg-card);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    border: 2px solid #10b981;
+}
+
+.reactivate-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #10b981;
+}
+
+.success-icon {
+    font-size: 3rem;
+    color: #10b981;
+    margin-bottom: 10px;
+}
+
+.reactivate-header h2 {
+    color: #10b981;
+    margin-bottom: 10px;
+}
+
+.success-text {
+    color: var(--text-main);
+    font-size: 14px;
+    max-width: 500px;
+    margin: 0 auto;
+    background: rgba(16, 185, 129, 0.1);
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.patient-summary.success {
+    background: rgba(16, 185, 129, 0.05);
+    border: 1px solid #10b981;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.patient-summary h3 {
+    font-size: 16px;
+    margin-bottom: 15px;
+    color: var(--text-main);
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.summary-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.summary-item .label {
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.summary-item .value {
+    color: var(--text-main);
+}
+
+.affected-records.success {
+    background: rgba(16, 185, 129, 0.1);
+    border-left: 4px solid #10b981;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.affected-records h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    color: var(--text-main);
+}
+
+.affected-records ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.affected-records li {
+    padding: 6px 0;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.affected-records li i {
+    color: #10b981;
+}
+
+.confirmation-message {
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 4px solid #3b82f6;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.confirmation-message i {
+    font-size: 1.5rem;
+    color: #3b82f6;
+}
+
+.confirmation-message p {
+    margin: 0;
+    color: var(--text-main);
+    font-weight: 500;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.action-buttons .btn {
+    flex: 1;
+    padding: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-success {
+    background: #10b981;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-secondary {
+    background: var(--gray-100);
+    color: var(--text-main);
+    border: 1px solid var(--border-light);
+}
+
+.btn-secondary:hover {
+    background: var(--gray-200);
+    border-color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+    .reactivate-confirm-wrapper {
+        margin: 20px;
+        padding: 20px;
+    }
+
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+}
+</style>
+{% endblock %}

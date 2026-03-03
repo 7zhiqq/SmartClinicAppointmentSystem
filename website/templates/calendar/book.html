@@ -1,41 +1,286 @@
 {% extends "components/base.html" %}
-{% load custom_filters %}
 {% load static %}
-    
+
+{% block title %}Book Appointment{% endblock %}
+
 {% block content %}
-    <link rel="stylesheet" href="{% static 'css/book-appointment.css' %}">
-    {% if user.is_authenticated %}
-        {% include "components/sidebar/patient.html" %}
-        <div class="main-content">
-            <div class="appointment-wrapper">
-                <h2>Confirm Appointment</h2>
-                <p><strong>Doctor:</strong> Dr. {{ doctor.user.get_full_name }}</p>
-                <p><strong>Date & Time:</strong> {{ start|slice:":16" }}</p>
+<link rel="stylesheet" href="{% static 'css/edit-profile.css' %}">
 
-                <form method="post">
-                    {% csrf_token %}
+{% if user.is_authenticated and user.role == 'patient' %}
+    {% include "components/sidebar/patient.html" %}
+    
+    <div class="main-content">
+        <div class="edit-profile-wrapper">
+            <h2>
+                <i class="bi bi-calendar-plus"></i>
+                Book Appointment
+            </h2>
 
-                    <input type="hidden" name="doctor_id" value="{{ doctor.id }}">
-                    <input type="hidden" name="start" value="{{ start }}">
-                    <input type="hidden" name="end" value="{{ end }}">
-
-                    <label>Book appointment for:</label>
-                    <select name="patient_type" required>
-                        <option value="self">Myself</option>
-                        {% for dep in dependents %}
-                            <option value="{{ dep.patient_id }}">
-                                {{ dep.first_name }} {{ dep.last_name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-
-
-                    <br><br>
-
-                    <button type="submit">Confirm Appointment</button>
-                </form>
+            <!-- Doctor Information Card -->
+            <div style="background: var(--primary); color: white; padding: 20px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px var(--primary);">
+                <h4 style="margin: 0 0 15px 0; font-size: 1.3em;">
+                    <i class="bi bi-person-badge" style="color: white"></i> 
+                    Dr. {{ doctor.user.get_full_name }}
+                </h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div>
+                        <small style="opacity: 0.9;">Specialization</small>
+                        <p style="margin: 5px 0 0; font-weight: 600;">
+                            {{ doctor.specialization.name|default:"General Practice" }}
+                        </p>
+                    </div>
+                    <div>
+                        <small style="opacity: 0.9;">Date</small>
+                        <p style="margin: 5px 0 0; font-weight: 600;" id="display-date"></p>
+                    </div>
+                    <div>
+                        <small style="opacity: 0.9;">Time</small>
+                        <p style="margin: 5px 0 0; font-weight: 600;" id="display-time"></p>
+                    </div>
+                </div>
             </div>
-            
+
+            <form method="post" id="appointmentForm">
+                {% csrf_token %}
+                
+                <!-- Hidden fields -->
+                <input type="hidden" name="start" value="{{ start }}">
+                <input type="hidden" name="end" value="{{ end }}">
+                
+                <!-- Patient Selection -->
+                <div class="form-group">
+                    <label style="font-weight: 600; margin-bottom: 12px; display: block;">
+                        <i class="bi bi-person-check"></i> Select Patient
+                    </label>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        <!-- Self -->
+                        <div class="form-check" style="margin-bottom: 12px; padding: 12px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
+                            <input class="form-check-input" type="radio" name="patient_type" 
+                                   id="patient_self" value="self" checked>
+                            <label class="form-check-label" for="patient_self" style="cursor: pointer; width: 100%;">
+                                <strong>{{ user.get_full_name }}</strong>
+                                <span class="badge bg-primary" style="margin-left: 10px;">Self</span>
+                            </label>
+                        </div>
+                        
+                        <!-- Dependents -->
+                        {% if dependents %}
+                            {% for dependent in dependents %}
+                            <div class="form-check" style="margin-bottom: 12px; padding: 12px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
+                                <input class="form-check-input" type="radio" name="patient_type" 
+                                       id="patient_{{ dependent.patient_id }}" 
+                                       value="{{ dependent.patient_id }}">
+                                <label class="form-check-label" for="patient_{{ dependent.patient_id }}" style="cursor: pointer; width: 100%;">
+                                    <strong>{{ dependent.full_name }}</strong>
+                                    <span class="badge bg-info" style="margin-left: 10px;">Dependent</span>
+                                    <small style="display: block; color: #6c757d; margin-top: 4px;">
+                                        {{ dependent.relationship|title }} • Age: {{ dependent.age }}
+                                    </small>
+                                </label>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-actions" style="margin-top: 25px;">
+                    <button type="button" class="btn btn-primary btn-lg" id="confirmBookingBtn" 
+                            style="min-width: 200px;">
+                        <i class="bi bi-check-circle"></i> Book Appointment
+                    </button>
+                    <a href="{% url 'patient_calendar' %}" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </a>
+                </div>
+            </form>
         </div>
-    {% endif %}
+    </div>
+
+    <!-- ✅ CONFIRMATION MODAL -->
+    <div class="modal fade" id="confirmationModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border: none; border-radius: 16px; overflow: hidden;">
+                <div class="modal-header" style="background: var(--primary)">
+                    <h5 class="modal-title" style="font-weight: 600;">
+                        <i class="bi bi-clipboard-check"></i> Confirm Appointment
+                    </h5>
+                </div>
+                
+                <div class="modal-body" style="padding: 25px;">
+                    <p style="color: #6c757d; margin-bottom: 20px;">
+                        Please review your appointment details before confirming:
+                    </p>
+                    
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid var(--primary);">
+                        <div style="margin-bottom: 15px;">
+                            <small style="color: #6c757d; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Patient</small>
+                            <p id="confirm-patient" style="margin: 5px 0 0; font-weight: 600; font-size: 1.1em;"></p>
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <small style="color: #6c757d; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Doctor</small>
+                            <p id="confirm-doctor" style="margin: 5px 0 0; font-weight: 600;"></p>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <small style="color: #6c757d; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Date</small>
+                                <p id="confirm-date" style="margin: 5px 0 0; font-weight: 600;"></p>
+                            </div>
+                            <div>
+                                <small style="color: #6c757d; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Time</small>
+                                <p id="confirm-time" style="margin: 5px 0 0; font-weight: 600;"></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #007bff;">
+                        <p style="margin: 0; color: #004085; font-size: 0.9em;">
+                            <i class="bi bi-info-circle"></i> 
+                            <strong>Note:</strong> Your appointment will be pending approval. You'll be notified once confirmed.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="modal-footer" style="border: none; padding: 20px; background: #f8f9fa;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-arrow-left"></i> Go Back
+                    </button>
+                    <button type="button" class="btn btn-success" id="finalConfirmBtn">
+                        <i class="bi bi-check-circle-fill"></i> Confirm Booking
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Parse and display date/time
+    const startTime = new Date("{{ start }}");
+    const endTime = new Date("{{ end }}");
+    
+    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
+    
+    document.getElementById('display-date').textContent = startTime.toLocaleDateString('en-US', dateOptions);
+    document.getElementById('display-time').textContent = 
+        startTime.toLocaleTimeString('en-US', timeOptions) + ' - ' + 
+        endTime.toLocaleTimeString('en-US', timeOptions);
+    
+    // Handle confirmation modal
+    const form = document.getElementById('appointmentForm');
+    const confirmBtn = document.getElementById('confirmBookingBtn');
+    const finalConfirmBtn = document.getElementById('finalConfirmBtn');
+    const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    
+    // Show modal when booking button is clicked
+    confirmBtn.addEventListener('click', function() {
+        // Get selected patient
+        const selectedPatient = document.querySelector('input[name="patient_type"]:checked');
+        const patientLabel = document.querySelector(`label[for="${selectedPatient.id}"]`);
+        const patientName = patientLabel.querySelector('strong').textContent;
+        const patientBadge = patientLabel.querySelector('.badge').textContent;
+        
+        // Update modal content
+        document.getElementById('confirm-patient').innerHTML = 
+            patientName + ' <span class="badge bg-' + 
+            (patientBadge === 'Self' ? 'primary' : 'info') + 
+            ' ms-2">' + patientBadge + '</span>';
+        
+        document.getElementById('confirm-doctor').textContent = 
+            'Dr. {{ doctor.user.get_full_name }}' + 
+            '{{ doctor.specialization.name|default:"" }}' ? 
+            ' ({{ doctor.specialization.name }})' : '';
+        
+        document.getElementById('confirm-date').textContent = 
+            startTime.toLocaleDateString('en-US', dateOptions);
+        
+        document.getElementById('confirm-time').textContent = 
+            startTime.toLocaleTimeString('en-US', timeOptions) + ' - ' + 
+            endTime.toLocaleTimeString('en-US', timeOptions);
+        
+        // Show modal
+        modal.show();
+    });
+    
+    // Handle final confirmation
+    finalConfirmBtn.addEventListener('click', function() {
+        // Show loading state
+        finalConfirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Booking...';
+        finalConfirmBtn.disabled = true;
+        
+        // Submit form
+        form.submit();
+    });
+    
+    // Add hover effect to patient selection
+    document.querySelectorAll('.form-check').forEach(item => {
+        item.addEventListener('mouseenter', function() {
+            this.style.borderColor = '#667eea';
+            this.style.transform = 'translateX(5px)';
+            this.style.transition = 'all 0.3s ease';
+        });
+        
+        item.addEventListener('mouseleave', function() {
+            const radio = this.querySelector('input[type="radio"]');
+            this.style.borderColor = radio.checked ? '#667eea' : '#e0e0e0';
+            this.style.transform = 'translateX(0)';
+        });
+        
+        item.addEventListener('click', function() {
+            document.querySelectorAll('.form-check').forEach(check => {
+                check.style.borderColor = '#e0e0e0';
+            });
+            this.style.borderColor = '#667eea';
+        });
+    });
+});
+</script>
+
+<style>
+.form-check-input:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-primary {
+    background: var(--primary);
+    border: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--primary-hover);
+}
+
+.btn-success {
+    background: var(--primary);
+    border: none;
+    font-weight: 600;
+}
+
+.btn-success:hover {
+    background: var(--primary-hover);
+}
+
+.modal-content {
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
 {% endblock %}

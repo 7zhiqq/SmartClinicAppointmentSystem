@@ -1,0 +1,83 @@
+{% extends 'components/base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/login.css' %}">
+
+<div class="layout-container">
+    <div class="left-panel">
+        <img src="{% static 'images/building.jpg' %}" alt="Clinic Building" class="building-image">
+        <div class="left-text">
+            <img src="{% static 'images/westpoint.png' %}" alt="WestPoint Logo" class="logo">
+            <h1>Complete Your Registration</h1>
+            <p>Just one more step to complete your account setup with Google.</p>
+        </div>
+    </div>
+
+    <div class="right-panel">
+        <div class="form-card">
+            <h3 class="title">Finalize Your Account</h3>
+            <p class="subtitle">Please confirm your details below</p>
+
+            <form method="post" class="signup-form">
+                {% csrf_token %}
+                
+                {{ form.as_p }}
+
+                <button type="submit" class="btn-primary">
+                    Complete Registration
+                </button>
+            </form>
+
+            <p class="signup-text" style="margin-top: 20px;">
+                <a href="{% url 'home' %}">Cancel and go back</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .signup-form p {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .signup-form label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-main);
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .signup-form input,
+    .signup-form select {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 8px;
+        border: 2px solid var(--border-light);
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .signup-form input:focus,
+    .signup-form select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+    }
+
+    .errorlist {
+        list-style: none;
+        margin: 8px 0 0 0;
+        padding: 8px 12px;
+        background: var(--danger-bg);
+        border-left: 4px solid var(--danger);
+        color: var(--danger);
+        font-size: 12px;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}

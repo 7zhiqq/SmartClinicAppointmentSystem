@@ -21,6 +21,8 @@ from itertools import chain
 from django.core.exceptions import ValidationError
 from website.services.appointment_recommender import get_appointment_recommendations
 from website.services.export_service import ReportExporter
+from django.contrib.messages import get_messages
+
 
 from accounts.models import Phone, User
 
@@ -69,7 +71,6 @@ from .forms import (
 )
 
 def home(request):
-
     # LOGIN HANDLING
     if request.method == "POST":
         user = authenticate(
@@ -79,6 +80,11 @@ def home(request):
         )
         if user:
             login(request, user)
+            
+            # CLEAR any leftover messages after successful login
+            storage = get_messages(request)
+            storage.used = True
+            
             if user.role == "manager":
                 return redirect("manager_dashboard")
             return redirect("home")
@@ -411,6 +417,10 @@ def home(request):
 @login_required
 def logout_user(request):
     logout(request)
+    # Clear messages on logout
+    storage = get_messages(request)
+    storage.used = True
+    
     messages.success(request, "You have been logged out.")
     return redirect("home")
 
@@ -437,6 +447,7 @@ def account_settings(request):
                 user.save()
                 
                 messages.success(request, "Your account information has been updated successfully.")
+                # Stay on settings page
                 return redirect('account_settings')
         
         elif tab == 'security':
@@ -447,15 +458,11 @@ def account_settings(request):
                 current_password = form_security.cleaned_data['current_password']
                 new_password = form_security.cleaned_data['new_password1']
                 
-                # Verify current password
                 if not user.check_password(current_password):
                     form_security.add_error('current_password', 'Current password is incorrect.')
                 else:
-                    # Set new password
                     user.set_password(new_password)
                     user.save()
-                    
-                    # Keep the user logged in after password change
                     update_session_auth_hash(request, user)
                     
                     messages.success(request, "Your password has been changed successfully.")
@@ -680,7 +687,8 @@ def edit_my_patient_info(request):
             )
 
             messages.success(request, "Profile updated successfully.")
-            return redirect("medical_records")
+            # IMPORTANT: Redirect to stay on same page or go to specific page
+            return redirect("medical_records")  # or wherever appropriate
 
         except ValidationError as e:
             for message in e.messages:
@@ -1039,7 +1047,7 @@ def manager_approve_doctor(request, doctor_id):
 
         # Send email notification
         subject = "Your Doctor Profile Has Been Approved"
-        message = f"Hello {doctor.user.get_full_name()},\n\nYour doctor profile has been approved. You can now access all doctor features on the platform.\n\nBest regards,\nThe Team"
+        message = f"Hello {doctor.user.get_full_name()},\n\nYour doctor profile has been approved. You can now access all doctor features on the platform.\n\nBest regards,\nWestPoint Team"
         send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [doctor.user.email])
 
         messages.success(request, f"{doctor.user.get_full_name()} has been approved.")
@@ -1074,7 +1082,7 @@ def manager_reject_doctor(request, doctor_id):
 
         # Send email
         subject = "Your Doctor Profile Has Been Rejected"
-        message = f"Hello {doctor.user.get_full_name()},\n\nWe regret to inform you that your doctor profile has been rejected. Please review your submission and try again.\n\nBest regards,\nThe Team"
+        message = f"Hello {doctor.user.get_full_name()},\n\nWe regret to inform you that your doctor profile has been rejected. Please review your submission and try again.\n\nBest regards,\nWestPoint Team"
         send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [doctor.user.email])
 
         messages.success(request, f"{doctor.user.get_full_name()} has been rejected.")
@@ -1116,9 +1124,16 @@ def view_doctors(request):
         messages.error(request, "Access denied.")
         return redirect("home")
 
-    # Fetch only approved doctors and annotate with ratings
-    approved_doctors = DoctorInfo.objects.filter(is_approved=True).select_related("user").annotate(
-        average_rating=Avg('ratings__rating'),  # <--- use 'ratings' instead of 'rating'
+    # ✅ CLEAR any lingering messages before loading the page
+    storage = get_messages(request)
+    storage.used = True
+
+    # Fetch only approved AND ACTIVE doctors
+    approved_doctors = DoctorInfo.objects.filter(
+        is_approved=True,
+        user__is_active=True
+    ).select_related("user").annotate(
+        average_rating=Avg('ratings__rating'),
         rating_count=Count('ratings')
     ).order_by("user__last_name")
 
@@ -1131,17 +1146,88 @@ def view_doctors(request):
     })
 
 
+# ==================== ALTERNATIVE SOLUTION ====================
+# If you want to only clear SUCCESS messages (keep errors):
+
+@login_required
+def view_doctors(request):
+    # Only allow staff or patients
+    if request.user.role not in ["staff", "patient"]:
+        messages.error(request, "Access denied.")
+        return redirect("home")
+
+    # ✅ CLEAR only success messages (keep error/warning messages)
+    storage = get_messages(request)
+    messages_to_keep = []
+    
+    for message in storage:
+        if message.level_tag != 'success':
+            messages_to_keep.append(message)
+    
+    # Re-add non-success messages
+    for msg in messages_to_keep:
+        messages.add_message(request, msg.level, msg.message, msg.extra_tags)
+
+    # Fetch only approved AND ACTIVE doctors
+    approved_doctors = DoctorInfo.objects.filter(
+        is_approved=True,
+        user__is_active=True
+    ).select_related("user").annotate(
+        average_rating=Avg('ratings__rating'),
+        rating_count=Count('ratings')
+    ).order_by("user__last_name")
+
+    # Pass a stars list to template
+    stars = [1, 2, 3, 4, 5]
+
+    return render(request, "view_doctors.html", {
+        "doctors": approved_doctors,
+        "stars": stars
+    })
+
+@login_required
+def view_doctors(request):
+    # Only allow staff or patients
+    if request.user.role not in ["staff", "patient"]:
+        messages.error(request, "Access denied.")
+        return redirect("home")
+
+    # Fetch only approved AND ACTIVE doctors
+    approved_doctors = DoctorInfo.objects.filter(
+        is_approved=True,
+        user__is_active=True  # NEW: Only show active doctors
+    ).select_related("user").annotate(
+        average_rating=Avg('ratings__rating'),
+        rating_count=Count('ratings')
+    ).order_by("user__last_name")
+
+    # Pass a stars list to template
+    stars = [1, 2, 3, 4, 5]
+
+    return render(request, "view_doctors.html", {
+        "doctors": approved_doctors,
+        "stars": stars
+    })
+
+
+# ===== CHANGE 2: Update patient_appointment_calendar() =====
+# In views.py, find patient_appointment_calendar and update it:
+
 @login_required
 def patient_appointment_calendar(request):
     if request.user.role != "patient":
         return redirect("home")
 
-    doctors = DoctorInfo.objects.filter(is_approved=True).select_related("user")
+    # Only show approved AND ACTIVE doctors
+    doctors = DoctorInfo.objects.filter(
+        is_approved=True,
+        user__is_active=True 
+    ).select_related("user")
 
     return render(request, "calendar/patient_calendar.html", {
         "doctors": doctors
     })
-
+    
 @login_required
 def appointment_details(request, pk):
     # Only patient can view their own appointment
@@ -1161,9 +1247,10 @@ def book_appointment(request):
     dependents = DependentPatient.objects.filter(guardian=request.user)
 
     if request.method == "POST":
-        patient_type = request.POST.get("patient_type")  # "self" or dependent.patient_id
+        patient_type = request.POST.get("patient_type")
 
         with transaction.atomic():
+            # Check for conflicts
             conflict_self = Appointment.objects.select_for_update().filter(
                 doctor=doctor,
                 start_time__lt=end,
@@ -1182,6 +1269,10 @@ def book_appointment(request):
                 messages.error(request, "This time slot was just booked. Please choose another.")
                 return redirect("patient_calendar")
 
+            # Parse datetime for detailed message
+            start_dt = parse_datetime(start)
+            end_dt = parse_datetime(end)
+            
             # Create appointment
             if patient_type == "self":
                 appointment = Appointment.objects.create(
@@ -1191,6 +1282,11 @@ def book_appointment(request):
                     end_time=end,
                     status="pending"
                 )
+                
+                patient_name = request.user.get_full_name()
+                appointment_id = appointment.id
+                
+                # Log activity
                 ActivityLog.objects.create(
                     user=request.user,
                     action_type="create",
@@ -1198,6 +1294,7 @@ def book_appointment(request):
                     object_id=str(appointment.id),
                     related_object_repr=str(appointment)
                 )
+                
             else:
                 dependent = get_object_or_404(
                     DependentPatient,
@@ -1211,6 +1308,11 @@ def book_appointment(request):
                     end_time=end,
                     status="pending"
                 )
+                
+                patient_name = dependent.full_name
+                appointment_id = appointment.id
+                
+                # Log activity
                 ActivityLog.objects.create(
                     user=request.user,
                     action_type="create",
@@ -1219,8 +1321,12 @@ def book_appointment(request):
                     related_object_repr=str(appointment)
                 )
 
-        messages.success(request, "Appointment requested successfully.")
-        return redirect("patient_calendar")
+        messages.success(
+            request,
+            f'Appointment successfully requested! '
+        )
+        
+        return redirect("patient_appointments")
 
     return render(request, "calendar/book.html", {
         "doctor": doctor,
@@ -1228,7 +1334,8 @@ def book_appointment(request):
         "end": end,
         "dependents": dependents
     })
-    
+
+ 
 @login_required
 @doctor_approved_required
 def doctor_schedule(request):
@@ -1870,12 +1977,14 @@ def update_appointment_status(request, pk, action):
 
     # Update status
     old_status = appointment.status
+    
     if action == "approve":
         appointment.status = "approved"
     elif action == "reject":
         appointment.status = "rejected"
     elif action == "complete":
         appointment.status = "completed"
+        # FIXED: Only create CompletedAppointment for self appointments
         if appointment_type == "self":
             CompletedAppointment.objects.get_or_create(appointment=appointment)
     elif action == "no_show":
@@ -1887,13 +1996,15 @@ def update_appointment_status(request, pk, action):
 
     # Log activity
     ActivityLog.objects.create(
-        user=request.user,  # who performed the action
+        user=request.user,
         action_type="update",
         model_name=model_name,
         object_id=str(appointment.id),
         related_object_repr=str(appointment),
         description=f"Status changed from {old_status} to {appointment.status}"
     )
+    
+    
 
     return JsonResponse({
         "id": appointment.id,
@@ -1902,8 +2013,28 @@ def update_appointment_status(request, pk, action):
 
 @login_required
 def reschedule_appointment(request, pk):
-    appointment = get_object_or_404(Appointment, pk=pk)
-
+    # Determine appointment type from POST or GET parameter
+    appointment_type = request.POST.get('appointment_type') or request.GET.get('appointment_type', 'self')
+    
+    # ✅ FIX: Try to auto-detect appointment type if not provided
+    if not request.POST.get('appointment_type') and not request.GET.get('appointment_type'):
+        # Try to find as dependent first
+        if DependentAppointment.objects.filter(pk=pk).exists():
+            appointment_type = 'dependent'
+        else:
+            appointment_type = 'self'
+    
+    # Get the appropriate appointment
+    if appointment_type == 'dependent':
+        appointment = get_object_or_404(DependentAppointment, pk=pk)
+        patient_name = appointment.dependent_patient.full_name
+        patient = appointment.dependent_patient
+    else:
+        appointment = get_object_or_404(Appointment, pk=pk)
+        patient_name = appointment.patient.get_full_name() if appointment.patient else "Unknown"
+        patient = appointment.patient
+    
+    # Permission check
     if request.user.role == "staff":
         pass
     elif request.user.role == "doctor":
@@ -1913,126 +2044,250 @@ def reschedule_appointment(request, pk):
     else:
         messages.error(request, "Unauthorized")
         return redirect("home")
-
+    
+    # Get doctor's schedule information
+    doctor = appointment.doctor
+    
+    # Regular weekly schedule
+    day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    weekly_schedule = []
+    for weekday in range(7):
+        availability = doctor.availabilities.filter(weekday=weekday).first()
+        weekly_schedule.append({
+            'day': day_names[weekday],
+            'weekday': weekday,
+            'available': availability is not None,
+            'start_time': availability.start_time.strftime('%I:%M %p') if availability else None,
+            'end_time': availability.end_time.strftime('%I:%M %p') if availability else None,
+        })
+    
+    # Custom availabilities (next 30 days)
+    today = timezone.now().date()
+    custom_availabilities = doctor.custom_availabilities.filter(
+        date__gte=today,
+        date__lte=today + timedelta(days=30)
+    ).order_by('date')
+    
+    custom_schedule = []
+    for custom in custom_availabilities:
+        custom_schedule.append({
+            'date': custom.date,
+            'date_formatted': custom.date.strftime('%B %d, %Y'),
+            'day': custom.date.strftime('%A'),
+            'start_time': custom.start_time.strftime('%I:%M %p'),
+            'end_time': custom.end_time.strftime('%I:%M %p'),
+        })
+    
+    # Get upcoming booked appointments for this doctor (next 14 days)
+    upcoming_appointments = []
+    end_date = today + timedelta(days=14)
+    
+    # Self appointments
+    self_appointments = Appointment.objects.filter(
+        doctor=doctor,
+        start_time__date__gte=today,
+        start_time__date__lte=end_date,
+        status__in=['approved', 'pending']
+    ).exclude(pk=pk if appointment_type == 'self' else None).order_by('start_time')
+    
+    # Dependent appointments
+    dependent_appointments = DependentAppointment.objects.filter(
+        doctor=doctor,
+        start_time__date__gte=today,
+        start_time__date__lte=end_date,
+        status__in=['approved', 'pending']
+    ).exclude(pk=pk if appointment_type == 'dependent' else None).order_by('start_time')
+    
+    # Combine and sort with correct patient names AND convert to local timezone
+    for appt in self_appointments:
+        local_start = timezone.localtime(appt.start_time)
+        local_end = timezone.localtime(appt.end_time)
+        upcoming_appointments.append({
+            'date': local_start.date(),
+            'start_time': local_start,
+            'end_time': local_end,
+            'patient': appt.patient.get_full_name(),
+            'status': appt.status,
+            'type': 'self'
+        })
+    
+    for appt in dependent_appointments:
+        local_start = timezone.localtime(appt.start_time)
+        local_end = timezone.localtime(appt.end_time)
+        upcoming_appointments.append({
+            'date': local_start.date(),
+            'start_time': local_start,
+            'end_time': local_end,
+            'patient': appt.dependent_patient.full_name,
+            'status': appt.status,
+            'type': 'dependent'
+        })
+    
+    upcoming_appointments.sort(key=lambda x: x['start_time'])
+    
     if request.method == "POST":
         new_start = request.POST.get("start")
         new_end = request.POST.get("end")
-
+        
         if not new_start or not new_end:
             messages.error(request, "Start and end times are required.")
             return render(request, "calendar/partials/reschedule_appointment.html", {
-                "appointment": appointment
+                "appointment": appointment,
+                "appointment_type": appointment_type,
+                "patient_name": patient_name,
+                "weekly_schedule": weekly_schedule,
+                "custom_schedule": custom_schedule,
+                "upcoming_appointments": upcoming_appointments,
             })
-
+        
         try:
-            new_start_dt = parse_datetime(new_start)
-            new_end_dt = parse_datetime(new_end)
-        except:
+            # Parse datetime-local input (format: 2025-01-15T14:30)
+            new_start_dt = datetime.strptime(new_start, '%Y-%m-%dT%H:%M')
+            new_end_dt = datetime.strptime(new_end, '%Y-%m-%dT%H:%M')
+            
+            # Make timezone-aware (convert from local time to UTC for storage)
+            if timezone.is_naive(new_start_dt):
+                new_start_dt = timezone.make_aware(new_start_dt)
+            if timezone.is_naive(new_end_dt):
+                new_end_dt = timezone.make_aware(new_end_dt)
+                
+        except Exception as e:
+            print(f"DateTime parsing error: {e}")
             messages.error(request, "Invalid date/time format.")
             return render(request, "calendar/partials/reschedule_appointment.html", {
-                "appointment": appointment
+                "appointment": appointment,
+                "appointment_type": appointment_type,
+                "patient_name": patient_name,
+                "weekly_schedule": weekly_schedule,
+                "custom_schedule": custom_schedule,
+                "upcoming_appointments": upcoming_appointments,
             })
-
+        
         if new_start_dt >= new_end_dt:
             messages.error(request, "End time must be after start time.")
             return render(request, "calendar/partials/reschedule_appointment.html", {
-                "appointment": appointment
+                "appointment": appointment,
+                "appointment_type": appointment_type,
+                "patient_name": patient_name,
+                "weekly_schedule": weekly_schedule,
+                "custom_schedule": custom_schedule,
+                "upcoming_appointments": upcoming_appointments,
             })
-
-        # Check for conflicting approved appointments
-        conflict = Appointment.objects.filter(
+        
+        # Check conflicts for BOTH self and dependent appointments
+        conflict_self = Appointment.objects.filter(
             doctor=appointment.doctor,
             start_time__lt=new_end_dt,
             end_time__gt=new_start_dt,
             status="approved"
-        ).exclude(pk=appointment.pk).exists()
-
-        if conflict:
+        ).exclude(pk=pk if appointment_type == 'self' else None).exists()
+        
+        conflict_dependent = DependentAppointment.objects.filter(
+            doctor=appointment.doctor,
+            start_time__lt=new_end_dt,
+            end_time__gt=new_start_dt,
+            status="approved"
+        ).exclude(pk=pk if appointment_type == 'dependent' else None).exists()
+        
+        if conflict_self or conflict_dependent:
             messages.error(request, "This time slot is already booked.")
             return render(request, "calendar/partials/reschedule_appointment.html", {
-                "appointment": appointment
+                "appointment": appointment,
+                "appointment_type": appointment_type,
+                "patient_name": patient_name,
+                "weekly_schedule": weekly_schedule,
+                "custom_schedule": custom_schedule,
+                "upcoming_appointments": upcoming_appointments,
             })
-
-        # ============ NEW: Check if the new time is within doctor's availability ============
-        doctor = appointment.doctor
-        new_date = new_start_dt.date()
-        new_start_time = new_start_dt.time()
-        new_end_time = new_end_dt.time()
-        weekday = new_start_dt.weekday()
         
-        # Get day name for error message
-        day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        # Check availability - convert to local time for validation
+        local_start_dt = timezone.localtime(new_start_dt)
+        local_end_dt = timezone.localtime(new_end_dt)
+        new_date = local_start_dt.date()
+        new_start_time = local_start_dt.time()
+        new_end_time = local_end_dt.time()
+        weekday = local_start_dt.weekday()
         day_name = day_names[weekday]
-
-        # Check for custom availability first
-        custom_avail = doctor.custom_availabilities.filter(date=new_date).first()
         
+        custom_avail = doctor.custom_availabilities.filter(date=new_date).first()
         if custom_avail:
-            # Check if new time falls within custom availability
             if not (new_start_time >= custom_avail.start_time and new_end_time <= custom_avail.end_time):
-                messages.error(request, f"The selected time is outside Dr. {doctor.user.get_full_name()}'s availability on {new_date.strftime('%B %d, %Y')}.")
+                messages.error(request, f"The selected time is outside Dr. {doctor.user.get_full_name()}'s availability.")
                 return render(request, "calendar/partials/reschedule_appointment.html", {
-                    "appointment": appointment
+                    "appointment": appointment,
+                    "appointment_type": appointment_type,
+                    "patient_name": patient_name,
+                    "weekly_schedule": weekly_schedule,
+                    "custom_schedule": custom_schedule,
+                    "upcoming_appointments": upcoming_appointments,
                 })
         else:
-            # Check regular weekly availability
             regular_avail = doctor.availabilities.filter(weekday=weekday).first()
-            
             if not regular_avail:
-                messages.error(request, f"Dr. {doctor.user.get_full_name()} is not available on {day_name}s ({new_date.strftime('%B %d, %Y')}).")
+                messages.error(request, f"Dr. {doctor.user.get_full_name()} is not available on {day_name}s.")
                 return render(request, "calendar/partials/reschedule_appointment.html", {
-                    "appointment": appointment
+                    "appointment": appointment,
+                    "appointment_type": appointment_type,
+                    "patient_name": patient_name,
+                    "weekly_schedule": weekly_schedule,
+                    "custom_schedule": custom_schedule,
+                    "upcoming_appointments": upcoming_appointments,
                 })
             
-            # Check if new time falls within regular availability
             if not (new_start_time >= regular_avail.start_time and new_end_time <= regular_avail.end_time):
-                messages.error(request, f"The selected time is outside Dr. {doctor.user.get_full_name()}'s availability hours ({regular_avail.start_time.strftime('%I:%M %p')} - {regular_avail.end_time.strftime('%I:%M %p')}) on {day_name}s.")
+                messages.error(request, f"The selected time is outside the doctor's availability hours.")
                 return render(request, "calendar/partials/reschedule_appointment.html", {
-                    "appointment": appointment
+                    "appointment": appointment,
+                    "appointment_type": appointment_type,
+                    "patient_name": patient_name,
+                    "weekly_schedule": weekly_schedule,
+                    "custom_schedule": custom_schedule,
+                    "upcoming_appointments": upcoming_appointments,
                 })
-
-        # ============ END: Availability check ============
-
+        
+        # Save the changes
         old_start, old_end = appointment.start_time, appointment.end_time
         appointment.start_time = new_start_dt
         appointment.end_time = new_end_dt
         appointment.status = "pending"
         appointment.save()
-
+        
         # Log activity
         ActivityLog.objects.create(
             user=request.user,
             action_type="update",
-            model_name="Appointment",
+            model_name="DependentAppointment" if appointment_type == 'dependent' else "Appointment",
             object_id=str(appointment.id),
             related_object_repr=str(appointment),
             description=f"Rescheduled from {old_start}–{old_end} to {new_start_dt}–{new_end_dt}"
         )
-
+        
         messages.success(request, "Appointment rescheduled successfully!")
-
         if request.user.role == "staff":
             return redirect("appointments")
         elif request.user.role == "doctor":
             return redirect("doctor_appointments")
-
+    
     return render(request, "calendar/partials/reschedule_appointment.html", {
-        "appointment": appointment
+        "appointment": appointment,
+        "appointment_type": appointment_type,
+        "patient_name": patient_name,
+        "weekly_schedule": weekly_schedule,
+        "custom_schedule": custom_schedule,
+        "upcoming_appointments": upcoming_appointments,
     })
   
 @login_required
 def cancel_appointment(request, pk):
-    """Allow patient to cancel their own appointment request"""
+    """Allow patient to cancel their own appointment"""
     if request.user.role != "patient":
         messages.error(request, "Only patients can cancel appointments.")
         return redirect("home")
     
     try:
-        # Try to find self appointment
         appointment = Appointment.objects.get(pk=pk, patient=request.user)
         is_dependent = False
     except Appointment.DoesNotExist:
-        # Try to find dependent appointment
         try:
             appointment = DependentAppointment.objects.get(
                 pk=pk, 
@@ -2043,14 +2298,13 @@ def cancel_appointment(request, pk):
             messages.error(request, "Appointment not found.")
             return redirect("patient_appointments")
     
-    # Allow cancellation only for pending or approved appointments
     if appointment.status not in ['pending', 'approved']:
         messages.error(request, f"Cannot cancel a {appointment.status} appointment.")
         return redirect("patient_appointments")
     
     if request.method == "POST":
         old_status = appointment.status
-        appointment.status = "rejected"  # Mark as rejected/cancelled
+        appointment.status = "rejected"
         appointment.save()
         
         # Log activity
@@ -2070,7 +2324,7 @@ def cancel_appointment(request, pk):
         "appointment": appointment,
         "is_dependent": is_dependent
     })
-  
+    
 @login_required
 def patient_appointments(request):
     if request.user.role != "patient":
@@ -2091,10 +2345,12 @@ def patient_appointments(request):
         key=lambda a: a.start_time
     )
 
+    # ✅ Note: Messages will automatically be cleared after being displayed once
+    # The template should show messages, and they'll be consumed automatically
+    
     return render(request, "patients/appointments.html", {
         "appointments": appointments
     })
-
 
 @login_required
 @doctor_approved_required
@@ -2824,6 +3080,8 @@ def manager_users_list(request):
             users = users.filter(role='doctor', doctor_info__is_approved=True)
         elif status_filter == 'rejected':
             users = users.filter(role='doctor', doctor_info__is_rejected=True)
+        elif status_filter == 'deactivated':  # NEW: Filter for deactivated users
+            users = users.filter(is_active=False)
     
     # Get counts for statistics
     total_doctors = User.objects.filter(role='doctor').count()
@@ -2845,7 +3103,10 @@ def manager_users_list(request):
             'additional_info': {}
         }
         
-        if user.role == 'doctor':
+        # UPDATED: Check deactivated status FIRST
+        if not user.is_active:
+            user_data['status'] = 'deactivated'
+        elif user.role == 'doctor':
             user_data['profile'] = getattr(user, 'doctor_info', None)
             if user_data['profile']:
                 if user_data['profile'].is_approved:
@@ -2981,6 +3242,7 @@ def manager_deactivate_user(request, user_id):
 
 
 @login_required
+@login_required
 def manager_activate_user(request, user_id):
     """Reactivate a user account (manager only)"""
     if request.user.role != "manager":
@@ -2993,21 +3255,24 @@ def manager_activate_user(request, user_id):
         messages.info(request, "User is already active.")
         return redirect('manager_users_list')
     
-    user.is_active = True
-    user.save()
+    if request.method == 'POST':
+        user.is_active = True
+        user.save()
+        
+        # Log activity
+        ActivityLog.objects.create(
+            user=request.user,
+            action_type='update',
+            model_name='User',
+            object_id=str(user.id),
+            related_object_repr=user.get_full_name() or user.username,
+            description="Reactivated user account"
+        )
+        
+        messages.success(request, f"User {user.get_full_name() or user.username} has been reactivated.")
+        return redirect('manager_users_list')
     
-    # Log activity
-    ActivityLog.objects.create(
-        user=request.user,
-        action_type='update',
-        model_name='User',
-        object_id=str(user.id),
-        related_object_repr=user.get_full_name() or user.username,
-        description="Reactivated user account"
-    )
-    
-    messages.success(request, f"User {user.get_full_name() or user.username} has been reactivated.")
-    return redirect('manager_users_list')
+    return render(request, 'managers/confirm_reactivate_user.html', {'viewed_user': user})
 
 
 @login_required
@@ -3138,8 +3403,9 @@ def manager_dashboard(request):
     # === OVERVIEW METRICS ===
     # Users
     total_doctors = User.objects.filter(role='doctor').count()
-    active_doctors = DoctorInfo.objects.filter(is_approved=True).count()
+    active_doctors = DoctorInfo.objects.filter(is_approved=True, user__is_active=True).count()  
     pending_doctors = DoctorInfo.objects.filter(is_approved=False, is_rejected=False).count()
+    deactivated_doctors = User.objects.filter(role='doctor', is_active=False).count() 
     total_staff = User.objects.filter(role='staff').count()
     
     # Patient counts
@@ -3304,9 +3570,11 @@ def manager_dashboard(request):
         'total_doctors': total_doctors,
         'active_doctors': active_doctors,
         'pending_doctors': pending_doctors,
+        'deactivated_doctors': deactivated_doctors, # NEW
         'total_staff': total_staff,
         'total_patients': total_patients, 
         'total_dependents': total_dependents,
+        'total_self_patients': total_self_patients,
         'total_appointments': total_appointments,
         'pending_appointments': pending_appointments,
         'completed_appointments': completed_appointments,
@@ -3446,7 +3714,11 @@ def generate_appointments_report(start_date, end_date):
 
 def generate_doctors_report(start_date, end_date):
     """Generate doctors performance report"""
-    doctors = DoctorInfo.objects.filter(is_approved=True).select_related('user', 'specialization')
+    # UPDATED: Only include active doctors in report
+    doctors = DoctorInfo.objects.filter(
+        is_approved=True,
+        user__is_active=True  # Only active doctors
+    ).select_related('user', 'specialization')
     
     doctor_stats = []
     for doctor in doctors:
@@ -3482,16 +3754,20 @@ def generate_doctors_report(start_date, end_date):
             'appointments': appointments,
             'completed': completed,
             'rating': round(avg_rating, 1),
-            'completion_rate': round((completed / appointments * 100) if appointments > 0 else 0, 1)
+            'completion_rate': round((completed / appointments * 100) if appointments > 0 else 0, 1),
+            'status': 'Active'  # NEW: Add status label
         })
     
     doctor_stats.sort(key=lambda x: x['appointments'], reverse=True)
     
+    # NEW: Add deactivated doctors count
+    deactivated_count = User.objects.filter(role='doctor', is_active=False).count()
+    
     return {
         'total_doctors': len(doctor_stats),
         'doctor_stats': doctor_stats,
+        'deactivated_doctors': deactivated_count,  # NEW
     }
-
 
 def generate_patients_report(start_date, end_date):
     """Generate patients statistics report"""
@@ -3503,16 +3779,16 @@ def generate_patients_report(start_date, end_date):
         date_joined__date__lte=end_date
     ).count()
 
-    # Total patient accounts (self profiles)
+    # FIXED: Total patient accounts (self profiles) - ALL TIME, not filtered by date
     total_self_patients = User.objects.filter(role='patient').count()
     
-    # Total dependents
+    # FIXED: Total dependents - ALL TIME, not filtered by date
     total_dependents = DependentPatient.objects.count()
     
     # FIXED: Total patients = self patients + dependents
     total_patients = total_self_patients + total_dependents
 
-    # ✅ SAFE age distribution keys
+    # Age distribution keys
     age_groups = {
         'age_0_18': 0,
         'age_19_35': 0,
@@ -3521,7 +3797,8 @@ def generate_patients_report(start_date, end_date):
         'age_65_plus': 0
     }
 
-    # Count ages from self patients
+    # Count ages from ALL self patients who have completed their profile
+    # Note: Only patients with PatientInfo can have age data
     patients = PatientInfo.objects.all()
     for patient in patients:
         age = patient.age or 0
@@ -3537,7 +3814,7 @@ def generate_patients_report(start_date, end_date):
         else:
             age_groups['age_65_plus'] += 1
     
-    # Count ages from dependents
+    # Count ages from ALL dependents (not filtered by date)
     dependents = DependentPatient.objects.all()
     for dependent in dependents:
         age = dependent.age or 0
@@ -3553,7 +3830,7 @@ def generate_patients_report(start_date, end_date):
         else:
             age_groups['age_65_plus'] += 1
 
-    # Gender distribution from both self patients and dependents
+    # Gender distribution from ALL patients (both self and dependents)
     gender_dist = {
         'male': PatientInfo.objects.filter(gender='M').count() +
                 DependentPatient.objects.filter(gender='M').count(),
@@ -3562,10 +3839,11 @@ def generate_patients_report(start_date, end_date):
     }
 
     return {
-        'new_patients': new_patients,  # New patient accounts only
-        'total_patients': total_patients,  # FIXED: Self + Dependents
-        'total_self_patients': total_self_patients,  # Just for reference
+        'new_patients': new_patients,  # New patient accounts in the date range
+        'total_patients': total_patients,  # FIXED: Total of all patients (self + dependents)
+        'total_self_patients': total_self_patients,  # Total patient user accounts
         'total_dependents': total_dependents,
+        'patients_with_profiles': PatientInfo.objects.count(),  # Patients who completed their profile
         'age_distribution': age_groups,
         'gender_distribution': gender_dist,
     }

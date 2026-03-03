@@ -19,9 +19,11 @@
                     <a href="{% url 'logout' %}">Logout</a>
                 </div>
             {% elif not doctor_info.is_approved %}
-                <h3>Approval Pending</h3>
-                <p>Your profile is awaiting manager approval.</p>
-                <a href="{% url 'logout' %}">Logout</a>
+                <div class="alert alert-warning" role="alert" style="max-width: 600px; margin: 40px auto; padding: 20px; border: 1px solid #ffc107; border-radius: 8px; background-color: #fff3cd; color: #856404;">
+                    <h3>Approval Pending</h3>
+                    <p>Your profile is awaiting manager approval.</p>
+                    <a href="{% url 'logout' %}">Logout</a>
+                </div>
             {% else %}
                 {% include "components/sidebar/doctor.html" %}
                 <div class="main-content" id="mainContent">

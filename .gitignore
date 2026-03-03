@@ -11,3 +11,5 @@ settings.py
 # Migrations
 accounts/migrations/
 website/migrations/
+
+venv/

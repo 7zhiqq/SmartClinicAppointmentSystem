@@ -1,8 +1,9 @@
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.account.adapter import DefaultAccountAdapter
-from accounts.models import PatientProfile, Phone, User
+from accounts.models import PatientProfile, User
 from django.utils.text import slugify
-import random
+from django.core.exceptions import ValidationError
+from django.urls import reverse
 
 
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
@@ -26,7 +27,7 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         
         # Check if a user with this email already exists
         try:
-            existing_user = User.objects.get(email=email)
+            existing_user = User.objects.get(email__iexact=email)
             # Connect the social account to the existing user
             sociallogin.connect(request, existing_user)
         except User.DoesNotExist:
@@ -52,6 +53,10 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
             user.first_name = extra_data['given_name']
         if 'family_name' in extra_data:
             user.last_name = extra_data['family_name']
+        
+        # Set email (already validated by Google)
+        if 'email' in extra_data:
+            user.email = extra_data['email'].lower()
         
         # Auto-generate username from email
         if not user.username:
@@ -82,20 +87,33 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         user.role = 'patient'
         user.save()
         
-        # Create PatientProfile
-        try:
-            PatientProfile.objects.create(user=user)
-        except Exception as e:
-            print(f"Error creating PatientProfile: {e}")
+        # Create PatientProfile if it doesn't exist
+        PatientProfile.objects.get_or_create(user=user)
         
         return user
+
+    def get_login_redirect_url(self, request):
+        """
+        Role-based redirect after social login
+        """
+        user = request.user
+        
+        if user.role == 'manager':
+            return '/manager/dashboard/'
+        elif user.role == 'doctor':
+            return '/doctor/dashboard/'
+        elif user.role == 'receptionist':
+            return '/receptionist/dashboard/'
+        elif user.role == 'patient':
+            return '/'
+        else:
+            return '/'
 
 
 class CustomAccountAdapter(DefaultAccountAdapter):
     def is_open_for_signup(self, request):
         """
-        Only allow patients to sign up directly.
-        Other roles require invitation.
+        Allow patients to sign up directly.
         """
         return True
     
@@ -106,7 +124,45 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         user = super().save_user(request, user, form, commit=False)
         user.role = 'patient'
         
+        # Ensure email is lowercase for consistency
+        if user.email:
+            user.email = user.email.lower()
+        
         if commit:
             user.save()
+            # Create PatientProfile after user is saved
+            PatientProfile.objects.get_or_create(user=user)
         
         return user
+    
+    def clean_email(self, email):
+        """
+        Validate email uniqueness (case-insensitive)
+        """
+        email = super().clean_email(email)
+        email_lower = email.lower()
+        
+        # Check if email already exists (case-insensitive)
+        if User.objects.filter(email__iexact=email_lower).exists():
+            raise ValidationError(
+                "A user is already registered with this email address."
+            )
+        
+        return email_lower
+    
+    def get_login_redirect_url(self, request):
+        """
+        Role-based redirect after regular login
+        """
+        user = request.user
+        
+        if user.role == 'manager':
+            return '/manager/dashboard/'
+        elif user.role == 'doctor':
+            return '/doctor/dashboard/'
+        elif user.role == 'receptionist':
+            return '/receptionist/dashboard/'
+        elif user.role == 'patient':
+            return '/'
+        else:
+            return '/'

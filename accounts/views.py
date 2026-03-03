@@ -15,6 +15,29 @@ from .models import (
     Phone,
 )
 
+from django.contrib.auth.views import PasswordResetView
+from django.urls import reverse_lazy
+from .forms import CustomPasswordResetForm
+import logging
+
+logger = logging.getLogger(__name__)
+
+class CustomPasswordResetView(PasswordResetView):
+    template_name = 'accounts/password_reset.html'
+    email_template_name = 'accounts/password_reset_email.html'
+    subject_template_name = 'accounts/password_reset_subject.txt'
+    success_url = reverse_lazy('password_reset_done')
+    form_class = CustomPasswordResetForm  # ✅ REQUIRED
+
+    def form_valid(self, form):
+        email = form.cleaned_data["email"]
+        users = list(form.get_users(email))
+
+        logger.info(f"Password reset requested for {email}")
+        print(f"[RESET] Users found: {len(users)}")
+
+        return super().form_valid(form)
+
 # Manager Creates Invitation
 @login_required
 def create_invite(request):
